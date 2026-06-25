@@ -1,0 +1,6 @@
+Place AGM_Checkout_Report.pdf here as AGM_template.pdf
+
+The PDF must be the fillable AGM Checkout Report with all form fields intact.
+Run the field inspector script to verify field names match fieldMap.ts:
+
+  node scripts/listPdfFields.mjs

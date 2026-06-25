@@ -1,0 +1,81 @@
+{
+  "_note": "PDF form field IDs must be verified against the actual AGM_Checkout_Report.pdf template. Use a PDF inspector or pdf-lib to list all field names before finalizing.",
+  "header": {
+    "property_name": { "type": "text", "label": "Property Name" },
+    "unit_number": { "type": "text", "label": "Unit Number" },
+    "tenant_name": { "type": "text", "label": "Tenant Name" },
+    "co_tenant": { "type": "text", "label": "Co-Tenant" },
+    "forwarding_address": { "type": "text", "label": "Forwarding Street Address" },
+    "forwarding_city": { "type": "text", "label": "Forwarding City" },
+    "forwarding_state": { "type": "text", "label": "Forwarding State" },
+    "forwarding_zip": { "type": "text", "label": "Forwarding ZIP" }
+  },
+  "lease_summary": {
+    "monthly_rent": { "type": "text", "label": "Monthly Rent" },
+    "nrc_cleaning_fee": { "type": "text", "label": "NRC Cleaning Fee" },
+    "nrc_pet_fee": { "type": "text", "label": "NRC Pet Fee" },
+    "move_in_date": { "type": "text", "label": "Move-In Date" },
+    "move_out_date": { "type": "text", "label": "Move-Out Date" },
+    "paid_through_date": { "type": "text", "label": "Paid Through Date" },
+    "notice_date": { "type": "text", "label": "Notice Date" },
+    "lease_break_yes": { "type": "checkbox", "label": "Lease Break Yes" },
+    "lease_break_no": { "type": "checkbox", "label": "Lease Break No" },
+    "new_tenant_move_in_date": { "type": "text", "label": "New Tenant Move-In Date" },
+    "final_checkbox": { "type": "checkbox", "label": "Final (not Estimated)" }
+  },
+  "charges_total_cost": {
+    "general_cleaning_total": { "type": "text" },
+    "blind_drape_cleaning_total": { "type": "text" },
+    "window_covering_replacement_total": { "type": "text" },
+    "carpet_shampooing_total": { "type": "text" },
+    "flooring_restoration_total": { "type": "text" },
+    "painting_total": { "type": "text" },
+    "other1_total": { "type": "text" },
+    "other2_total": { "type": "text" },
+    "rent_due_total": { "type": "text" },
+    "utility_charge_total": { "type": "text" },
+    "legal_court_costs_total": { "type": "text" },
+    "total_costs_charges_total": { "type": "text" }
+  },
+  "charges_tenant_cost": {
+    "general_cleaning_tenant": { "type": "text" },
+    "blind_drape_cleaning_tenant": { "type": "text" },
+    "window_covering_replacement_tenant": { "type": "text" },
+    "carpet_shampooing_tenant": { "type": "text" },
+    "flooring_restoration_tenant": { "type": "text" },
+    "painting_tenant": { "type": "text" },
+    "other1_tenant": { "type": "text" },
+    "other2_tenant": { "type": "text" },
+    "rent_due_tenant": { "type": "text" },
+    "rent_due_date_range": { "type": "text" },
+    "utility_charge_tenant": { "type": "text" },
+    "utility_due_as_noted": { "type": "checkbox" },
+    "legal_court_costs_tenant": { "type": "text" },
+    "total_costs_charges_tenant": { "type": "text" }
+  },
+  "credits": {
+    "security_deposit_paid": {
+      "type": "text",
+      "note": "May be a printed line (not editable) in the current PDF template. Needs template update."
+    },
+    "other_deposits_paid": {
+      "type": "text",
+      "note": "May be a printed line (not editable) in the current PDF template. Needs template update."
+    },
+    "rent_refund_due": { "type": "text" },
+    "other_refunds": { "type": "text" },
+    "total_credits": { "type": "text" }
+  },
+  "balance": {
+    "balance_zero_checkbox": { "type": "checkbox", "label": "$0 Balance Due" },
+    "balance_due_to_tenant_checkbox": { "type": "checkbox", "label": "Balance Due to Tenant" },
+    "balance_owing_landlord_checkbox": { "type": "checkbox", "label": "Balance Owing Landlord" },
+    "balance_amount": { "type": "text", "label": "Balance Amount" }
+  },
+  "signatures": {
+    "site_manager_date": { "type": "text" },
+    "property_manager_date": { "type": "text" },
+    "date_mailed_to_tenant": { "type": "text" },
+    "mailed_by": { "type": "text" }
+  }
+}
