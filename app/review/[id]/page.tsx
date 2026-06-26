@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { ReviewScreen } from '@/components/Review';
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
