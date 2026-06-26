@@ -3,109 +3,165 @@ import { TenantReturn } from '@/types';
 import { FIELD_MAP } from './fieldMap';
 import { calcNRCOffset, calcTotalCharges, calcTotalCredits, calcBalance, formatCurrency } from './calculations';
 
-function setTextField(form: ReturnType<PDFDocument['getForm']>, fieldId: string, value: string): void {
+function setText(form: ReturnType<PDFDocument['getForm']>, fieldName: string, value: string): void {
   try {
-    const field = form.getField(fieldId);
-    if (field instanceof PDFTextField) {
-      field.setText(value);
-    }
+    const field = form.getField(fieldName);
+    if (field instanceof PDFTextField) field.setText(value);
   } catch {
-    console.warn(`PDF field not found: ${fieldId}`);
+    // Field not present in this template version — silently skip.
   }
 }
 
-function setCheckBox(form: ReturnType<PDFDocument['getForm']>, fieldId: string, checked: boolean): void {
+function setCheck(form: ReturnType<PDFDocument['getForm']>, fieldName: string, checked: boolean): void {
   try {
-    const field = form.getField(fieldId);
+    const field = form.getField(fieldName);
     if (field instanceof PDFCheckBox) {
       if (checked) field.check();
       else field.uncheck();
     }
   } catch {
-    console.warn(`PDF checkbox not found: ${fieldId}`);
+    // Field not present — silently skip.
   }
+}
+
+// Split "YYYY-MM-DD" into { month, day, year } strings for the tiny date-component fields.
+function dateParts(iso: string | null): { month: string; day: string; year: string } {
+  if (!iso) return { month: '', day: '', year: '' };
+  const [y, m, d] = iso.split('-');
+  return { month: String(parseInt(m, 10)), day: String(parseInt(d, 10)), year: y };
+}
+
+// Currency without the dollar sign, for cells that don't need the symbol.
+function amt(n: number): string {
+  return n === 0 ? '' : formatCurrency(n);
 }
 
 export async function fillAGMCheckoutPDF(
   templateBytes: ArrayBuffer,
-  tenantReturn: TenantReturn,
+  tr: TenantReturn,
   propertyName: string
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(templateBytes);
   const form = pdfDoc.getForm();
 
-  const { tenantData, depositData, manualCharges, calculatedCharges } = tenantReturn;
-  const totalCharges = calcTotalCharges(tenantReturn);
-  const totalCredits = calcTotalCredits(tenantReturn);
-  const balance = calcBalance(tenantReturn);
-  const cleaningTenantCost = calcNRCOffset(manualCharges.generalCleaning, depositData.nrcCleaningFee);
-  const otherDeposits = depositData.petDeposit + depositData.keyDeposit + depositData.garageOpenerDeposit;
+  const { tenantData: t, depositData: dep, manualCharges: mc, calculatedCharges: cc } = tr;
+  const totalCharges  = calcTotalCharges(tr);
+  const totalCredits  = calcTotalCredits(tr);
+  const balance       = calcBalance(tr);
+  const cleaningTenant = calcNRCOffset(mc.generalCleaning, dep.nrcCleaningFee);
+  const otherDeposits  = dep.petDeposit + dep.keyDeposit + dep.garageOpenerDeposit;
 
-  // Header
-  setTextField(form, FIELD_MAP.propertyName, propertyName);
-  setTextField(form, FIELD_MAP.unit, tenantData.unit);
-  setTextField(form, FIELD_MAP.tenantName, tenantData.tenantName);
-  setTextField(form, FIELD_MAP.coTenant, tenantData.coTenant);
-  setTextField(form, FIELD_MAP.forwardingStreet, tenantData.forwardingAddress.street);
-  setTextField(form, FIELD_MAP.forwardingCity, tenantData.forwardingAddress.city);
-  setTextField(form, FIELD_MAP.forwardingState, tenantData.forwardingAddress.state);
-  setTextField(form, FIELD_MAP.forwardingZip, tenantData.forwardingAddress.zip);
+  // ── Header ────────────────────────────────────────────────────────────────
+  setText(form, FIELD_MAP.propertyName, propertyName);
+  setText(form, FIELD_MAP.unit, t.unit);
 
-  // Lease summary
-  setTextField(form, FIELD_MAP.monthlyRent, formatCurrency(tenantData.monthlyRent));
-  setTextField(form, FIELD_MAP.nrcCleaningFee, formatCurrency(depositData.nrcCleaningFee));
-  setTextField(form, FIELD_MAP.nrcPetFee, formatCurrency(depositData.nrcPetFee));
-  setTextField(form, FIELD_MAP.moveInDate, tenantData.moveInDate);
-  setTextField(form, FIELD_MAP.moveOutDate, tenantData.moveOutDate);
-  setTextField(form, FIELD_MAP.paidThroughDate, tenantData.paidThroughDate);
-  setTextField(form, FIELD_MAP.noticeDate, tenantData.noticeDate);
-  setCheckBox(form, FIELD_MAP.leaseBreakYes, tenantData.leaseBreak);
-  setCheckBox(form, FIELD_MAP.leaseBreakNo, !tenantData.leaseBreak);
-  setTextField(form, FIELD_MAP.newTenantMoveInDate, tenantData.newTenantMoveInDate ?? '');
-  setCheckBox(form, FIELD_MAP.finalCheckbox, true);
+  // Mailing TO: block
+  setText(form, FIELD_MAP.tenantName, t.tenantName);
+  setText(form, FIELD_MAP.coTenant, t.coTenant);
+  setText(form, FIELD_MAP.forwardingStreet, t.forwardingAddress.street);
+  const cityStateZip = [t.forwardingAddress.city, t.forwardingAddress.state, t.forwardingAddress.zip]
+    .filter(Boolean).join(', ');
+  setText(form, FIELD_MAP.forwardingCityStateZip, cityStateZip);
 
-  // Charges — Total Cost
-  setTextField(form, FIELD_MAP.generalCleaningTotal, formatCurrency(manualCharges.generalCleaning));
-  setTextField(form, FIELD_MAP.blindDrapeCleaningTotal, formatCurrency(manualCharges.blindDrapeCleaning));
-  setTextField(form, FIELD_MAP.windowCoveringReplacementTotal, formatCurrency(manualCharges.windowCoveringReplacement));
-  setTextField(form, FIELD_MAP.carpetShampooingTotal, formatCurrency(manualCharges.carpetShampooing));
-  setTextField(form, FIELD_MAP.flooringRestorationTotal, formatCurrency(manualCharges.flooringRestoration));
-  setTextField(form, FIELD_MAP.paintingTotal, formatCurrency(manualCharges.painting));
-  setTextField(form, FIELD_MAP.other1Total, formatCurrency(manualCharges.other1));
-  setTextField(form, FIELD_MAP.other2Total, formatCurrency(manualCharges.other2));
-  setTextField(form, FIELD_MAP.rentDueTotal, formatCurrency(calculatedCharges.rentDue));
-  setTextField(form, FIELD_MAP.utilityChargeTotal, formatCurrency(calculatedCharges.utilityCharge));
-  setTextField(form, FIELD_MAP.legalCourtCostsTotal, formatCurrency(manualCharges.legalCourtCosts));
-  setTextField(form, FIELD_MAP.totalCostsChargesTotal, formatCurrency(totalCharges));
+  // ── Lease Summary ─────────────────────────────────────────────────────────
+  setCheck(form, FIELD_MAP.estimatedCheckbox, false);
+  setCheck(form, FIELD_MAP.finalCheckbox,     true);
 
-  // Charges — Tenant Cost
-  setTextField(form, FIELD_MAP.generalCleaningTenant, formatCurrency(cleaningTenantCost));
-  setTextField(form, FIELD_MAP.blindDrapeCleaningTenant, formatCurrency(manualCharges.blindDrapeCleaning));
-  setTextField(form, FIELD_MAP.windowCoveringReplacementTenant, formatCurrency(manualCharges.windowCoveringReplacement));
-  setTextField(form, FIELD_MAP.carpetShampooingTenant, formatCurrency(manualCharges.carpetShampooing));
-  setTextField(form, FIELD_MAP.flooringRestorationTenant, formatCurrency(manualCharges.flooringRestoration));
-  setTextField(form, FIELD_MAP.paintingTenant, formatCurrency(manualCharges.painting));
-  setTextField(form, FIELD_MAP.other1Tenant, formatCurrency(manualCharges.other1));
-  setTextField(form, FIELD_MAP.other2Tenant, formatCurrency(manualCharges.other2));
-  setTextField(form, FIELD_MAP.rentDueTenant, formatCurrency(calculatedCharges.rentDue));
-  setTextField(form, FIELD_MAP.rentDueDateRange, calculatedCharges.rentDueDateRange);
-  setTextField(form, FIELD_MAP.utilityChargeTenant, formatCurrency(calculatedCharges.utilityCharge));
-  setCheckBox(form, FIELD_MAP.utilityDueAsNoted, calculatedCharges.utilityCharge > 0);
-  setTextField(form, FIELD_MAP.legalCourtCostsTenant, formatCurrency(manualCharges.legalCourtCosts));
-  setTextField(form, FIELD_MAP.totalCostsChargesTenant, formatCurrency(totalCharges));
+  setText(form, FIELD_MAP.moveInDate,          t.moveInDate);
+  setText(form, FIELD_MAP.moveOutDate,         t.moveOutDate);
+  setText(form, FIELD_MAP.paidThroughDate,     t.paidThroughDate);
+  setText(form, FIELD_MAP.noticeDate,          t.noticeDate);
+  setCheck(form, FIELD_MAP.leaseBreakYes,      t.leaseBreak);
+  setCheck(form, FIELD_MAP.leaseBreakNo,       !t.leaseBreak);
+  setText(form, FIELD_MAP.newTenantMoveInDate, t.newTenantMoveInDate ?? '');
 
-  // Refunds / Credits
-  // NOTE: security_deposit_paid and other_deposits_paid may be printed (non-editable) lines
-  // in the current PDF template. These calls will silently no-op if those fields don't exist.
-  setTextField(form, FIELD_MAP.securityDepositPaid, formatCurrency(depositData.securityDeposit));
-  setTextField(form, FIELD_MAP.otherDepositsPaid, formatCurrency(otherDeposits));
-  setTextField(form, FIELD_MAP.totalCredits, formatCurrency(totalCredits));
+  setText(form, FIELD_MAP.monthlyRent,   formatCurrency(t.monthlyRent));
+  setText(form, FIELD_MAP.nrcCleaningFee, dep.nrcCleaningFee > 0 ? formatCurrency(dep.nrcCleaningFee) : '');
+  setText(form, FIELD_MAP.nrcPetFee,      dep.nrcPetFee > 0 ? formatCurrency(dep.nrcPetFee) : '');
 
-  // Balance
-  setCheckBox(form, FIELD_MAP.balanceZero, balance === 0);
-  setCheckBox(form, FIELD_MAP.balanceDueToTenant, balance > 0);
-  setCheckBox(form, FIELD_MAP.balanceOwingLandlord, balance < 0);
-  setTextField(form, FIELD_MAP.balanceAmount, formatCurrency(Math.abs(balance)));
+  // ── Charges Table ─────────────────────────────────────────────────────────
+  setText(form, FIELD_MAP.generalCleaningTotal,   amt(mc.generalCleaning));
+  setText(form, FIELD_MAP.generalCleaningTenant,  amt(cleaningTenant));
+
+  setText(form, FIELD_MAP.blindDrapeCleaningTotal,  amt(mc.blindDrapeCleaning));
+  setText(form, FIELD_MAP.blindDrapeCleaningTenant, amt(mc.blindDrapeCleaning));
+
+  setText(form, FIELD_MAP.windowCoveringReplacementTotal,  amt(mc.windowCoveringReplacement));
+  setText(form, FIELD_MAP.windowCoveringReplacementTenant, amt(mc.windowCoveringReplacement));
+
+  setText(form, FIELD_MAP.carpetShampooingTotal,  amt(mc.carpetShampooing));
+  setText(form, FIELD_MAP.carpetShampooingTenant, amt(mc.carpetShampooing));
+
+  setText(form, FIELD_MAP.flooringRestorationTotal,  amt(mc.flooringRestoration));
+  setText(form, FIELD_MAP.flooringRestorationTenant, amt(mc.flooringRestoration));
+
+  setText(form, FIELD_MAP.paintingTotal,  amt(mc.painting));
+  setText(form, FIELD_MAP.paintingTenant, amt(mc.painting));
+
+  // Other 1
+  setText(form, FIELD_MAP.other1Label,  mc.other1 > 0 ? mc.other1Label : '');
+  setText(form, FIELD_MAP.other1Total,  amt(mc.other1));
+  setText(form, FIELD_MAP.other1Tenant, amt(mc.other1));
+
+  // Other 2
+  setText(form, FIELD_MAP.other2Label,  mc.other2 > 0 ? mc.other2Label : '');
+  setText(form, FIELD_MAP.other2Total,  amt(mc.other2));
+  setText(form, FIELD_MAP.other2Tenant, amt(mc.other2));
+
+  // Rent Due — split date range into 6 component fields
+  if (cc.rentDue > 0 && cc.rentDueDateRange) {
+    const [fromPart, toPart] = cc.rentDueDateRange.split('–').map(s => s.trim());
+    // rentDueDateRange is stored as ISO dates in calculations; pdfFiller converts here
+    const fromISO = parseLocalDate(fromPart);
+    const toISO   = parseLocalDate(toPart);
+    const from = dateParts(fromISO);
+    const to   = dateParts(toISO);
+    setText(form, FIELD_MAP.rentDueFromMonth, from.month);
+    setText(form, FIELD_MAP.rentDueFromDay,   from.day);
+    setText(form, FIELD_MAP.rentDueFromYear,  from.year);
+    setText(form, FIELD_MAP.rentDueToMonth,   to.month);
+    setText(form, FIELD_MAP.rentDueToDay,     to.day);
+    setText(form, FIELD_MAP.rentDueToYear,    to.year);
+  }
+  setText(form, FIELD_MAP.rentDueTotal,   amt(cc.rentDue));
+  setText(form, FIELD_MAP.rentDueTenant,  amt(cc.rentDue));
+
+  // Utility
+  setCheck(form, FIELD_MAP.utilityDueAsNoted, cc.utilityCharge > 0);
+  setText(form, FIELD_MAP.utilityTotal,   amt(cc.utilityCharge));
+  setText(form, FIELD_MAP.utilityTenant,  amt(cc.utilityCharge));
+
+  // Legal / Court Costs
+  setText(form, FIELD_MAP.legalCourtCostsTotal,   amt(mc.legalCourtCosts));
+  setText(form, FIELD_MAP.legalCourtCostsTenant,  amt(mc.legalCourtCosts));
+
+  // Totals
+  setText(form, FIELD_MAP.totalCostsChargesTotal,   formatCurrency(totalCharges));
+  setText(form, FIELD_MAP.totalCostsChargesTenant,  formatCurrency(totalCharges));
+
+  // ── Credits ───────────────────────────────────────────────────────────────
+  setText(form, FIELD_MAP.securityDepositPaid, formatCurrency(dep.securityDeposit));
+  setText(form, FIELD_MAP.otherDepositsPaid,   otherDeposits > 0 ? formatCurrency(otherDeposits) : '');
+  setText(form, FIELD_MAP.totalCredits,         formatCurrency(totalCredits));
+
+  // ── Balance ───────────────────────────────────────────────────────────────
+  setCheck(form, FIELD_MAP.balanceZero,          balance === 0);
+  setCheck(form, FIELD_MAP.balanceDueToTenant,   balance > 0);
+  setCheck(form, FIELD_MAP.balanceOwingLandlord, balance < 0);
+  setText(form, FIELD_MAP.balanceAmount, formatCurrency(Math.abs(balance)));
 
   return pdfDoc.save();
+}
+
+// Parse a display date like "3/15/2026" or "2026-03-15" back to ISO "YYYY-MM-DD"
+function parseLocalDate(display: string): string {
+  if (!display) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(display)) return display;
+  // Try M/D/YYYY
+  const parts = display.split('/');
+  if (parts.length === 3) {
+    const [m, d, y] = parts;
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  return display;
 }
