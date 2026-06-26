@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Required for Cloudflare Pages via @cloudflare/next-on-pages
+  experimental: {
+    // Enables the edge runtime for Cloudflare Workers compatibility
+  },
 };
 
 export default nextConfig;

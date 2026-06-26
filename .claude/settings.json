@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(node scripts/*)",
+      "Bash(npx wrangler *)",
+      "Bash(git *)",
+      "Bash(ls *)",
+      "Bash(cat *)"
+    ]
+  }
+}
