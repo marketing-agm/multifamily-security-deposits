@@ -7,9 +7,7 @@ import {
   TenantReturn,
   UtilityType,
   FlatFeeBillingMethod,
-  InspectionStatus,
   ManualCharges,
-  CalculatedCharges,
 } from '@/types';
 import { computeCalculatedCharges } from './calculations';
 
@@ -150,8 +148,8 @@ export function parseAppFolioExport(buffer: ArrayBuffer): ParseResult {
       ? 'included_in_rent'
       : 'billed_at_moveout';
 
-    const inspectionRaw = str(pick(row, 'Inspection Status', 'inspection_status', 'Inspection'));
-    const inspectionStatus: InspectionStatus = inspectionRaw.toLowerCase().includes('sign') ? 'signed' : 'missing';
+    // Inspection status is always set manually by the manager in the UI (per-unit checkbox).
+    const inspectionStatus = 'missing' as const;
 
     const tenantData: TenantData = {
       tenantName,

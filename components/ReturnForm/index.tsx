@@ -28,6 +28,9 @@ export function ReturnForm({ returnId }: Props) {
       other1Label: 'Other', other1: 0, other2Label: 'Other', other2: 0, legalCourtCosts: 0,
     }
   );
+  const [inspectionSigned, setInspectionSigned] = useState(
+    tenantReturn?.tenantData.inspectionStatus === 'signed'
+  );
   const [rubsInput, setRubsInput] = useState<RUBSManualInput>(
     tenantReturn?.rubsManualInput ?? { buildingTotal: 0, unitRatio: 0 }
   );
@@ -38,7 +41,13 @@ export function ReturnForm({ returnId }: Props) {
 
   if (!tenantReturn) return null;
 
-  const withCharges = { ...tenantReturn, manualCharges, rubsManualInput: rubsInput };
+  const currentInspectionStatus: 'signed' | 'missing' = inspectionSigned ? 'signed' : 'missing';
+  const withCharges = {
+    ...tenantReturn,
+    manualCharges,
+    rubsManualInput: rubsInput,
+    tenantData: { ...tenantReturn.tenantData, inspectionStatus: currentInspectionStatus },
+  };
   const calculatedCharges = computeCalculatedCharges(withCharges);
   const displayReturn: TenantReturn = { ...withCharges, calculatedCharges };
 
@@ -47,23 +56,23 @@ export function ReturnForm({ returnId }: Props) {
   const balance = calcBalance(displayReturn);
   const cleaningTenant = calcNRCOffset(manualCharges.generalCleaning, tenantReturn.depositData.nrcCleaningFee);
 
-  function saveAndContinue() {
+  function saveProgress(extraStatus?: TenantReturn['processingStatus']) {
     updateReturn(returnId, {
       manualCharges,
       rubsManualInput: rubsInput,
       calculatedCharges,
-      processingStatus: step < 4 ? 'in_progress' : tenantReturn!.processingStatus,
+      tenantData: { ...tenantReturn!.tenantData, inspectionStatus: currentInspectionStatus },
+      processingStatus: extraStatus ?? (step < 4 ? 'in_progress' : tenantReturn!.processingStatus),
     });
+  }
+
+  function saveAndContinue() {
+    saveProgress();
     if (step < STEPS.length - 1) setStep(s => s + 1);
   }
 
   function goToReview() {
-    updateReturn(returnId, {
-      manualCharges,
-      rubsManualInput: rubsInput,
-      calculatedCharges,
-      processingStatus: 'in_progress',
-    });
+    saveProgress('in_progress');
     router.push(`/review/${returnId}`);
   }
 
@@ -86,7 +95,7 @@ export function ReturnForm({ returnId }: Props) {
               {tenantData.tenantName} · Unit {tenantData.unit}
             </h1>
           </div>
-          <InspectionBadge status={tenantData.inspectionStatus} />
+          <InspectionBadge status={currentInspectionStatus} />
           <UtilityTag type={utilityData.utilityType} />
         </div>
         {/* Step bar */}
@@ -109,7 +118,13 @@ export function ReturnForm({ returnId }: Props) {
       <div className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-2 gap-6">
         {/* Left panel — data entry / prompts */}
         <div className="space-y-4">
-          {step === 0 && <StepTenant t={tenantData} />}
+          {step === 0 && (
+            <StepTenant
+              t={tenantData}
+              inspectionSigned={inspectionSigned}
+              onInspectionChange={setInspectionSigned}
+            />
+          )}
           {step === 1 && <StepLease t={tenantData} />}
           {step === 2 && (
             <StepUtility
@@ -229,7 +244,13 @@ function SummaryRow({ label, value, bold, sub }: { label: string; value: string;
   );
 }
 
-function StepTenant({ t }: { t: TenantReturn['tenantData'] }) {
+function StepTenant({
+  t, inspectionSigned, onInspectionChange,
+}: {
+  t: TenantReturn['tenantData'];
+  inspectionSigned: boolean;
+  onInspectionChange: (v: boolean) => void;
+}) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-1">
       <h2 className="text-sm font-semibold text-gray-700 mb-3">Tenant Information</h2>
@@ -238,6 +259,25 @@ function StepTenant({ t }: { t: TenantReturn['tenantData'] }) {
       <Field label="Unit" value={t.unit} />
       <Field label="Forwarding Street" value={t.forwardingAddress.street} />
       <Field label="City / State / ZIP" value={[t.forwardingAddress.city, t.forwardingAddress.state, t.forwardingAddress.zip].filter(Boolean).join(', ')} />
+
+      <div className="pt-3 border-t border-gray-100 mt-2">
+        <label className="flex items-start gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={inspectionSigned}
+            onChange={e => onInspectionChange(e.target.checked)}
+            className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-blue-600"
+          />
+          <div>
+            <span className="text-sm font-medium text-gray-800">Signed move-in inspection is on file</span>
+            {!inspectionSigned && (
+              <p className="text-xs text-red-600 mt-0.5">
+                Without a signed inspection, deductions may be challenged in small claims court.
+              </p>
+            )}
+          </div>
+        </label>
+      </div>
     </div>
   );
 }
