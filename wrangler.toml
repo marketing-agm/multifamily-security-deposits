@@ -4,5 +4,8 @@ compatibility_flags = ["nodejs_compat"]
 
 pages_build_output_dir = ".vercel/output/static"
 
+[build]
+command = "npm install --legacy-peer-deps && npm run build:cf"
+
 [env.production]
 name = "agm-security-deposits"
