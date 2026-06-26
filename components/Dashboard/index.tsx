@@ -6,6 +6,8 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { InspectionBadge } from '@/components/shared/InspectionBadge';
 import { UtilityTag } from '@/components/shared/UtilityTag';
 import { formatCurrency } from '@/lib/calculations';
+import { formatDeadlineDate } from '@/lib/deadlineUtils';
+import { DeadlinePill } from '@/components/shared/DeadlinePill';
 import { TenantReturn } from '@/types';
 
 export function Dashboard() {
@@ -65,6 +67,8 @@ export function Dashboard() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Tenant</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Unit</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Move-Out</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Due Date</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Days Left</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Deposit</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Utility</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Inspection</th>
@@ -92,6 +96,10 @@ export function Dashboard() {
                   </td>
                   <td className="px-4 py-3 text-gray-700">{r.tenantData.unit}</td>
                   <td className="px-4 py-3 text-gray-700">{r.tenantData.moveOutDate}</td>
+                  {/* Due Date: 21-day deadline per California Civil Code §1950.5 */}
+                  <td className="px-4 py-3 text-gray-700">{formatDeadlineDate(r.tenantData.moveOutDate)}</td>
+                  {/* Days Left: color-coded urgency pill */}
+                  <td className="px-4 py-3"><DeadlinePill moveOutDate={r.tenantData.moveOutDate} /></td>
                   <td className="px-4 py-3 text-gray-700">{formatCurrency(r.depositData.securityDeposit)}</td>
                   <td className="px-4 py-3"><UtilityTag type={r.utilityData.utilityType} /></td>
                   <td className="px-4 py-3"><InspectionBadge status={r.tenantData.inspectionStatus} /></td>

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
 import { parseAppFolioExport, ParseError } from '@/lib/parser';
+import { DUMMY_SESSION } from '@/lib/dummyData';
 
 export default function UploadPage() {
   const { session, setSession } = useSession();
@@ -106,6 +107,19 @@ export default function UploadPage() {
               Parsing file...
             </div>
           )}
+
+          {/* Dev/demo banner: seeds 3 fake tenants so you can explore the UI without a real Excel file */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 flex items-center justify-between gap-4">
+            <p className="text-xs text-amber-700">
+              <span className="font-semibold">No Excel file?</span> Load 3 sample tenants to explore the tool.
+            </p>
+            <button
+              onClick={() => { setSession(DUMMY_SESSION); router.push('/dashboard'); }}
+              className="shrink-0 text-xs font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              Load demo data
+            </button>
+          </div>
 
           {errors.length > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-1">
