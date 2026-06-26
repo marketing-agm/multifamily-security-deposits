@@ -96,9 +96,6 @@ export function AgentForm({ returnId }: Props) {
         // The correction applies to either manualCharges or calculatedCharges.
         // We use spread (...) to copy the existing values and only change the one field —
         // same idea as Object.assign() in JavaScript.
-        // We use tr! (non-null assertion) here because TypeScript can't see that we already
-        // checked `if (!tr)` above and returned early. The ! tells it "trust me, it's defined."
-        // This is like casting in Java: (TenantReturn) tr — we're sure of the type.
         if (['generalCleaning', 'carpetShampooing', 'painting', 'other1'].includes(correction.field)) {
           updateReturn(tr!.id, {
             manualCharges: { ...tr!.manualCharges, [correction.field]: correction.value },
@@ -143,25 +140,25 @@ export function AgentForm({ returnId }: Props) {
 
   return (
     // Full-screen layout: header bar on top, two-column panel below.
-    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#fbfbfa] overflow-hidden">
 
       {/* ── Top navigation bar ── */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between shrink-0">
+      <div className="bg-white border-b border-[#e8e7e4] px-4 py-2.5 flex items-center justify-between shrink-0">
 
         {/* Left side: back link + tenant info */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-blue-600 text-sm hover:text-blue-800"
+            className="text-[#2383e2] text-sm hover:text-[#1b6ec2]"
           >
             ← All returns
           </button>
-          <div className="w-px h-4 bg-gray-200" />
+          <div className="w-px h-4 bg-[#e8e7e4]" />
           <div>
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="text-sm font-semibold text-[#1a1a19]">
               {tr.tenantData.tenantName} — Unit {tr.tenantData.unit}
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-[#9b9b99]">
               Move-out {tr.tenantData.moveOutDate} ·{' '}
               {tr.utilityData.utilityType === 'RUBS' ? 'RUBS' : 'Flat fee'} ·{' '}
               Inspection {tr.tenantData.inspectionStatus}
@@ -169,20 +166,20 @@ export function AgentForm({ returnId }: Props) {
           </div>
         </div>
 
-        {/* Center: step progress bar */}
-        <div className="flex overflow-hidden rounded-lg border border-gray-200">
+        {/* Center: step progress bar — uses AGM surface tokens for inactive/active/done */}
+        <div className="flex overflow-hidden rounded-[6px] border border-[#e8e7e4]">
           {STEP_ORDER.map((step, i) => {
             const isDone = i < stepIndex;
             const isActive = step === currentStep && !allStepsDone;
             return (
               <div
                 key={step}
-                className={`px-3 py-1.5 text-xs border-r border-gray-200 last:border-r-0 whitespace-nowrap ${
+                className={`px-3 py-1.5 text-xs border-r border-[#e8e7e4] last:border-r-0 whitespace-nowrap ${
                   isDone
-                    ? 'bg-green-50 text-green-700 font-medium'
+                    ? 'bg-[#e3f5e6] text-[#1a7a3a] font-medium'
                     : isActive
-                    ? 'bg-blue-50 text-blue-700 font-medium'
-                    : 'bg-gray-50 text-gray-400'
+                    ? 'bg-[#e6efff] text-[#1858b8] font-medium'
+                    : 'bg-[#f7f6f3] text-[#9b9b99]'
                 }`}
               >
                 {STEP_LABELS[step]}
@@ -192,17 +189,17 @@ export function AgentForm({ returnId }: Props) {
           {/* The "Review" step isn't in STEP_ORDER, so we render it separately. */}
           <div
             className={`px-3 py-1.5 text-xs whitespace-nowrap ${
-              allStepsDone ? 'bg-blue-50 text-blue-700 font-medium' : 'bg-gray-50 text-gray-400'
+              allStepsDone ? 'bg-[#e6efff] text-[#1858b8] font-medium' : 'bg-[#f7f6f3] text-[#9b9b99]'
             }`}
           >
             {STEP_LABELS['done']}
           </div>
         </div>
 
-        {/* Right side: continue / go-to-review button */}
+        {/* Right side: continue / go-to-review button — AGM near-black primary */}
         <button
           onClick={handleContinue}
-          className="px-4 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-4 py-1.5 text-sm font-medium bg-[#1a1a19] text-white rounded-[6px] hover:bg-[#333]"
         >
           {allStepsDone ? 'Go to Review →' : 'Continue →'}
         </button>
@@ -211,7 +208,7 @@ export function AgentForm({ returnId }: Props) {
       {/* ── Two-column main area ── */}
       {/* Left column: agent chat. Right column: live PDF form preview. */}
       <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
-        <div className="border-r border-gray-200 overflow-hidden flex flex-col bg-white">
+        <div className="border-r border-[#e8e7e4] overflow-hidden flex flex-col bg-white">
           <AgentPanel messages={messages} onSend={handleSend} disabled={processing} />
         </div>
         <div className="overflow-hidden flex flex-col bg-white">

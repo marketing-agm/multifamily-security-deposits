@@ -23,18 +23,23 @@ function Field({
   value: string;
   variant?: 'auto' | 'calc' | 'manual' | 'result' | 'empty' | 'waiting';
 }) {
+  // Each variant maps to AGM status colors:
+  // auto = success green (from Excel), calc = info blue (math result),
+  // manual = warning amber (user entered), result = purple (final figure),
+  // empty/waiting = neutral gray (not yet filled)
   const variantStyles = {
-    auto: 'bg-green-50 border-green-300 text-green-800',
-    calc: 'bg-blue-50 border-blue-300 text-blue-800 font-medium',
-    manual: 'bg-amber-50 border-amber-300 text-amber-800',
-    result: 'bg-purple-50 border-purple-300 text-purple-800 font-medium',
-    empty: 'bg-gray-50 border-gray-200 text-gray-400 italic',
-    waiting: 'bg-gray-50 border-gray-200 text-gray-400 italic',
+    auto:    'bg-[#e3f5e6] border-[#1a7a3a] text-[#1a7a3a]',
+    calc:    'bg-[#e6efff] border-[#1858b8] text-[#1858b8] font-medium',
+    manual:  'bg-[#fdf3da] border-[#8b6a00] text-[#8b6a00]',
+    result:  'bg-[#efe6ff] border-[#5b3aa6] text-[#5b3aa6] font-medium',
+    empty:   'bg-[#f7f6f3] border-[#e8e7e4] text-[#9b9b99] italic',
+    waiting: 'bg-[#f7f6f3] border-[#e8e7e4] text-[#9b9b99] italic',
   };
 
   return (
     <div className="flex flex-col gap-0.5">
-      <label className="text-xs text-gray-400">{label}</label>
+      {/* Field label: small muted text */}
+      <label className="text-[11px] text-[#9b9b99]">{label}</label>
       <div className={`text-xs px-2 py-1 rounded border ${variantStyles[variant]}`}>
         {value || '—'}
       </div>
@@ -43,8 +48,9 @@ function Field({
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
+  // Section header: uppercase caps label with bottom rule
   return (
-    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1 mb-2 mt-3">
+    <div className="text-[11px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em] border-b border-[#eeeeec] pb-1 mb-2 mt-3">
       {children}
     </div>
   );
@@ -73,15 +79,16 @@ export function LiveFormPanel({ tr, filledCount, totalFields }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+      {/* Panel header: AGM secondary surface with uppercase labels */}
+      <div className="px-4 py-2.5 border-b border-[#e8e7e4] bg-[#fbfbfa] flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em]">
           AGM Checkout Report — live preview
         </span>
-        <span className="text-xs text-gray-400">{filledCount} / {totalFields} fields</span>
+        <span className="text-[11px] text-[#9b9b99]">{filledCount} / {totalFields} fields</span>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3">
-        <p className="text-xs font-semibold text-center text-gray-600 border-b border-gray-100 pb-2 mb-3">
+        <p className="text-xs font-semibold text-center text-[#6b6b6a] border-b border-[#eeeeec] pb-2 mb-3">
           Checkout Report · AGM Real Estate
         </p>
 
@@ -160,16 +167,17 @@ export function LiveFormPanel({ tr, filledCount, totalFields }: Props) {
           variant="result"
         />
 
-        <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-gray-100">
+        {/* Legend — dots match the variant colors above */}
+        <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-[#eeeeec]">
           {[
-            { color: 'bg-green-300', label: 'Auto-filled' },
-            { color: 'bg-blue-300', label: 'Calculated' },
-            { color: 'bg-amber-300', label: 'Manual entry' },
-            { color: 'bg-purple-300', label: 'Final result' },
+            { color: 'bg-[#1a7a3a]', label: 'Auto-filled' },
+            { color: 'bg-[#1858b8]', label: 'Calculated' },
+            { color: 'bg-[#8b6a00]', label: 'Manual entry' },
+            { color: 'bg-[#5b3aa6]', label: 'Final result' },
           ].map(({ color, label }) => (
             <div key={label} className="flex items-center gap-1.5">
               <div className={`w-2.5 h-2.5 rounded-sm ${color}`} />
-              <span className="text-xs text-gray-400">{label}</span>
+              <span className="text-xs text-[#9b9b99]">{label}</span>
             </div>
           ))}
         </div>

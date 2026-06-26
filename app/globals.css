@@ -1,26 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600;8..60,700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
 @import "tailwindcss";
 
+/* ── AGM Design Tokens ── */
 :root {
+  /* Surfaces */
+  --color-surface-default: #ffffff;
+  --color-surface-secondary: #fbfbfa;
+  --color-surface-subtle: #f7f6f3;
+  --color-surface-hover: #f1f1ef;
+  --color-surface-active: #ededeb;
+
+  /* Borders */
+  --color-border-default: #e8e7e4;
+  --color-border-light: #eeeeec;
+
+  /* Text */
+  --color-text-primary: #1a1a19;
+  --color-text-secondary: #6b6b6a;
+  --color-text-muted: #9b9b99;
+
+  /* Accent */
+  --color-accent: #2383e2;
+  --color-accent-bg: #e8f0fe;
+  --color-accent-hover: #1b6ec2;
+
+  /* Status — success */
+  --color-success-text: #1a7a3a;
+  --color-success-bg: #e3f5e6;
+
+  /* Status — warning */
+  --color-warning-text: #8b6a00;
+  --color-warning-bg: #fdf3da;
+
+  /* Status — info */
+  --color-info-text: #1858b8;
+  --color-info-bg: #e6efff;
+
+  /* Status — danger */
+  --color-danger-text: #b3261e;
+  --color-danger-bg: #fceae8;
+
+  /* Status — neutral */
+  --color-neutral-text: #555555;
+  --color-neutral-bg: #f1f1ef;
+
+  /* Status — purple */
+  --color-purple-text: #5b3aa6;
+  --color-purple-bg: #efe6ff;
+
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1a19;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  font-size: 14px;
+  color: #1a1a19;
 }

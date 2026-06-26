@@ -15,11 +15,26 @@ export function DeadlineBanner({ moveOutDate }: DeadlineBannerProps) {
   const urgency = getDeadlineUrgency(daysRemaining);
   const deadlineDate = formatDeadlineDate(moveOutDate);
 
-  // Color classes per urgency level
+  // AGM status color tokens per urgency level
   const colors = {
-    green: { border: 'border-green-600', bg: 'bg-green-50', text: 'text-green-900', badge: 'bg-green-100 text-green-800', days: 'text-green-700' },
-    amber: { border: 'border-amber-500', bg: 'bg-amber-50', text: 'text-amber-900', badge: 'bg-amber-100 text-amber-800', days: 'text-amber-700' },
-    red:   { border: 'border-red-600',   bg: 'bg-red-50',   text: 'text-red-900',   badge: 'bg-red-100 text-red-800',   days: 'text-red-700'   },
+    green: {
+      border: 'border-[#1a7a3a]',
+      bg: 'bg-[#e3f5e6]',
+      text: 'text-[#1a7a3a]',
+      badge: 'bg-[#e3f5e6] text-[#1a7a3a] border border-[#1a7a3a]/30',
+    },
+    amber: {
+      border: 'border-[#8b6a00]',
+      bg: 'bg-[#fdf3da]',
+      text: 'text-[#8b6a00]',
+      badge: 'bg-[#fdf3da] text-[#8b6a00] border border-[#8b6a00]/30',
+    },
+    red: {
+      border: 'border-[#b3261e]',
+      bg: 'bg-[#fceae8]',
+      text: 'text-[#b3261e]',
+      badge: 'bg-[#fceae8] text-[#b3261e] border border-[#b3261e]/30',
+    },
   }[urgency];
 
   const daysLabel = daysRemaining < 0
@@ -42,6 +57,7 @@ export function DeadlineBanner({ moveOutDate }: DeadlineBannerProps) {
             California Civil Code §1950.5.
           </p>
         </div>
+        {/* Days remaining badge */}
         <div className={`shrink-0 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap ${colors.badge}`}>
           {daysLabel}
         </div>

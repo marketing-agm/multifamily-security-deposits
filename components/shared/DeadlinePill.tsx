@@ -13,10 +13,11 @@ export function DeadlinePill({ moveOutDate }: DeadlinePillProps) {
   const daysRemaining = getDaysRemaining(moveOutDate);
   const urgency = getDeadlineUrgency(daysRemaining);
 
+  // AGM status color tokens — match the deadline banner urgency colors
   const colors = {
-    green: 'bg-green-100 text-green-800',
-    amber: 'bg-amber-100 text-amber-800',
-    red:   'bg-red-100 text-red-800',
+    green: 'bg-[#e3f5e6] text-[#1a7a3a]',
+    amber: 'bg-[#fdf3da] text-[#8b6a00]',
+    red:   'bg-[#fceae8] text-[#b3261e]',
   }[urgency];
 
   const label = daysRemaining < 0

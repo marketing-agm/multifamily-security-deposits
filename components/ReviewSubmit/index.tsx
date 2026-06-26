@@ -102,27 +102,27 @@ export function ReviewSubmit({ returnId }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#fbfbfa]">
 
       {/* ── Top navigation bar ── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+      <div className="bg-white border-b border-[#e8e7e4] px-6 py-3 flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="text-sm font-semibold text-[#1a1a19]">
             Review & submit — {tenantData.tenantName}, Unit {tenantData.unit}
           </p>
-          <p className="text-xs text-gray-400">All fields populated · Ready for compliance check</p>
+          <p className="text-xs text-[#9b9b99]">All fields populated · Ready for compliance check</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => router.push(`/return/${encodeURIComponent(tr.id)}`)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+            className="px-3 py-1.5 text-sm border border-[#e8e7e4] rounded-[6px] text-[#1a1a19] hover:bg-[#f7f6f3]"
           >
             ← Back to edit
           </button>
           <button
             onClick={handleDownload}
             disabled={!complianceChecked || generating}
-            className="px-4 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-4 py-1.5 text-sm font-medium bg-[#1a1a19] text-white rounded-[6px] hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {generating ? 'Generating…' : 'Download PDF'}
           </button>
@@ -141,89 +141,86 @@ export function ReviewSubmit({ returnId }: Props) {
         <div className="grid grid-cols-2 gap-6">
 
           {/* ── Left column: calculation summary ── */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-700">Calculation summary</h2>
+          <div className="bg-white border border-[#e8e7e4] rounded-[6px] p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-[#1a1a19]" style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}>Calculation summary</h2>
 
             {/* Credits section */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Credits</p>
+            <div className="bg-[#f7f6f3] rounded-[6px] p-4">
+              <p className="text-[11px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em] mb-3">Credits</p>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Security deposit</span>
-                  <span className="font-medium text-green-700">{formatCurrency(depositData.securityDeposit)}</span>
+                  <span className="text-[#6b6b6a]">Security deposit</span>
+                  <span className="font-medium text-[#1a7a3a]">{formatCurrency(depositData.securityDeposit)}</span>
                 </div>
                 {depositData.petDeposit > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Pet deposit</span>
-                    <span className="font-medium text-green-700">{formatCurrency(depositData.petDeposit)}</span>
+                    <span className="text-[#6b6b6a]">Pet deposit</span>
+                    <span className="font-medium text-[#1a7a3a]">{formatCurrency(depositData.petDeposit)}</span>
                   </div>
                 )}
-                <div className="flex justify-between border-t border-gray-200 pt-2 font-semibold">
-                  <span className="text-gray-700">Total credits</span>
-                  <span className="text-green-700">{formatCurrency(totalCredits)}</span>
+                <div className="flex justify-between border-t border-[#e8e7e4] pt-2 font-semibold">
+                  <span className="text-[#1a1a19]">Total credits</span>
+                  <span className="text-[#1a7a3a]">{formatCurrency(totalCredits)}</span>
                 </div>
               </div>
             </div>
 
             {/* Charges section */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Charges</p>
+            <div className="bg-[#f7f6f3] rounded-[6px] p-4">
+              <p className="text-[11px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em] mb-3">Charges</p>
               <div className="space-y-2 text-sm">
                 {calculatedCharges.rentDue > 0 && (
                   <div className="flex justify-between">
-                    {/* leaseBreak means the tenant left before the lease ended — extra rent may apply. */}
-                    <span className="text-gray-600">Rent due {tenantData.leaseBreak ? '(lease break)' : ''}</span>
-                    <span className="font-medium">{formatCurrency(calculatedCharges.rentDue)}</span>
+                    <span className="text-[#6b6b6a]">Rent due {tenantData.leaseBreak ? '(lease break)' : ''}</span>
+                    <span className="font-medium text-[#1a1a19]">{formatCurrency(calculatedCharges.rentDue)}</span>
                   </div>
                 )}
                 {calculatedCharges.utilityCharge > 0 && (
                   <div className="flex justify-between">
-                    {/* RUBS = Ratio Utility Billing System — tenant's share of building utility bill. */}
-                    <span className="text-gray-600">
+                    <span className="text-[#6b6b6a]">
                       {tr.utilityData.utilityType === 'RUBS' ? 'RUBS chargeback' : 'Utility charge'}
                     </span>
-                    <span className="font-medium text-blue-700">{formatCurrency(calculatedCharges.utilityCharge)}</span>
+                    <span className="font-medium text-[#1858b8]">{formatCurrency(calculatedCharges.utilityCharge)}</span>
                   </div>
                 )}
                 {manualCharges.generalCleaning > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Cleaning (NRC offset −{formatCurrency(nrcOffset)})</span>
-                    <span className="font-medium">{formatCurrency(tenantCleaning)}</span>
+                    <span className="text-[#6b6b6a]">Cleaning (NRC offset −{formatCurrency(nrcOffset)})</span>
+                    <span className="font-medium text-[#1a1a19]">{formatCurrency(tenantCleaning)}</span>
                   </div>
                 )}
                 {manualCharges.other1 > 0 && (
                   <div className="flex justify-between">
-                    {/* other1Label is a custom label the user can set for misc charges. */}
-                    <span className="text-gray-600">{manualCharges.other1Label || 'Other'}</span>
-                    <span className="font-medium">{formatCurrency(manualCharges.other1)}</span>
+                    <span className="text-[#6b6b6a]">{manualCharges.other1Label || 'Other'}</span>
+                    <span className="font-medium text-[#1a1a19]">{formatCurrency(manualCharges.other1)}</span>
                   </div>
                 )}
-                <div className="flex justify-between border-t border-gray-200 pt-2 font-semibold">
-                  <span className="text-gray-700">Total charges</span>
-                  <span className="text-red-700">{formatCurrency(totalCharges)}</span>
+                <div className="flex justify-between border-t border-[#e8e7e4] pt-2 font-semibold">
+                  <span className="text-[#1a1a19]">Total charges</span>
+                  <span className="text-[#b3261e]">{formatCurrency(totalCharges)}</span>
                 </div>
               </div>
             </div>
 
             {/* Balance summary boxes */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-400 mb-1">Balance due to tenant</p>
-                <p className={`text-lg font-semibold ${dueToTenant > 0 ? 'text-green-700' : 'text-gray-400'}`}>
+              <div className="bg-[#f7f6f3] rounded-[6px] p-3">
+                <p className="text-[11px] text-[#9b9b99] mb-1">Balance due to tenant</p>
+                <p className={`text-lg font-semibold ${dueToTenant > 0 ? 'text-[#1a7a3a]' : 'text-[#9b9b99]'}`}>
                   {formatCurrency(dueToTenant)}
                 </p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-400 mb-1">Balance owing landlord</p>
-                <p className={`text-lg font-semibold ${owingLandlord > 0 ? 'text-red-700' : 'text-gray-400'}`}>
+              <div className="bg-[#f7f6f3] rounded-[6px] p-3">
+                <p className="text-[11px] text-[#9b9b99] mb-1">Balance owing landlord</p>
+                <p className={`text-lg font-semibold ${owingLandlord > 0 ? 'text-[#b3261e]' : 'text-[#9b9b99]'}`}>
                   {formatCurrency(owingLandlord)}
                 </p>
               </div>
             </div>
 
             {/* Compliance checkbox — must be checked before download is enabled. */}
-            <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-              complianceChecked ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+            <label className={`flex items-start gap-3 p-3 rounded-[6px] border cursor-pointer transition-colors ${
+              complianceChecked ? 'bg-[#e3f5e6] border-[#1a7a3a]' : 'bg-[#f7f6f3] border-[#e8e7e4]'
             }`}>
               <input
                 type="checkbox"
@@ -231,35 +228,34 @@ export function ReviewSubmit({ returnId }: Props) {
                 onChange={e => setComplianceChecked(e.target.checked)}
                 className="mt-0.5 w-4 h-4 shrink-0"
               />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-[#6b6b6a]">
                 I confirm all charges reflect company-approved rates and this return is accurate.
               </span>
             </label>
           </div>
 
           {/* ── Right column: PDF preview placeholder ── */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-700">PDF preview</h2>
+          <div className="bg-white border border-[#e8e7e4] rounded-[6px] p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-[#1a1a19]" style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}>PDF preview</h2>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center gap-3 min-h-64 text-center">
-              {/* Document icon */}
-              <svg className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-[#f7f6f3] border border-[#e8e7e4] rounded-[6px] p-6 flex flex-col items-center justify-center gap-3 min-h-64 text-center">
+              <svg className="w-10 h-10 text-[#9b9b99]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-sm font-medium text-gray-600">{fileName}</p>
-              <p className="text-xs text-gray-400">72 / 72 fields populated · Awaiting compliance check</p>
+              <p className="text-sm font-medium text-[#1a1a19]">{fileName}</p>
+              <p className="text-xs text-[#9b9b99]">72 / 72 fields populated · Awaiting compliance check</p>
               <button
                 onClick={handleDownload}
                 disabled={!complianceChecked || generating}
-                className="mt-2 px-5 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="mt-2 px-5 py-2 text-sm font-medium bg-[#1a1a19] text-white rounded-[6px] hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {generating ? 'Generating PDF…' : 'Download PDF'}
               </button>
             </div>
 
             {/* Forwarding address — where the letter will be mailed. */}
-            <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-800">
+            <div className="bg-[#e6efff] border border-[#2383e2]/20 rounded-[6px] px-4 py-3 text-sm text-[#1858b8]">
               <span className="font-medium">Will be sent to:</span> {fwdAddr}
             </div>
           </div>

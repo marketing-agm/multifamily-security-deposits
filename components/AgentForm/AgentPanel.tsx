@@ -37,19 +37,23 @@ export function AgentPanel({ messages, onSend, disabled }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Agent</span>
+      {/* Panel header — AGM secondary surface with uppercase label */}
+      <div className="px-4 py-2.5 border-b border-[#e8e7e4] bg-[#fbfbfa] flex items-center gap-2">
+        <span className="text-[11px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em]">Agent</span>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
         {messages.map((m, i) => (
           <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <span className="text-xs text-gray-400 mb-1">{m.role === 'agent' ? 'Agent' : 'You'}</span>
+            {/* "Agent" / "You" labels: small muted text */}
+            <span className="text-[11px] text-[#9b9b99] mb-1">{m.role === 'agent' ? 'Agent' : 'You'}</span>
             <div
-              className={`px-3 py-2 text-sm leading-relaxed max-w-[90%] whitespace-pre-wrap ${
+              className={`px-3 py-2 text-sm leading-relaxed max-w-[90%] whitespace-pre-wrap rounded ${
                 m.role === 'agent'
-                  ? 'bg-white border border-gray-200 rounded-tl rounded-tr rounded-br rounded-bl-none text-gray-700'
-                  : 'bg-gray-100 border border-gray-200 rounded-tl rounded-tr rounded-bl rounded-br-none text-gray-500 font-mono text-xs'
+                  // Agent bubble: white with AGM border, standard text
+                  ? 'bg-white border border-[#e8e7e4] rounded-tr-lg rounded-br-lg rounded-tl-none text-[#1a1a19]'
+                  // User bubble: subtle fill, muted text
+                  : 'bg-[#f7f6f3] border border-[#e8e7e4] rounded-tl-lg rounded-tr-lg rounded-bl-none text-[#6b6b6a]'
               }`}
               dangerouslySetInnerHTML={m.role === 'agent' ? {
                 __html: m.text
@@ -64,20 +68,23 @@ export function AgentPanel({ messages, onSend, disabled }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-gray-100 px-4 py-3 bg-white flex gap-2 items-end">
+      {/* Input area — border-top separator */}
+      <div className="border-t border-[#e8e7e4] px-4 py-3 bg-white flex gap-2 items-end">
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKey}
           disabled={disabled}
           placeholder={disabled ? 'Processing…' : 'Type a correction or question…'}
-          className="flex-1 resize-none text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-400"
+          // Focus ring uses AGM accent blue with a soft glow
+          className="flex-1 resize-none text-sm border border-[#e8e7e4] rounded-[6px] px-3 py-2 focus:outline-none focus:border-[#2383e2] focus:shadow-[0_0_0_3px_#e8f0fe] disabled:bg-[#f7f6f3] disabled:text-[#9b9b99]"
           rows={2}
         />
+        {/* Send button: AGM near-black primary */}
         <button
           onClick={handleSend}
           disabled={disabled || !input.trim()}
-          className="px-4 py-2 text-sm font-medium bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-4 py-2 text-sm font-medium bg-[#1a1a19] text-white rounded-[6px] hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Send ↗
         </button>
