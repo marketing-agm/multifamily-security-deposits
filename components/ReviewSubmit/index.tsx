@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
 import { DeadlineBanner } from '@/components/shared/DeadlineBanner';
 import { formatCurrency } from '@/lib/calculations';
+import { formatDeadlineDate, getDaysRemaining } from '@/lib/deadlineUtils';
 
 interface Props {
   returnId: string;
@@ -238,33 +239,96 @@ export function ReviewSubmit({ returnId }: Props) {
             </label>
           </div>
 
-          {/* ── Right column: PDF preview placeholder ── */}
+          {/* ── Right column: PDF preview + form summary ── */}
           <div className="bg-white border border-[#e8e7e4] rounded-[6px] p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-[#1a1a19]">PDF preview</h2>
+            <h2 className="text-sm font-semibold text-[#1a1a19] flex items-center gap-1.5">
+              PDF preview
+            </h2>
 
             {/* PDF placeholder area: subtle fill with AGM border */}
-            <div className="bg-[#f7f6f3] border border-[#e8e7e4] rounded-[6px] p-6 flex flex-col items-center justify-center gap-3 min-h-64 text-center">
+            <div className="bg-[#f7f6f3] border border-[#e8e7e4] rounded-[6px] p-6 flex flex-col items-center justify-center gap-3 min-h-44 text-center">
               <svg className="w-10 h-10 text-[#9b9b99]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {/* Filename: primary dark text */}
+              {/* Filename */}
               <p className="text-sm font-medium text-[#1a1a19]">{fileName}</p>
-              <p className="text-xs text-[#9b9b99]">72 / 72 fields populated · Awaiting compliance check</p>
-              {/* Download button: AGM near-black primary */}
-              <button
-                onClick={handleDownload}
-                disabled={!complianceChecked || generating}
-                className="mt-2 px-5 py-2 text-sm font-medium bg-[#1a1a19] text-white rounded-[6px] hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {generating ? 'Generating PDF…' : 'Download PDF'}
-              </button>
+              <p className="text-xs text-[#9b9b99]">72 / 72 fields populated · AGM Real Estate</p>
+              <p className="text-xs text-[#9b9b99]">{session.propertyName} · Unit {tenantData.unit} · {tenantData.moveOutDate}</p>
+              {owingLandlord > 0 && (
+                <p className="text-xs font-semibold text-[#b3261e]">Balance owing landlord: {formatCurrency(owingLandlord)}</p>
+              )}
+              {dueToTenant > 0 && (
+                <p className="text-xs font-semibold text-[#1a7a3a]">Balance due to tenant: {formatCurrency(dueToTenant)}</p>
+              )}
+              <div className="flex gap-2 mt-1">
+                {/* Preview button — outlined secondary */}
+                <button
+                  className="px-3 py-1.5 text-xs border border-[#e8e7e4] rounded-[6px] text-[#1a1a19] hover:bg-[#f7f6f3] flex items-center gap-1"
+                >
+                  Preview
+                </button>
+                {/* Download button: AGM success green */}
+                <button
+                  onClick={handleDownload}
+                  disabled={!complianceChecked || generating}
+                  className="px-3 py-1.5 text-xs font-medium bg-[#e3f5e6] border border-[#1a7a3a]/40 text-[#1a7a3a] rounded-[6px] hover:bg-[#c8edd0] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  {generating ? 'Generating…' : '↓ Download'}
+                </button>
+              </div>
             </div>
 
-            {/* Forwarding address notice: AGM info blue */}
-            <div className="bg-[#e6efff] border border-[#2383e2]/20 rounded-[6px] px-4 py-3 text-sm text-[#1858b8]">
-              <span className="font-medium">Will be sent to:</span> {fwdAddr}
+            {/* ── Form summary box ── */}
+            {/* Quick-glance table of all the key details for this return. */}
+            <div className="bg-[#f7f6f3] border border-[#e8e7e4] rounded-[6px] p-3">
+              <p className="text-[10px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em] mb-2">Form summary</p>
+              {[
+                ['Property', `${session.propertyName || '—'}, Unit ${tenantData.unit}`],
+                ['Tenant', tenantData.tenantName],
+                ['Move-out date', tenantData.moveOutDate],
+                [
+                  'Utility type',
+                  tr.utilityData.utilityType === 'RUBS'
+                    ? `RUBS · ${formatCurrency(calculatedCharges.utilityCharge)} applied`
+                    : 'Flat fee',
+                ],
+                [
+                  'Lease break',
+                  tenantData.leaseBreak
+                    ? `Yes — new tenant ${tenantData.newTenantMoveInDate || tenantData.leaseEndDate}`
+                    : 'No',
+                ],
+                [
+                  'Inspection',
+                  tenantData.inspectionStatus === 'signed' ? 'Signed' : 'Missing',
+                ],
+                ['Send to', fwdAddr],
+                [
+                  'Deadline',
+                  `${formatDeadlineDate(tenantData.moveOutDate)} · ${getDaysRemaining(tenantData.moveOutDate)} days remaining`,
+                ],
+              ].map(([label, val]) => (
+                <div key={label} className="flex justify-between text-[11.5px] py-1 border-b border-[#eeeeec] last:border-b-0">
+                  <span className="text-[#9b9b99]">{label}</span>
+                  <span className={`font-medium text-right max-w-[55%] ${
+                    label === 'Inspection' && val === 'Missing' ? 'text-[#b3261e]' :
+                    label === 'Inspection' ? 'text-[#1a7a3a]' :
+                    label === 'Deadline' ? 'text-[#8b6a00]' :
+                    'text-[#1a1a19]'
+                  }`}>{val}</span>
+                </div>
+              ))}
             </div>
+
+            {/* Main download button — pinned at bottom, full-width, AGM near-black */}
+            <button
+              onClick={handleDownload}
+              disabled={!complianceChecked || generating}
+              className="w-full py-2.5 text-sm font-semibold bg-[#1a7a3a] text-white rounded-[6px] hover:bg-[#156032] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {generating ? 'Generating PDF…' : `↓ Download ${fileName}`}
+            </button>
           </div>
         </div>
       </div>
