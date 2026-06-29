@@ -18,8 +18,9 @@ export function getDaysRemaining(moveOutDate: string): number {
 }
 
 export function getDeadlineUrgency(daysRemaining: number): 'green' | 'amber' | 'red' {
-  if (daysRemaining > 7) return 'green';
-  if (daysRemaining >= 4) return 'amber';
+  // Green = plenty of time, amber = getting close, red = urgent or overdue
+  if (daysRemaining > 14) return 'green';
+  if (daysRemaining >= 7) return 'amber';
   return 'red';
 }
 
