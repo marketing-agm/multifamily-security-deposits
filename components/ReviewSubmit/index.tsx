@@ -1,13 +1,14 @@
 // components/ReviewSubmit/index.tsx
-// Final review & submit screen — the last step before the PDF goes to the tenant.
+// Final review & submit screen — last step before the PDF is generated.
 //
 // Layout:
-//   [Top: statutory deadline notice with color-coded days remaining]
-//   [Left: calculation summary + compliance checkbox]
-//   [Right: PDF preview + form summary + email send]
+//   [Top nav: back link + title + inspection/utility badges]
+//   [Deadline notice banner — color coded by urgency]
+//   [Two columns]
+//     Left (wider):  Tenant & Lease card, Turnover Expenses table, Refunds/Credits card
+//     Right (narrower): Forwarding Address card, Compliance Check card, Finalize button
 //
-// California Civil Code §1950.5: return within 21 days of move-out.
-// Urgency color: green (>14 days), amber (7-14 days), red (<7 days or overdue).
+// The "Finalize & Generate PDF" button is grayed out until compliance is checked.
 
 'use client';
 
@@ -16,7 +17,6 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
 import { DeadlineBanner } from '@/components/shared/DeadlineBanner';
 import { formatCurrency } from '@/lib/calculations';
-import { formatDeadlineDate, getDaysRemaining } from '@/lib/deadlineUtils';
 
 interface Props {
   returnId: string;
@@ -26,12 +26,9 @@ export function ReviewSubmit({ returnId }: Props) {
   const { session, updateReturn } = useSession();
   const router = useRouter();
 
-  // complianceChecked must be true before Download is unlocked.
+  // complianceChecked must be true before the Finalize button unlocks.
   const [complianceChecked, setComplianceChecked] = useState(false);
   const [generating, setGenerating] = useState(false);
-  // emailAddress: where the PDF will be sent — blank by default, filled in by user.
-  const [emailAddress, setEmailAddress] = useState('');
-  const [emailSent, setEmailSent] = useState(false);
 
   const tr = session?.returns.find(r => r.id === returnId);
   if (!session || !tr) {
@@ -45,10 +42,10 @@ export function ReviewSubmit({ returnId }: Props) {
   const nrcOffset = Math.min(manualCharges.generalCleaning, depositData.nrcCleaningFee);
   const tenantCleaning = Math.max(0, manualCharges.generalCleaning - nrcOffset);
 
-  // Credits = all deposits held (security + pet + key).
+  // Total credits = all deposits the tenant paid up front.
   const totalCredits = depositData.securityDeposit + depositData.petDeposit + depositData.keyDeposit;
 
-  // Charges = all amounts the tenant owes at move-out.
+  // Total charges = all amounts the tenant owes at move-out.
   const totalCharges =
     calculatedCharges.rentDue +
     calculatedCharges.utilityCharge +
@@ -59,20 +56,17 @@ export function ReviewSubmit({ returnId }: Props) {
     manualCharges.other2 +
     manualCharges.legalCourtCosts;
 
-  // Positive balance → tenant gets money back. Negative → tenant owes landlord.
   const balance = totalCredits - totalCharges;
   const dueToTenant = balance >= 0 ? balance : 0;
-  const owingLandlord = balance < 0 ? Math.abs(balance) : 0;
 
   const fwdAddr = `${tenantData.forwardingAddress.street}, ${tenantData.forwardingAddress.city} ${tenantData.forwardingAddress.state} ${tenantData.forwardingAddress.zip}`;
 
   // PDF filename: AGM_Checkout_[Unit]_[Tenant full name]_[Property].pdf
-  // Spaces replaced with underscores so the filename works on all operating systems.
   const tenantSlug = tenantData.tenantName.replace(/\s+/g, '_');
   const propertySlug = (session.propertyName || 'AGM').replace(/\s+/g, '_');
   const fileName = `AGM_Checkout_${tenantData.unit}_${tenantSlug}_${propertySlug}.pdf`;
 
-  async function handleDownload() {
+  async function handleFinalize() {
     if (!complianceChecked) return;
     setGenerating(true);
     try {
@@ -99,9 +93,47 @@ export function ReviewSubmit({ returnId }: Props) {
     }
   }
 
-  function handleSendEmail() {
-    // Placeholder — email sending would connect to an email API in a future version.
-    setEmailSent(true);
+  // Turnover charges array — only include non-zero rows in the table.
+  // Each row: [item label, total cost, tenant cost (after NRC offset if applicable)]
+  const chargeRows: { label: string; total: number; tenantCost: number; note?: string }[] = [];
+
+  if (calculatedCharges.rentDue > 0) {
+    chargeRows.push({
+      label: tenantData.leaseBreak ? 'Rent due (lease break)' : 'Rent due',
+      total: calculatedCharges.rentDue,
+      tenantCost: calculatedCharges.rentDue,
+      note: calculatedCharges.rentDueDateRange || undefined,
+    });
+  }
+  if (calculatedCharges.utilityCharge > 0) {
+    chargeRows.push({
+      label: utilityData.utilityType === 'RUBS' ? 'RUBS utility chargeback' : 'Utility — flat fee',
+      total: calculatedCharges.utilityCharge,
+      tenantCost: calculatedCharges.utilityCharge,
+    });
+  }
+  if (manualCharges.generalCleaning > 0) {
+    chargeRows.push({
+      label: 'General cleaning',
+      total: manualCharges.generalCleaning,
+      tenantCost: tenantCleaning,
+      note: nrcOffset > 0 ? `NRC offset −${formatCurrency(nrcOffset)}` : undefined,
+    });
+  }
+  if (manualCharges.carpetShampooing > 0) {
+    chargeRows.push({ label: 'Carpet shampooing', total: manualCharges.carpetShampooing, tenantCost: manualCharges.carpetShampooing });
+  }
+  if (manualCharges.painting > 0) {
+    chargeRows.push({ label: 'Painting', total: manualCharges.painting, tenantCost: manualCharges.painting });
+  }
+  if (manualCharges.other1 > 0) {
+    chargeRows.push({ label: manualCharges.other1Label || 'Other', total: manualCharges.other1, tenantCost: manualCharges.other1 });
+  }
+  if (manualCharges.other2 > 0) {
+    chargeRows.push({ label: 'Other (2)', total: manualCharges.other2, tenantCost: manualCharges.other2 });
+  }
+  if (manualCharges.legalCourtCosts > 0) {
+    chargeRows.push({ label: 'Legal / court costs', total: manualCharges.legalCourtCosts, tenantCost: manualCharges.legalCourtCosts });
   }
 
   return (
@@ -109,301 +141,231 @@ export function ReviewSubmit({ returnId }: Props) {
 
       {/* ── Top nav ── */}
       <div className="bg-white border-b border-[#e8e7e4] px-6 py-3 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold text-[#1a1a19]">
-            Review &amp; submit — {tenantData.tenantName}, Unit {tenantData.unit}
+        <div className="flex items-center gap-3">
+          {/* Back link goes to the form (AgentForm) for this tenant */}
+          <button
+            onClick={() => router.push(`/return/${encodeURIComponent(tr.id)}`)}
+            className="text-[12px] text-[#2383e2] hover:underline shrink-0"
+          >
+            ← Return Form
+          </button>
+          <div className="w-px h-4 bg-[#d4d3d0]" />
+          <p className="text-[13px] font-semibold text-[#1a1a19]">
+            Review &amp; Submit — {tenantData.tenantName} · Unit {tenantData.unit}
           </p>
-          <p className="text-xs text-[#9b9b99] mt-0.5">All fields populated · Ready for compliance check</p>
         </div>
-        <button
-          onClick={() => router.push(`/return/${encodeURIComponent(tr.id)}`)}
-          className="px-3 py-1.5 text-sm border border-[#e8e7e4] rounded-[6px] text-[#1a1a19] hover:bg-[#f7f6f3]"
-        >
-          ← Back to edit
-        </button>
+
+        {/* Right: inspection and utility badges */}
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+            tenantData.inspectionStatus === 'signed'
+              ? 'bg-[#e3f5e6] text-[#1a7a3a]'
+              : 'bg-[#fceae8] text-[#b3261e]'
+          }`}>
+            {tenantData.inspectionStatus === 'signed' ? '✓ Signed' : '⚠ No inspection'}
+          </span>
+          {utilityData.utilityType === 'RUBS' && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#e6efff] text-[#1858b8]">
+              RUBS
+            </span>
+          )}
+          {tenantData.leaseBreak && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#fceae8] text-[#b3261e]">
+              Lease break
+            </span>
+          )}
+        </div>
       </div>
 
       {/* ── Page body ── */}
-      <div className="max-w-5xl mx-auto px-6 py-6 space-y-5">
+      <div className="max-w-5xl mx-auto px-6 py-5 space-y-4">
 
-        {/* Deadline notice — color-coded by urgency (green/amber/red) */}
+        {/* Deadline banner — color-coded by urgency (green/amber/red). California §1950.5 requires 21 days. */}
         <DeadlineBanner moveOutDate={tenantData.moveOutDate} />
 
-        {/* Two-column layout */}
-        <div className="grid grid-cols-[1fr_1fr] gap-5 items-start">
+        {/* Two-column layout: left is wider (2/3), right is narrower (1/3) */}
+        <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4 items-start">
 
-          {/* ══ LEFT: Calculation summary + compliance ══ */}
-          <div className="bg-white border border-[#e8e7e4] rounded-[8px] p-5 space-y-4">
-            <h2 className="text-[13px] font-semibold text-[#1a1a19]">Calculation summary</h2>
-
-            {/* Credits */}
-            <div className="bg-[#f7f6f3] rounded-[6px] p-4">
-              <p className="text-[10px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em] mb-3">Credits</p>
-              <div className="space-y-2 text-[13px]">
-                <div className="flex justify-between">
-                  <span className="text-[#6b6b6a]">Security deposit</span>
-                  <span className="font-medium text-[#1a7a3a]">{formatCurrency(depositData.securityDeposit)}</span>
-                </div>
-                {depositData.petDeposit > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#6b6b6a]">Pet deposit</span>
-                    <span className="font-medium text-[#1a7a3a]">{formatCurrency(depositData.petDeposit)}</span>
-                  </div>
-                )}
-                {depositData.keyDeposit > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#6b6b6a]">Key deposit</span>
-                    <span className="font-medium text-[#1a7a3a]">{formatCurrency(depositData.keyDeposit)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-[#e8e7e4] pt-2">
-                  <span className="font-semibold text-[#1a1a19]">Total credits</span>
-                  <span className="font-semibold text-[#1a7a3a]">{formatCurrency(totalCredits)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Charges */}
-            <div className="bg-[#f7f6f3] rounded-[6px] p-4">
-              <p className="text-[10px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em] mb-3">Charges</p>
-              <div className="space-y-2 text-[13px]">
-                {calculatedCharges.rentDue > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#6b6b6a]">
-                      {tenantData.leaseBreak ? 'Rent due (lease break)' : 'Rent due (pro-rated)'}
-                    </span>
-                    <span className="font-medium text-[#b3261e]">{formatCurrency(calculatedCharges.rentDue)}</span>
-                  </div>
-                )}
-                {calculatedCharges.utilityCharge > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#6b6b6a]">
-                      {utilityData.utilityType === 'RUBS' ? 'RUBS chargeback' : 'Utility — flat fee'}
-                    </span>
-                    <span className="font-medium text-[#b3261e]">{formatCurrency(calculatedCharges.utilityCharge)}</span>
-                  </div>
-                )}
-                {manualCharges.generalCleaning > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#6b6b6a]">
-                      {nrcOffset > 0
-                        ? `Cleaning (NRC offset −${formatCurrency(nrcOffset)})`
-                        : 'Cleaning'}
-                    </span>
-                    <span className="font-medium text-[#b3261e]">{formatCurrency(tenantCleaning)}</span>
-                  </div>
-                )}
-                {manualCharges.carpetShampooing > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#6b6b6a]">Carpet shampooing</span>
-                    <span className="font-medium text-[#b3261e]">{formatCurrency(manualCharges.carpetShampooing)}</span>
-                  </div>
-                )}
-                {manualCharges.painting > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#6b6b6a]">Painting</span>
-                    <span className="font-medium text-[#b3261e]">{formatCurrency(manualCharges.painting)}</span>
-                  </div>
-                )}
-                {manualCharges.other1 > 0 && (
-                  <div className="flex justify-between">
-                    {/* other1Label is a custom label the user can type (e.g. "Key replacement") */}
-                    <span className="text-[#6b6b6a]">{manualCharges.other1Label || 'Other'}</span>
-                    <span className="font-medium text-[#b3261e]">{formatCurrency(manualCharges.other1)}</span>
-                  </div>
-                )}
-                {manualCharges.legalCourtCosts > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-[#6b6b6a]">Legal / court costs</span>
-                    <span className="font-medium text-[#b3261e]">{formatCurrency(manualCharges.legalCourtCosts)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-[#e8e7e4] pt-2">
-                  <span className="font-semibold text-[#1a1a19]">Total charges</span>
-                  <span className="font-semibold text-[#b3261e]">{formatCurrency(totalCharges)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Balance boxes */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#f7f6f3] rounded-[6px] p-3">
-                <p className="text-[11px] text-[#9b9b99] mb-1">Balance due to tenant</p>
-                <p className={`text-[17px] font-semibold ${dueToTenant > 0 ? 'text-[#1a7a3a]' : 'text-[#9b9b99]'}`}>
-                  {formatCurrency(dueToTenant)}
-                </p>
-              </div>
-              <div className="bg-[#f7f6f3] rounded-[6px] p-3">
-                <p className="text-[11px] text-[#9b9b99] mb-1">Balance owing landlord</p>
-                <p className={`text-[17px] font-semibold ${owingLandlord > 0 ? 'text-[#b3261e]' : 'text-[#9b9b99]'}`}>
-                  {formatCurrency(owingLandlord)}
-                </p>
-              </div>
-            </div>
-
-            {/* Compliance checkbox — unlocks the Download button when checked */}
-            <label className={`flex items-start gap-3 p-3 rounded-[6px] border cursor-pointer transition-colors ${
-              complianceChecked
-                ? 'bg-[#e3f5e6] border-[#1a7a3a]'
-                : 'bg-[#f7f6f3] border-[#e8e7e4] hover:border-[#d4d3d0]'
-            }`}>
-              <input
-                type="checkbox"
-                checked={complianceChecked}
-                onChange={e => setComplianceChecked(e.target.checked)}
-                className="mt-0.5 w-4 h-4 shrink-0 accent-[#1a7a3a]"
-              />
-              <span className="text-[13px] text-[#6b6b6a] leading-snug">
-                I confirm all charges reflect company-approved rates and this return is accurate.
-              </span>
-            </label>
-          </div>
-
-          {/* ══ RIGHT: PDF preview + form summary + email ══ */}
+          {/* ════════════════════════════════════
+              LEFT COLUMN
+              ════════════════════════════════════ */}
           <div className="space-y-4">
 
-            {/* PDF preview card */}
-            <div className="bg-white border border-[#e8e7e4] rounded-[8px] p-5 space-y-4">
-              <h2 className="text-[13px] font-semibold text-[#1a1a19]">PDF preview</h2>
-
-              {/* Preview box */}
-              <div className="bg-[#f7f6f3] border border-[#e8e7e4] rounded-[6px] p-5 flex flex-col items-center gap-2 text-center">
-                {/* Document icon */}
-                <svg className="w-9 h-9 text-[#9b9b99]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-
-                {/* Filename — uses the format she specified: AGM + unit + full tenant name + property */}
-                <p className="text-[13px] font-medium text-[#1a1a19] break-all">{fileName}</p>
-                <p className="text-[11px] text-[#9b9b99]">72 / 72 fields populated · AGM Real Estate</p>
-                <p className="text-[11px] text-[#9b9b99]">
-                  {session.propertyName} · Unit {tenantData.unit} · {tenantData.moveOutDate}
-                </p>
-
-                {/* Balance line — red if landlord is owed, green if tenant is owed */}
-                {owingLandlord > 0 && (
-                  <p className="text-[12px] font-semibold text-[#b3261e]">
-                    Balance owing landlord: {formatCurrency(owingLandlord)}
-                  </p>
-                )}
-                {dueToTenant > 0 && (
-                  <p className="text-[12px] font-semibold text-[#1a7a3a]">
-                    Balance due to tenant: {formatCurrency(dueToTenant)}
-                  </p>
-                )}
-
-                {/* Preview + Download button row.
-                    Preview is always available. Download requires the compliance checkbox. */}
-                <div className="flex gap-2 mt-1">
-                  <button className="px-3 py-1.5 text-[12px] border border-[#e8e7e4] rounded-[6px] text-[#1a1a19] hover:bg-white transition-colors">
-                    Preview
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    disabled={!complianceChecked || generating}
-                    className="px-3 py-1.5 text-[12px] font-medium bg-[#e3f5e6] border border-[#1a7a3a]/40 text-[#1a7a3a] rounded-[6px] hover:bg-[#c8edd0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                  >
-                    {generating ? 'Generating…' : '↓ Download'}
-                  </button>
-                </div>
+            {/* ── Tenant & Lease card ── */}
+            <div className="bg-white border border-[#e8e7e4] rounded-[8px] overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#e8e7e4]">
+                <h2 className="text-[13px] font-semibold text-[#1a1a19]">Tenant &amp; Lease</h2>
               </div>
-
-              {/* Full-width download button — unlocks after compliance check */}
-              <button
-                onClick={handleDownload}
-                disabled={!complianceChecked || generating}
-                className="w-full py-2.5 text-[13px] font-semibold bg-[#1a7a3a] text-white rounded-[6px] hover:bg-[#156032] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-              >
-                {generating ? 'Generating PDF…' : `↓ Download ${fileName}`}
-              </button>
-            </div>
-
-            {/* Form summary */}
-            <div className="bg-white border border-[#e8e7e4] rounded-[8px] p-4">
-              <p className="text-[10px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em] mb-3">Form summary</p>
-              <div className="space-y-0">
+              <div className="divide-y divide-[#f0f0ee]">
                 {[
-                  ['Property', `${session.propertyName || '—'}, Unit ${tenantData.unit}`],
-                  ['Tenant', tenantData.tenantName],
-                  ['Move-out date', tenantData.moveOutDate],
-                  [
-                    'Utility type',
-                    utilityData.utilityType === 'RUBS'
-                      ? `RUBS · ${formatCurrency(calculatedCharges.utilityCharge)} applied`
-                      : 'Flat fee',
-                  ],
-                  [
-                    'Lease break',
-                    tenantData.leaseBreak
-                      ? `Yes — new tenant ${tenantData.newTenantMoveInDate || tenantData.leaseEndDate}`
-                      : 'No',
-                  ],
-                  ['Inspection', tenantData.inspectionStatus === 'signed' ? 'Signed' : 'Missing'],
-                  ['Send to', fwdAddr],
-                  [
-                    'Deadline',
-                    `${formatDeadlineDate(tenantData.moveOutDate)} · ${getDaysRemaining(tenantData.moveOutDate)} days remaining`,
-                  ],
-                ].map(([label, val]) => (
-                  <div key={label} className="flex justify-between text-[11.5px] py-1.5 border-b border-[#eeeeec] last:border-b-0">
-                    <span className="text-[#9b9b99] shrink-0">{label}</span>
-                    <span className={`font-medium text-right max-w-[55%] ${
-                      label === 'Inspection' && val === 'Missing' ? 'text-[#b3261e]' :
-                      label === 'Inspection' ? 'text-[#1a7a3a]' :
-                      label === 'Lease break' && val !== 'No' ? 'text-[#b3261e]' :
-                      label === 'Deadline' ? 'text-[#8b6a00]' :
-                      'text-[#1a1a19]'
-                    }`}>{val}</span>
+                  { label: 'Tenant', value: tenantData.tenantName + (tenantData.coTenant ? ` + ${tenantData.coTenant}` : '') },
+                  { label: 'Unit', value: tenantData.unit },
+                  { label: 'Forwarding address', value: fwdAddr },
+                  { label: 'Move-in date', value: tenantData.moveInDate },
+                  { label: 'Move-out date', value: tenantData.moveOutDate },
+                  { label: 'Paid through', value: tenantData.paidThroughDate || '—' },
+                  { label: 'Monthly rent', value: formatCurrency(tenantData.monthlyRent) + ' / mo' },
+                  {
+                    label: 'Lease break',
+                    value: tenantData.leaseBreak ? 'Yes — rent due after move-out' : 'No',
+                    red: tenantData.leaseBreak,
+                  },
+                  ...(tenantData.leaseBreak && tenantData.newTenantMoveInDate
+                    ? [{ label: 'New tenant move-in', value: tenantData.newTenantMoveInDate }]
+                    : []),
+                ].map(row => (
+                  <div key={row.label} className="flex justify-between px-4 py-2.5 text-[12.5px]">
+                    <span className="text-[#9b9b99]">{row.label}</span>
+                    <span className={`font-medium text-right max-w-[60%] ${'red' in row && row.red ? 'text-[#b3261e]' : 'text-[#1a1a19]'}`}>
+                      {row.value}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Email section — send the PDF directly to the tenant */}
-            <div className="bg-white border border-[#e8e7e4] rounded-[8px] p-4 space-y-3">
-              <p className="text-[10px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em]">Send to tenant</p>
+            {/* ── Turnover Expenses table ── */}
+            <div className="bg-white border border-[#e8e7e4] rounded-[8px] overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#e8e7e4]">
+                <h2 className="text-[13px] font-semibold text-[#1a1a19]">Turnover Expenses</h2>
+              </div>
+              {chargeRows.length === 0 ? (
+                <p className="px-4 py-4 text-[12px] text-[#9b9b99]">No charges entered.</p>
+              ) : (
+                <table className="w-full text-[12.5px]">
+                  <thead>
+                    <tr className="bg-[#f7f6f3] border-b border-[#e8e7e4]">
+                      <th className="text-left px-4 py-2 font-medium text-[#9b9b99]">Item</th>
+                      <th className="text-right px-4 py-2 font-medium text-[#9b9b99]">Total Cost</th>
+                      <th className="text-right px-4 py-2 font-medium text-[#9b9b99]">Tenant Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#f0f0ee]">
+                    {chargeRows.map(row => (
+                      <tr key={row.label}>
+                        <td className="px-4 py-2.5">
+                          <span className="text-[#1a1a19]">{row.label}</span>
+                          {row.note && (
+                            <span className="block text-[10.5px] text-[#9b9b99] mt-0.5">{row.note}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-[#6b6b6a]">{formatCurrency(row.total)}</td>
+                        <td className="px-4 py-2.5 text-right font-medium text-[#b3261e]">{formatCurrency(row.tenantCost)}</td>
+                      </tr>
+                    ))}
+                    {/* Totals row */}
+                    <tr className="bg-[#f7f6f3] border-t border-[#e8e7e4]">
+                      <td className="px-4 py-2.5 font-semibold text-[#1a1a19]">Total</td>
+                      <td className="px-4 py-2.5 text-right font-semibold text-[#6b6b6a]">{formatCurrency(totalCharges)}</td>
+                      <td className="px-4 py-2.5 text-right font-semibold text-[#b3261e]">{formatCurrency(totalCharges)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+            </div>
 
-              <div className="space-y-2">
-                <div>
-                  <label className="text-[10px] text-[#9b9b99] mb-0.5 block">Tenant email address</label>
-                  <input
-                    type="email"
-                    value={emailAddress}
-                    onChange={e => setEmailAddress(e.target.value)}
-                    placeholder="tenant@email.com"
-                    className="w-full h-[30px] text-[12px] px-2.5 border border-[#e8e7e4] rounded-[4px] bg-white focus:outline-none focus:border-[#2383e2] text-[#1a1a19]"
-                  />
+            {/* ── Refunds / Credits card ── */}
+            <div className="bg-white border border-[#e8e7e4] rounded-[8px] overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#e8e7e4]">
+                <h2 className="text-[13px] font-semibold text-[#1a1a19]">Refunds / Credits</h2>
+              </div>
+              <div className="divide-y divide-[#f0f0ee]">
+                <div className="flex justify-between px-4 py-2.5 text-[12.5px]">
+                  <span className="text-[#9b9b99]">Security deposit paid</span>
+                  <span className="font-medium text-[#1a7a3a]">{formatCurrency(depositData.securityDeposit)}</span>
                 </div>
-
-                {/* Shows a preview of what the email subject line will be */}
-                {emailAddress && (
-                  <p className="text-[10px] text-[#9b9b99]">
-                    Subject: Security Deposit Return — {tenantData.tenantName}, Unit {tenantData.unit}
-                  </p>
-                )}
-
-                {/* Send button — requires compliance check AND a valid email address */}
-                {emailSent ? (
-                  <div className="w-full py-2 text-[12px] font-medium text-[#1a7a3a] bg-[#e3f5e6] rounded-[6px] text-center">
-                    ✓ Sent to {emailAddress}
+                {depositData.petDeposit > 0 && (
+                  <div className="flex justify-between px-4 py-2.5 text-[12.5px]">
+                    <span className="text-[#9b9b99]">Pet deposit</span>
+                    <span className="font-medium text-[#1a7a3a]">{formatCurrency(depositData.petDeposit)}</span>
                   </div>
-                ) : (
-                  <button
-                    onClick={handleSendEmail}
-                    disabled={!complianceChecked || !emailAddress}
-                    className="w-full py-2 text-[12px] font-medium border border-[#2383e2] text-[#2383e2] rounded-[6px] hover:bg-[#e6efff] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Send PDF via email
-                  </button>
                 )}
+                {depositData.keyDeposit > 0 && (
+                  <div className="flex justify-between px-4 py-2.5 text-[12.5px]">
+                    <span className="text-[#9b9b99]">Key deposit</span>
+                    <span className="font-medium text-[#1a7a3a]">{formatCurrency(depositData.keyDeposit)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between px-4 py-2.5 text-[12.5px] bg-[#f7f6f3]">
+                  <span className="font-semibold text-[#1a1a19]">Total credits</span>
+                  <span className="font-semibold text-[#1a7a3a]">{formatCurrency(totalCredits)}</span>
+                </div>
+                {/* Net result: what the tenant actually gets back (or owes) */}
+                <div className={`flex justify-between px-4 py-3 text-[13px] ${dueToTenant > 0 ? 'bg-[#e3f5e6]' : 'bg-[#fceae8]'}`}>
+                  <span className="font-semibold text-[#1a1a19]">
+                    {dueToTenant > 0 ? 'Balance due to tenant' : 'Balance owing landlord'}
+                  </span>
+                  <span className={`font-bold text-[15px] ${dueToTenant > 0 ? 'text-[#1a7a3a]' : 'text-[#b3261e]'}`}>
+                    {formatCurrency(Math.abs(balance))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {!complianceChecked && (
-                  <p className="text-[10px] text-[#9b9b99]">Complete the compliance check first to enable sending.</p>
-                )}
+          {/* ════════════════════════════════════
+              RIGHT COLUMN
+              ════════════════════════════════════ */}
+          <div className="space-y-4">
+
+            {/* ── Forwarding Address Confirmation ── */}
+            <div className="bg-white border border-[#e8e7e4] rounded-[8px] overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#e8e7e4]">
+                <h2 className="text-[13px] font-semibold text-[#1a1a19]">Forwarding Address</h2>
+              </div>
+              <div className="px-4 py-3 space-y-1">
+                <p className="text-[13px] font-medium text-[#1a1a19]">{tenantData.tenantName}</p>
+                <p className="text-[12px] text-[#6b6b6a]">{tenantData.forwardingAddress.street}</p>
+                <p className="text-[12px] text-[#6b6b6a]">
+                  {tenantData.forwardingAddress.city}, {tenantData.forwardingAddress.state} {tenantData.forwardingAddress.zip}
+                </p>
+                <p className="text-[10.5px] text-[#9b9b99] mt-2">
+                  Deposit return will be mailed to this address.
+                </p>
               </div>
             </div>
 
+            {/* ── Compliance Check ── */}
+            <div className={`border rounded-[8px] overflow-hidden transition-colors ${
+              complianceChecked
+                ? 'bg-[#e3f5e6] border-[#1a7a3a]/50'
+                : 'bg-white border-[#e8e7e4]'
+            }`}>
+              <div className={`px-4 py-3 border-b ${complianceChecked ? 'border-[#1a7a3a]/20' : 'border-[#e8e7e4]'}`}>
+                <h2 className="text-[13px] font-semibold text-[#1a1a19]">Compliance Check</h2>
+              </div>
+              <label className="flex items-start gap-3 px-4 py-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={complianceChecked}
+                  onChange={e => setComplianceChecked(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 shrink-0 accent-[#1a7a3a]"
+                />
+                <span className="text-[12.5px] text-[#6b6b6a] leading-snug">
+                  I confirm all charges reflect company-approved rates and this return is accurate and complete.
+                </span>
+              </label>
+            </div>
+
+            {/* ── Finalize & Generate PDF ── */}
+            <button
+              onClick={handleFinalize}
+              disabled={!complianceChecked || generating}
+              className="w-full py-3 text-[13px] font-semibold rounded-[8px] border transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+              style={{
+                background: complianceChecked ? '#1a7a3a' : '#f7f6f3',
+                color: complianceChecked ? '#fff' : '#9b9b99',
+                borderColor: complianceChecked ? '#1a7a3a' : '#e8e7e4',
+              }}
+            >
+              {generating ? 'Generating PDF…' : 'Finalize & Generate PDF'}
+            </button>
+
+            {!complianceChecked && (
+              <p className="text-[11px] text-[#9b9b99] text-center -mt-2">
+                Check the compliance box above to enable
+              </p>
+            )}
           </div>
         </div>
       </div>
