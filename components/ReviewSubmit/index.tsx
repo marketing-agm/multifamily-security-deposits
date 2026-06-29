@@ -64,12 +64,11 @@ export function ReviewSubmit({ returnId }: Props) {
 
   const fwdAddr = `${tenantData.forwardingAddress.street}, ${tenantData.forwardingAddress.city} ${tenantData.forwardingAddress.state} ${tenantData.forwardingAddress.zip}`;
 
-  // PDF filename: AGM_Checkout_[Unit]_[FirstName]_[LastName].pdf
-  // Split on whitespace and take first and last word of the name.
+  // PDF filename: AGM_Checkout_[Unit]_[LastName].pdf
+  // Take the last word of the name as the last name.
   const nameParts = tenantData.tenantName.trim().split(/\s+/);
-  const firstName = nameParts[0] || '';
   const lastName = nameParts[nameParts.length - 1] || '';
-  const fileName = `AGM_Checkout_${tenantData.unit}_${firstName}_${lastName}.pdf`;
+  const fileName = `AGM_Checkout_${tenantData.unit}_${lastName}.pdf`;
 
   async function handleDownload() {
     if (!complianceChecked) return;
