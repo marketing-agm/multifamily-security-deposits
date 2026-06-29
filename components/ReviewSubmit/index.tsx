@@ -167,26 +167,41 @@ export function ReviewSubmit({ returnId }: Props) {
             <div className="bg-[#f7f6f3] rounded-[6px] p-4">
               <p className="text-[11px] font-semibold text-[#9b9b99] uppercase tracking-[0.05em] mb-3">Charges</p>
               <div className="space-y-2 text-sm">
-                {calculatedCharges.rentDue > 0 && (
+                {calculatedCharges.rentDue > 0 && (() => {
+                  // Show how many days were pro-rated so the charge is self-explanatory.
+                  const dailyRate = tenantData.monthlyRent / 30;
+                  const days = dailyRate > 0 ? Math.round(calculatedCharges.rentDue / dailyRate) : 0;
+                  const label = tenantData.leaseBreak
+                    ? `Rent due (${days} days pro-rated, lease break)`
+                    : `Rent due (${days} days pro-rated)`;
+                  return (
                   <div className="flex justify-between">
                     {/* leaseBreak means tenant left before lease ended — extra rent may apply. */}
-                    <span className="text-[#6b6b6a]">Rent due {tenantData.leaseBreak ? '(lease break)' : ''}</span>
+                    <span className="text-[#6b6b6a]">{label}</span>
                     {/* Charge amounts: danger red */}
                     <span className="font-medium text-[#b3261e]">{formatCurrency(calculatedCharges.rentDue)}</span>
                   </div>
-                )}
+                  );
+                })()}
                 {calculatedCharges.utilityCharge > 0 && (
                   <div className="flex justify-between">
-                    {/* RUBS = Ratio Utility Billing System — tenant's share of building utility bill. */}
+                    {/* RUBS label shows the formula: building total × unit ratio */}
                     <span className="text-[#6b6b6a]">
-                      {tr.utilityData.utilityType === 'RUBS' ? 'RUBS chargeback' : 'Utility charge'}
+                      {tr.utilityData.utilityType === 'RUBS'
+                        ? `RUBS chargeback (${formatCurrency(tr.utilityData.rubsBuildingTotal)} × ${(tr.utilityData.rubsUnitRatio * 100).toFixed(1)}%)`
+                        : 'Utility — flat fee'}
                     </span>
                     <span className="font-medium text-[#b3261e]">{formatCurrency(calculatedCharges.utilityCharge)}</span>
                   </div>
                 )}
                 {manualCharges.generalCleaning > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-[#6b6b6a]">Cleaning (NRC offset −{formatCurrency(nrcOffset)})</span>
+                    {/* NRC offset: pre-paid cleaning fee reduces what tenant owes now */}
+                    <span className="text-[#6b6b6a]">
+                      {nrcOffset > 0
+                        ? `Cleaning — NRC ${formatCurrency(nrcOffset)} offsets`
+                        : 'Cleaning'}
+                    </span>
                     <span className="font-medium text-[#b3261e]">{formatCurrency(tenantCleaning)}</span>
                   </div>
                 )}
@@ -308,6 +323,15 @@ export function ReviewSubmit({ returnId }: Props) {
                   'Deadline',
                   `${formatDeadlineDate(tenantData.moveOutDate)} · ${getDaysRemaining(tenantData.moveOutDate)} days remaining`,
                 ],
+                ...(nrcOffset > 0 ? [['NRC offset applied', `${formatCurrency(nrcOffset)} — cleaning covered`]] : []),
+                [
+                  'Status',
+                  tr.processingStatus === 'complete'
+                    ? 'Complete'
+                    : complianceChecked
+                    ? 'Compliance confirmed'
+                    : 'Awaiting compliance check',
+                ],
               ].map(([label, val]) => (
                 <div key={label} className="flex justify-between text-[11.5px] py-1 border-b border-[#eeeeec] last:border-b-0">
                   <span className="text-[#9b9b99]">{label}</span>
@@ -315,6 +339,9 @@ export function ReviewSubmit({ returnId }: Props) {
                     label === 'Inspection' && val === 'Missing' ? 'text-[#b3261e]' :
                     label === 'Inspection' ? 'text-[#1a7a3a]' :
                     label === 'Deadline' ? 'text-[#8b6a00]' :
+                    label === 'NRC offset applied' ? 'text-[#1a7a3a]' :
+                    label === 'Status' && val === 'Complete' ? 'text-[#1a7a3a]' :
+                    label === 'Status' && val === 'Awaiting compliance check' ? 'text-[#8b6a00]' :
                     'text-[#1a1a19]'
                   }`}>{val}</span>
                 </div>
