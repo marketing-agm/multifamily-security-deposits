@@ -81,16 +81,21 @@ function InfoRow({ label, value, highlight }: { label: string; value: string; hi
 }
 
 // ============================================================
-// FormDisplayField — read-only field in the checkout form.
-// Looks like a real input so it's clear it's part of the PDF form.
+// FormDisplayField — editable input in the checkout form.
+// Pre-filled from tenant data but the user can type to override it.
 // ============================================================
-function FormDisplayField({ label, value }: { label: string; value: string }) {
+function FormDisplayField({ label, value, onChange }: { label: string; value: string; onChange?: (v: string) => void }) {
   return (
     <div className="flex flex-col gap-0.5">
       <label className="text-[9px] font-medium text-[#9b9b99] uppercase tracking-[0.04em]">{label}</label>
-      <div className="h-[26px] text-[11px] px-2 flex items-center rounded-[4px] border bg-[#f7f6f3] border-[#e8e7e4] text-[#6b6b6a]">
-        <span className="truncate">{value || '—'}</span>
-      </div>
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange?.(e.target.value)}
+        readOnly={!onChange}
+        className="h-[26px] text-[11px] px-2 rounded-[4px] border border-[#e8e7e4] text-[#1a1a19] focus:outline-none focus:border-[#2383e2] transition-colors"
+        style={{ background: onChange ? '#fff' : '#f7f6f3', color: onChange ? '#1a1a19' : '#6b6b6a' }}
+      />
     </div>
   );
 }
@@ -135,6 +140,16 @@ export function AgentForm({ returnId }: Props) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('tenant');
   // Notes live in local state for this session — not saved to the session context
   const [notes, setNotes] = useState('');
+  // formOverrides: editable field values. Start empty so the displayed value falls back to tenant data.
+  // When the user types, their override is stored here.
+  const [formOverrides, setFormOverrides] = useState<Record<string, string>>({});
+
+  function fieldVal(key: string, defaultVal: string): string {
+    return key in formOverrides ? formOverrides[key] : defaultVal;
+  }
+  function setField(key: string, val: string) {
+    setFormOverrides(prev => ({ ...prev, [key]: val }));
+  }
 
   const trMaybe = session?.returns.find(r => r.id === returnId);
   if (!session || !trMaybe) {
@@ -244,8 +259,11 @@ export function AgentForm({ returnId }: Props) {
         </button>
       </div>
 
-      {/* ── Main layout: [icon sidebar] [left tab panel] [right checkout form] ── */}
+      {/* ── Main layout: [40% left: sidebar + tab panel] [60% right: checkout form] ── */}
       <div className="flex-1 flex overflow-hidden">
+
+        {/* Left 40%: sidebar + tab panel together */}
+        <div className="flex shrink-0 overflow-hidden" style={{ width: '40%' }}>
 
         {/* ══════════════════════════════════════════
             SIDEBAR — 56px strip of icon tabs.
@@ -283,10 +301,10 @@ export function AgentForm({ returnId }: Props) {
         </div>
 
         {/* ══════════════════════════════════════════
-            LEFT PANEL — 300px, content depends on active tab.
+            LEFT PANEL — fills remaining space inside the 40% container.
             Scrollable independently of the right panel.
             ══════════════════════════════════════════ */}
-        <div className="w-[300px] bg-white border-r border-[#e8e7e4] flex flex-col shrink-0 overflow-hidden">
+        <div className="flex-1 bg-white border-r border-[#e8e7e4] flex flex-col overflow-hidden">
 
           {/* Panel title row */}
           <div className="px-3 py-2.5 border-b border-[#e8e7e4] shrink-0">
@@ -474,26 +492,19 @@ export function AgentForm({ returnId }: Props) {
             )}
           </div>
         </div>
+        </div>{/* end left 40% wrapper */}
 
         {/* ══════════════════════════════════════════
-            RIGHT PANEL — AGM Checkout Report form.
+            RIGHT PANEL — 60% — AGM Checkout Report form.
             Always visible. Auto-filled fields show tenant data.
             Charge inputs are editable by the user.
             ══════════════════════════════════════════ */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#f7f6f3] min-w-0">
+        <div className="flex flex-col overflow-hidden bg-[#f7f6f3]" style={{ width: '60%' }}>
 
           {/* Form header */}
           <div className="px-4 py-2 border-b border-[#e8e7e4] flex items-center justify-between bg-white shrink-0">
             <span className="text-[11px] font-semibold text-[#6b6b6a]">📄 AGM Checkout Report</span>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] text-[#9b9b99]">{autoFilledCount} / {TOTAL_FIELDS} fields</span>
-              <button
-                onClick={handleContinue}
-                className="px-3 py-1 text-[11px] font-semibold text-white bg-[#1a1a19] rounded-[5px] hover:bg-[#333] transition-colors"
-              >
-                Continue →
-              </button>
-            </div>
+            <span className="text-[10px] text-[#9b9b99]">{autoFilledCount} / {TOTAL_FIELDS} fields auto-filled</span>
           </div>
 
           {/* Scrollable form body */}
@@ -504,12 +515,12 @@ export function AgentForm({ returnId }: Props) {
               <p className="text-[9px] font-semibold text-[#9b9b99] uppercase tracking-[0.06em] mb-2">Property & tenant</p>
               <div className="bg-white border border-[#e8e7e4] rounded-[6px] p-3 space-y-2">
                 <div className="grid grid-cols-2 gap-2">
-                  <FormDisplayField label="Property" value={session.propertyName || '—'} />
-                  <FormDisplayField label="Unit" value={tenantData.unit} />
+                  <FormDisplayField label="Property" value={fieldVal('property', session.propertyName || '—')} onChange={v => setField('property', v)} />
+                  <FormDisplayField label="Unit" value={fieldVal('unit', tenantData.unit)} onChange={v => setField('unit', v)} />
                 </div>
-                <FormDisplayField label="Tenant name" value={tenantData.tenantName} />
-                <FormDisplayField label="Co-tenant / co-signer" value={tenantData.coTenant || ''} />
-                <FormDisplayField label="Forwarding address" value={fwdAddr} />
+                <FormDisplayField label="Tenant name" value={fieldVal('tenantName', tenantData.tenantName)} onChange={v => setField('tenantName', v)} />
+                <FormDisplayField label="Co-tenant / co-signer" value={fieldVal('coTenant', tenantData.coTenant || '')} onChange={v => setField('coTenant', v)} />
+                <FormDisplayField label="Forwarding address" value={fieldVal('fwdAddr', fwdAddr)} onChange={v => setField('fwdAddr', v)} />
                 <div>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
                     tenantData.inspectionStatus === 'signed'
