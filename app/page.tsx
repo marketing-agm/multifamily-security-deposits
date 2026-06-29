@@ -1,11 +1,6 @@
 'use client';
 
 // app/page.tsx — Screen 1: Upload + current move-outs queue
-// This is the first page you see. It has two parts:
-//   1. The upload zone (drag & drop an Excel file from AppFolio)
-//   2. A queue table showing all tenants from the last upload (if any)
-//
-// Think of this like the "home screen" of the app.
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -14,85 +9,72 @@ import { parseAppFolioExport, ParseError } from '@/lib/parser';
 import { DUMMY_SESSION } from '@/lib/dummyData';
 import { TenantReturn } from '@/types';
 import { formatCurrency } from '@/lib/calculations';
-import { formatDeadlineDate } from '@/lib/deadlineUtils';
 
-// --- Small inline components for the queue table ---
-
-// UtilityPill: shows whether the tenant uses RUBS or Flat fee billing.
-// RUBS = Ratio Utility Billing System (tenant pays a share of the building's water bill).
+// UtilityPill: RUBS = blue with droplet icon, Flat fee = green with receipt icon
 function UtilityPill({ type }: { type: TenantReturn['utilityData']['utilityType'] }) {
   if (type === 'RUBS') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#e6efff] text-[#1858b8] border border-[#2383e2]/25">
-        RUBS
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#e6efff] text-[#1858b8] border border-[#2383e2]/25">
+        🔵 RUBS
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#e3f5e6] text-[#1a7a3a] border border-[#1a7a3a]/25">
-      Flat fee
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#e3f5e6] text-[#1a7a3a] border border-[#1a7a3a]/25">
+      📋 Flat fee
     </span>
   );
 }
 
-// InspectionPill: shows whether the move-in inspection was signed or is missing.
-// Missing inspection is a risk — it weakens the landlord's case for damage charges.
+// InspectionPill: Signed = green with checkmark, Missing = red with warning
 function InspectionPill({ status }: { status: TenantReturn['tenantData']['inspectionStatus'] }) {
   if (status === 'signed') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#e3f5e6] text-[#1a7a3a] border border-[#1a7a3a]/25">
-        ✓ Signed
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#e3f5e6] text-[#1a7a3a] border border-[#1a7a3a]/25">
+        📋 Signed
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#fceae8] text-[#b3261e] border border-[#b3261e]/25">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#fceae8] text-[#b3261e] border border-[#b3261e]/25">
       ⚠ Missing
     </span>
   );
 }
 
-// StatusPill: shows processing state of each return.
+// StatusPill: color-coded by processing state
 function StatusPill({ status }: { status: TenantReturn['processingStatus'] }) {
   if (status === 'complete') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#e3f5e6] text-[#1a7a3a]">
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#e3f5e6] text-[#1a7a3a]">
         Complete
       </span>
     );
   }
   if (status === 'in_progress') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#fdf3da] text-[#8b6a00]">
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#fdf3da] text-[#8b6a00]">
         In progress
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#f1f1ef] text-[#6b6b6a] border border-[#e8e7e4]">
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#f1f1ef] text-[#6b6b6a] border border-[#e8e7e4]">
       Not started
     </span>
   );
 }
 
 export default function UploadPage() {
-  // useSession() is like getting the app's shared "state" — the list of tenant returns.
-  // In React, session state is stored in a Context (similar to a global variable in Java).
   const { session, setSession } = useSession();
   const router = useRouter();
-
-  // Local state — only relevant to this one page.
-  const [dragging, setDragging] = useState(false);    // true while user drags a file over the drop zone
-  const [errors, setErrors] = useState<ParseError[]>([]);  // parse errors from the Excel file
-  const [loading, setLoading] = useState(false);       // true while parsing the file
-
-  // A ref is like a pointer to a DOM element — lets us click the hidden file input programmatically.
+  const [dragging, setDragging] = useState(false);
+  const [errors, setErrors] = useState<ParseError[]>([]);
+  const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // If a session already exists with tenants, show the "Resume session" button.
   const hasSession = session && session.returns.length > 0;
 
-  // handleFile: called whenever the user picks or drops an Excel file.
   async function handleFile(file: File) {
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       setErrors([{ message: 'Please upload an Excel file (.xlsx or .xls).' }]);
@@ -101,7 +83,6 @@ export default function UploadPage() {
     setLoading(true);
     setErrors([]);
     try {
-      // arrayBuffer() reads the file as raw bytes — needed by our Excel parser.
       const buffer = await file.arrayBuffer();
       const result = parseAppFolioExport(buffer);
       if (result.errors.length > 0 && result.returns.length === 0) {
@@ -113,7 +94,7 @@ export default function UploadPage() {
         uploadDate: new Date().toLocaleDateString('en-US'),
         returns: result.returns,
       });
-      if (result.errors.length > 0) setErrors(result.errors); // non-fatal warnings
+      if (result.errors.length > 0) setErrors(result.errors);
       router.push('/dashboard');
     } catch (err) {
       setErrors([{ message: err instanceof Error ? err.message : 'Failed to parse file.' }]);
@@ -149,7 +130,6 @@ export default function UploadPage() {
             </h1>
             <p className="text-[11px] text-[#9b9b99] mt-0.5">AGM Real Estate Group</p>
           </div>
-          {/* Resume session link — only visible when a previous session exists */}
           {hasSession && (
             <button
               onClick={() => router.push('/dashboard')}
@@ -241,7 +221,6 @@ export default function UploadPage() {
                 'Upload the file above — all move-outs will populate automatically',
               ].map((step, i) => (
                 <div key={i} className="flex items-start gap-2.5 text-[13px] text-[#6b6b6a]">
-                  {/* Numbered circle — like step indicators in onboarding flows */}
                   <div className="w-5 h-5 rounded-full bg-[#f1f1ef] border border-[#e8e7e4] flex items-center justify-center text-[11px] text-[#9b9b99] shrink-0 mt-px">
                     {i + 1}
                   </div>
@@ -251,27 +230,27 @@ export default function UploadPage() {
             </div>
           </div>
 
-          {/* ── Current move-outs queue (only shown when a session exists) ── */}
+          {/* ── Current move-outs queue ── */}
           {hasSession && (
             <div>
-              {/* Divider */}
               <div className="border-t border-[#e8e7e4] my-2" />
 
-              {/* Queue header */}
+              {/* Queue header — shows property name + upload month if available */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-semibold text-[#1a1a19]">Current move-outs</span>
-                  <span className="text-[11px] text-[#9b9b99]">— from last upload</span>
+                  <span className="text-[11px] text-[#9b9b99]">
+                    — {session.propertyName ? `${session.propertyName}, ` : ''}{session.uploadDate}
+                  </span>
                 </div>
-                {/* Pending count badge */}
                 {(() => {
                   const pending = session.returns.filter(r => r.processingStatus !== 'complete').length;
                   return pending > 0 ? (
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#fdf3da] text-[#8b6a00] border border-[#e8c840]/40">
+                    <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#fdf3da] text-[#8b6a00] border border-[#e8c840]/40">
                       {pending} pending
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#e3f5e6] text-[#1a7a3a] border border-[#1a7a3a]/25">
+                    <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#e3f5e6] text-[#1a7a3a] border border-[#1a7a3a]/25">
                       All complete
                     </span>
                   );
@@ -279,52 +258,56 @@ export default function UploadPage() {
               </div>
 
               {/* Queue table */}
-              <div className="border border-[#e8e7e4] rounded-[6px] overflow-hidden">
-                {/* Table header row */}
-                <div className="grid grid-cols-[2fr_0.9fr_0.7fr_0.7fr_0.9fr] px-4 py-2 border-b border-[#e8e7e4] bg-[#f7f6f3]">
+              <div className="border border-[#e8e7e4] rounded-[8px] overflow-hidden">
+                {/* Header row */}
+                <div className="grid grid-cols-[2fr_0.8fr_0.9fr_0.9fr_1fr] px-5 py-2.5 border-b border-[#e8e7e4] bg-[#f7f6f3]">
                   {['Tenant / unit', 'Move-out', 'Utility', 'Inspection', 'Action'].map(h => (
                     <span key={h} className="text-[11px] font-semibold text-[#9b9b99] uppercase tracking-[0.04em]">{h}</span>
                   ))}
                 </div>
 
-                {/* One row per tenant */}
-                {session.returns.map((r, idx) => (
-                  <div
-                    key={r.id}
-                    className={`grid grid-cols-[2fr_0.9fr_0.7fr_0.7fr_0.9fr] px-4 py-3 items-center hover:bg-[#f7f6f3] cursor-pointer transition-colors ${
-                      idx < session.returns.length - 1 ? 'border-b border-[#eeeeec]' : ''
-                    }`}
-                    onClick={() => router.push(`/return/${r.id}`)}
-                  >
-                    {/* Tenant name + unit + deposit */}
-                    <div>
-                      <div className="text-[13px] font-semibold text-[#1a1a19]">{r.tenantData.tenantName}</div>
-                      <div className="text-[11px] text-[#9b9b99] mt-0.5">
-                        Unit {r.tenantData.unit} · {formatCurrency(r.depositData.securityDeposit)} deposit
+                {/* Tenant rows — in-progress rows get a blue tint highlight */}
+                {session.returns.map((r, idx) => {
+                  const tenantCount = [r.tenantData.tenantName, r.tenantData.coTenant].filter(Boolean).length;
+                  const isInProgress = r.processingStatus === 'in_progress';
+                  return (
+                    <div
+                      key={r.id}
+                      onClick={() => router.push(`/return/${r.id}`)}
+                      className={`grid grid-cols-[2fr_0.8fr_0.9fr_0.9fr_1fr] px-5 py-4 items-center cursor-pointer transition-colors ${
+                        idx < session.returns.length - 1 ? 'border-b border-[#eeeeec]' : ''
+                      } ${isInProgress ? 'bg-[#f0f5ff]' : 'hover:bg-[#f7f6f3]'}`}
+                    >
+                      {/* Tenant name + unit + deposit + tenant count */}
+                      <div>
+                        <div className="text-[13px] font-semibold text-[#1a1a19]">{r.tenantData.tenantName}</div>
+                        <div className="text-[11px] text-[#9b9b99] mt-0.5">
+                          Unit {r.tenantData.unit} · {formatCurrency(r.depositData.securityDeposit)} deposit · {tenantCount} tenant{tenantCount !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                      {/* Move-out date */}
+                      <span className="text-[12px] text-[#6b6b6a]">{r.tenantData.moveOutDate}</span>
+                      {/* Utility pill */}
+                      <UtilityPill type={r.utilityData.utilityType} />
+                      {/* Inspection pill */}
+                      <InspectionPill status={r.tenantData.inspectionStatus} />
+                      {/* Status + Open button */}
+                      <div className="flex items-center gap-2">
+                        <StatusPill status={r.processingStatus} />
+                        <button
+                          onClick={e => { e.stopPropagation(); router.push(`/return/${r.id}`); }}
+                          className={`text-[12px] font-semibold px-4 py-2 rounded-[6px] border transition-colors ${
+                            isInProgress
+                              ? 'bg-white border-[#e8e7e4] text-[#1a1a19] hover:bg-[#f7f6f3]'
+                              : 'bg-white border-[#e8e7e4] text-[#1a1a19] hover:bg-[#f7f6f3]'
+                          }`}
+                        >
+                          {r.processingStatus === 'complete' ? 'View →' : 'Open →'}
+                        </button>
                       </div>
                     </div>
-                    {/* Move-out date */}
-                    <span className="text-[12px] text-[#6b6b6a]">{r.tenantData.moveOutDate}</span>
-                    {/* Utility type pill */}
-                    <UtilityPill type={r.utilityData.utilityType} />
-                    {/* Inspection status pill */}
-                    <InspectionPill status={r.tenantData.inspectionStatus} />
-                    {/* Status + action button */}
-                    <div className="flex items-center gap-2">
-                      <StatusPill status={r.processingStatus} />
-                      <button
-                        onClick={e => { e.stopPropagation(); router.push(`/return/${r.id}`); }}
-                        className={`text-[11px] px-2.5 py-1 rounded-[4px] border transition-colors ${
-                          r.processingStatus === 'in_progress'
-                            ? 'bg-[#e6efff] border-[#2383e2]/40 text-[#1858b8] font-medium'
-                            : 'bg-white border-[#e8e7e4] text-[#6b6b6a] hover:bg-[#f7f6f3]'
-                        }`}
-                      >
-                        {r.processingStatus === 'complete' ? 'View' : 'Open'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
