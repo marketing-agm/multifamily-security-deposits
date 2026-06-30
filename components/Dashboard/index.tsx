@@ -59,13 +59,13 @@ export function Dashboard() {
       {/* Table */}
       <div className="max-w-6xl mx-auto px-6 py-6">
 
-        {/* Property category header — shows the property name as a section label above its tenants */}
-        <div className="flex items-center gap-3 mb-3">
-          <div className="text-[11px] font-semibold text-[#9b9b99] uppercase tracking-[0.06em]">Property</div>
-          <div className="flex items-center gap-2 px-3 py-1 bg-white border border-[#e8e7e4] rounded-[6px]">
-            <span className="text-[13px]">🏢</span>
-            <span className="text-[13px] font-semibold text-[#1a1a19]">{session.propertyName || 'Unknown property'}</span>
-            <span className="text-[11px] text-[#9b9b99]">· {session.returns.length} move-out{session.returns.length !== 1 ? 's' : ''}</span>
+        {/* Property category header */}
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-[11px] font-semibold text-[#9b9b99] uppercase tracking-[0.06em] shrink-0">Property</span>
+          <div className="flex items-center gap-2.5 px-4 py-2 bg-white border border-[#e8e7e4] rounded-[8px]">
+            <span className="text-[18px]">🏢</span>
+            <span className="text-[16px] font-bold text-[#1a1a19]">{session.propertyName || 'Unknown property'}</span>
+            <span className="text-[13px] font-semibold text-[#9b9b99]">· {session.returns.length} move-out{session.returns.length !== 1 ? 's' : ''}</span>
           </div>
         </div>
 
