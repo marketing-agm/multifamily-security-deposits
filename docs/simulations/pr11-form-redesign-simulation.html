@@ -284,9 +284,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .pdf-bal-row{display:flex;align-items:center;justify-content:space-between;border:1px solid #888;padding:7px 10px;margin-top:8px;font-size:10.5px;}
 </style>
 
-<!-- ════════════════════════════════════════════
+<!-- ══════════════════════════════════════════
      SCREEN 2 — Tenant Dashboard
-     ════════════════════════════════════════════ -->
+     ══════════════════════════════════════════ -->
 <div class="sw">
 <div class="sl"><span>Screen 2</span> Tenant dashboard — Westlake Commons</div>
 <div class="frame">
@@ -295,7 +295,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       <div><div class="tb-brand">AGM Security Deposit Tool</div><div class="tb-sub">AGM Real Estate Group</div></div>
       <div class="tb-div"></div>
       <div class="prop-drop">
-        <div class="prop-btn" onclick="toggleProp()">&#127962; <span id="prop-name">Westlake Commons</span> <span class="prop-arr">▾</span></div>
+        <div class="prop-btn" onclick="toggleProp()">🏢 <span id="prop-name">Westlake Commons</span> <span class="prop-arr">▾</span></div>
         <div class="prop-menu" id="prop-menu">
           <div class="prop-item sel" onclick="selectProp('Westlake Commons',this)"><span class="prop-check">✓</span>Westlake Commons — June 2026</div>
           <div class="prop-item" onclick="selectProp('Lakeview Apartments',this)"><span class="prop-check" style="opacity:0">✓</span>Lakeview Apartments — May 2026</div>
@@ -337,9 +337,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 </div>
 </div>
 
-<!-- ════════════════════════════════════════════
+<!-- ══════════════════════════════════════════
      SCREEN 3 — Return Form (Sarah Mitchell)
-     ════════════════════════════════════════════ -->
+     ══════════════════════════════════════════ -->
 <div class="sw">
 <div class="sl"><span>Screen 3</span> Return form — Sarah L. Mitchell · Unit 204B</div>
 <div class="frame">
@@ -354,7 +354,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
     <div class="tb-r" style="gap:6px;">
       <button class="btn btn-ghost btn-sm" onclick="toggleFF()" id="ff-btn">View full form</button>
-      <button class="btn btn-blue btn-sm">Review &amp; Submit →</button>
+      <button class="btn btn-blue btn-sm">Review & Submit →</button>
     </div>
   </div>
   <div class="s3">
@@ -555,7 +555,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
                 </tr>
                 <tr class="charge-row">
                   <td class="tot-lbl">Carpet shampooing</td>
-                  <td style="text-align:right;"><input class="charge-inp" id="inp-carpet" value="0.00" oninput="recalcFromInput()"></td>
+                  <td style="text-align:right;"><input class="charge-inp" id="inp-carpet" value="120.00" oninput="recalcFromInput()"></td>
                 </tr>
                 <tr class="charge-row">
                   <td class="tot-lbl">Flooring restoration</td>
@@ -563,7 +563,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
                 </tr>
                 <tr class="charge-row">
                   <td class="tot-lbl">Painting</td>
-                  <td style="text-align:right;"><input class="charge-inp" id="inp-paint" value="0.00" oninput="recalcFromInput()"></td>
+                  <td style="text-align:right;"><input class="charge-inp" id="inp-paint" value="150.00" oninput="recalcFromInput()"></td>
                 </tr>
                 <tr class="charge-row">
                   <td class="tot-lbl">Key replacement</td>
@@ -587,7 +587,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
                 </tr>
                 <tr class="sep">
                   <td>Total charges</td>
-                  <td style="text-align:right;color:#b3261e;" id="tot-total">$2,049.43</td>
+                  <td style="text-align:right;color:#b3261e;" id="tot-total">$2,319.43</td>
                 </tr>
               </table>
             </div>
@@ -609,13 +609,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
                 </div>
               </div>
               <div class="bal-grid">
-                <div class="bal-c pos" id="bal-tenant">
+                <div class="bal-c zero" id="bal-tenant">
                   <div class="bal-lbl">Balance due to tenant</div>
-                  <div class="bal-val bvg" id="bal-tenant-val">$100.57</div>
+                  <div class="bal-val bvm" id="bal-tenant-val">$0.00</div>
                 </div>
-                <div class="bal-c zero" id="bal-landlord">
+                <div class="bal-c neg" id="bal-landlord">
                   <div class="bal-lbl">Balance owing landlord</div>
-                  <div class="bal-val bvm" id="bal-landlord-val">$0.00</div>
+                  <div class="bal-val bvr" id="bal-landlord-val">$169.43</div>
                 </div>
               </div>
             </div>
@@ -639,9 +639,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 </div>
 </div>
 
-<!-- ════════════════════════════════════════════
+<!-- ══════════════════════════════════════════
      SCREEN 4 — Review & Download
-     ════════════════════════════════════════════ -->
+     ══════════════════════════════════════════ -->
 <div class="sw">
 <div class="sl"><span>Screen 4</span> Review &amp; download — Sarah L. Mitchell · Unit 204B</div>
 <div class="frame">
@@ -723,9 +723,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 </div>
 </div>
 
-<!-- ════════════════════════════════════════════
+<!-- ══════════════════════════════════════════
      PDF PREVIEW MODAL
-     ════════════════════════════════════════════ -->
+     ══════════════════════════════════════════ -->
 <div class="modal-overlay hidden" id="modal-overlay" onclick="closePreviewOverlay(event)">
   <div class="modal-wrap" onclick="event.stopPropagation()">
     <div class="modal-bar">
@@ -986,6 +986,8 @@ function selectProp(name, el) {
 
 /* ── Screen 3 state ── */
 var NRC_CLEANING = 250;
+var CHARGES = { cleaning: 0, blind: 0, window: 0, carpet: 120, floor: 0, paint: 150, other1: 50, other2: 0, rent: 1896.51, util: 102.92, legal: 0 };
+var CREDITS = { sec: 1850, pet: 300 };
 
 function parseMoney(s) {
   return parseFloat(String(s).replace(/[$,]/g, '')) || 0;
@@ -1010,6 +1012,7 @@ function recalcAll() {
   var tenantCleaning = Math.max(0, cleaning - NRC_CLEANING);
   var totalCharges = tenantCleaning + blind + window_ + carpet + floor + paint + other1 + other2 + rent + util + legal;
 
+  // NRC note
   var nrcOffset = Math.min(cleaning, NRC_CLEANING);
   var nrcNote = document.getElementById('nrc-note');
   if (nrcNote) {
@@ -1020,6 +1023,7 @@ function recalcAll() {
     }
   }
 
+  // NRC section
   var nrcEntered = document.getElementById('nrc-cleaning-entered');
   if (nrcEntered) nrcEntered.textContent = fmtMoney(cleaning);
   var nrcOffsetDisplay = document.getElementById('nrc-offset-display');
@@ -1027,9 +1031,11 @@ function recalcAll() {
     nrcOffsetDisplay.textContent = fmtMoney(nrcOffset) + ' → Tenant pays ' + fmtMoney(tenantCleaning);
   }
 
+  // Total charges
   document.getElementById('tot-total').textContent = fmtMoney(totalCharges);
   document.getElementById('tot-total').style.color = totalCharges > 0 ? '#b3261e' : '#1a1a19';
 
+  // Credits and balance
   var secDep = parseMoney(document.getElementById('inp-sec-dep').value);
   var petDep = parseMoney(document.getElementById('inp-pet-dep').value);
   var totalCredits = secDep + petDep;
@@ -1065,7 +1071,9 @@ function recalcUtil() {
   recalcAll();
 }
 
-function parseFieldRent(v) { recalcAll(); }
+function parseFieldRent(v) {
+  recalcAll();
+}
 function parseFieldNRC(v) {
   NRC_CLEANING = parseMoney(v);
   document.getElementById('nrc-display').textContent = fmtMoney(NRC_CLEANING);
