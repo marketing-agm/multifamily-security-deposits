@@ -135,6 +135,16 @@ This app:
 
 ---
 
+## Learnings Log — recall before you fix, capture after
+
+This repo keeps a shared, cross-session record of bug fixes and gotchas in `docs/learnings/`, managed by the `learnings-log` skill (`.claude/skills/learnings-log/`). The point: don't solve the same problem twice, and let the next person (or the next Claude session) benefit from what we learned.
+
+- **Before** fixing a bug or UI issue, check for a prior lesson first: `grep -ri "<keywords>" docs/learnings/`. The "areas" (buckets) are `ui`, `lib`, `infra`, and `misc`.
+- **After** a commit or PR that *fixes* something (or surfaces a reusable gotcha), record it with `node .claude/skills/learnings-log/scripts/log.mjs`. Two reminder hooks nudge you automatically — one at commit time, one when a session ends — so it's hard to forget.
+- Skip it for plain feature work, docs-only changes, and routine chores.
+
+---
+
 ## Tools I'm Still Getting Comfortable With
 
 - **Cloudflare Pages** — where the app is hosted (deployed from GitHub automatically)
