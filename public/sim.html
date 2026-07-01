@@ -2,10 +2,10 @@
 <title>AGM Tool — Screen Simulation</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#dcdad6;padding:32px 20px 60px;color:#1a1a19;line-height:1.4;font-size:13px;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#fbfbfa;padding:0;margin:0;color:#1a1a19;line-height:1.4;font-size:13px;}
 
 /* Screen wrapper */
-.sw{margin-bottom:48px;}
+.sw{margin-bottom:0;}
 .sl{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#9b9b99;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
 .sl span{background:#fff;border:.5px solid #e8e7e4;border-radius:20px;padding:2px 10px;color:#6b6b6a;}
 .frame{background:#fff;border:.5px solid #c5c3bf;border-radius:12px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.09);}
@@ -320,13 +320,75 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .pdf-sig-lbl{font-size:8.5px;color:#888;margin-top:3px;text-transform:uppercase;letter-spacing:.04em;}
 .pdf-credits-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .pdf-bal-row{display:flex;align-items:center;justify-content:space-between;border:1px solid #888;padding:7px 10px;margin-top:8px;font-size:10.5px;}
+
+/* ── Single-screen navigation ── */
+.screen{display:none;}
+.screen.active{display:block;}
+.screen-wrap{max-width:960px;margin:0 auto;padding:32px 20px 60px;}
 </style>
+
+
+<!-- ══════════════════════════════════════════
+     SCREEN 1 — Upload / Home
+     ══════════════════════════════════════════ -->
+<div class="screen active" id="screen-1">
+<div class="screen-wrap">
+<div class="frame">
+  <!-- Top nav -->
+  <div class="tb">
+    <div class="tb-l">
+      <div>
+        <div class="tb-brand" style="font-family:Georgia,serif;font-size:14px;">AGM Security Deposit Return Tool</div>
+        <div class="tb-sub">AGM Real Estate Group</div>
+      </div>
+    </div>
+  </div>
+  <!-- Main content -->
+  <div style="padding:40px 32px;max-width:680px;margin:0 auto;">
+    <h2 style="font-family:Georgia,serif;font-size:22px;font-weight:600;color:#1a1a19;margin-bottom:6px;">Upload AppFolio Export</h2>
+    <p style="font-size:13px;color:#6b6b6a;line-height:1.6;margin-bottom:20px;">Export your AppFolio move-out report to Excel and upload it here. All move-outs in the file will be loaded at once.</p>
+    <!-- Drop zone -->
+    <div style="border:1.5px dashed #d4d3d0;border-radius:8px;padding:48px 32px;text-align:center;margin-bottom:16px;cursor:default;">
+      <div style="font-size:32px;margin-bottom:10px;color:#9b9b99;">📂</div>
+      <p style="font-size:14px;font-weight:500;color:#1a1a19;">Drop your .xlsx file here</p>
+      <p style="font-size:12px;color:#9b9b99;margin-top:4px;">or click to browse</p>
+    </div>
+    <!-- Demo data banner -->
+    <div style="background:#fdf3da;border:1px solid rgba(232,200,64,.4);border-radius:6px;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;">
+      <p style="font-size:12px;color:#8b6a00;margin:0;"><strong>No Excel file?</strong> Load 5 sample tenants to explore the tool.</p>
+      <button onclick="loadDemo()" style="flex-shrink:0;font-size:12px;font-weight:600;color:#8b6a00;background:#fdf3da;border:1px solid rgba(139,106,0,.3);border-radius:6px;padding:6px 14px;cursor:pointer;white-space:nowrap;">Load demo data</button>
+    </div>
+    <!-- Instructions -->
+    <div style="border-top:1px solid #e8e7e4;padding-top:20px;">
+      <p style="font-size:10px;font-weight:600;color:#9b9b99;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">What to export from AppFolio</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#6b6b6a;">
+          <div style="width:20px;height:20px;border-radius:50%;background:#f1f1ef;border:1px solid #e8e7e4;display:flex;align-items:center;justify-content:center;font-size:11px;color:#9b9b99;flex-shrink:0;margin-top:1px;">1</div>
+          <span>Run the Move-Out report in AppFolio for the target property</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#6b6b6a;">
+          <div style="width:20px;height:20px;border-radius:50%;background:#f1f1ef;border:1px solid #e8e7e4;display:flex;align-items:center;justify-content:center;font-size:11px;color:#9b9b99;flex-shrink:0;margin-top:1px;">2</div>
+          <span>Export to Excel (.xlsx)</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#6b6b6a;">
+          <div style="width:20px;height:20px;border-radius:50%;background:#f1f1ef;border:1px solid #e8e7e4;display:flex;align-items:center;justify-content:center;font-size:11px;color:#9b9b99;flex-shrink:0;margin-top:1px;">3</div>
+          <span>Ensure the file contains all 4 required sheets: Tenant &amp; Lease, Deposits &amp; Fees, Utility, Ledger</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#6b6b6a;">
+          <div style="width:20px;height:20px;border-radius:50%;background:#f1f1ef;border:1px solid #e8e7e4;display:flex;align-items:center;justify-content:center;font-size:11px;color:#9b9b99;flex-shrink:0;margin-top:1px;">4</div>
+          <span>Upload the file above — all move-outs will populate automatically</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
 
 <!-- ══════════════════════════════════════════
      SCREEN 2 — Tenant Dashboard
      ══════════════════════════════════════════ -->
-<div class="sw">
-<div class="sl"><span>Screen 2</span> Tenant dashboard — Westlake Commons</div>
+<div class="screen" id="screen-2"><div class="screen-wrap">
 <div class="frame">
   <div class="tb">
     <div class="tb-l">
@@ -342,7 +404,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       </div>
     </div>
     <div class="tb-r">
-      <button class="btn btn-ghost btn-sm">+ Start new upload</button>
+      <button class="btn btn-ghost btn-sm" onclick="showScreen(1)">+ Start new upload</button>
     </div>
   </div>
   <div class="s2-body">
@@ -373,17 +435,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 </div>
-</div>
+</div></div>
 
 <!-- ══════════════════════════════════════════
      SCREEN 3 — Return Form (Sarah Mitchell)
      ══════════════════════════════════════════ -->
-<div class="sw">
-<div class="sl"><span>Screen 3</span> Return form — Sarah L. Mitchell · Unit 204B</div>
+<div class="screen" id="screen-3"><div class="screen-wrap">
 <div class="frame">
   <div class="tb">
     <div class="tb-l">
-      <a class="back">← Dashboard</a>
+      <a class="back" onclick="showScreen(2)" style="cursor:pointer;">← Dashboard</a>
       <div class="tb-div"></div>
       <div>
         <div class="tb-title">Sarah L. Mitchell — Unit 204B</div>
@@ -392,7 +453,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
     <div class="tb-r" style="gap:6px;">
       <button class="btn btn-ghost btn-sm" onclick="toggleFF()" id="ff-btn">View full form</button>
-      <button class="btn btn-blue btn-sm">Review & Submit →</button>
+      <button class="btn btn-blue btn-sm" onclick="showScreen(4)">Review & Submit →</button>
     </div>
   </div>
   <div class="s3">
@@ -800,17 +861,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div>
 </div>
-</div>
+</div></div>
 
 <!-- ══════════════════════════════════════════
      SCREEN 4 — Review & Download
      ══════════════════════════════════════════ -->
-<div class="sw">
-<div class="sl"><span>Screen 4</span> Review &amp; download — Sarah L. Mitchell · Unit 204B</div>
+<div class="screen" id="screen-4"><div class="screen-wrap">
 <div class="frame">
   <div class="tb">
     <div class="tb-l">
-      <a class="back">← Edit form</a>
+      <a class="back" onclick="showScreen(3)" style="cursor:pointer;">← Edit form</a>
       <div class="tb-div"></div>
       <div>
         <div class="tb-title">Review &amp; Download — Sarah L. Mitchell · Unit 204B</div>
@@ -1080,9 +1140,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       </div>
     </div>
   </div>
-</div>
+</div></div>
 
 <script>
+
+/* ── Screen navigation ── */
+function showScreen(n) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  var el = document.getElementById('screen-' + n);
+  if (el) { el.classList.add('active'); window.scrollTo(0,0); }
+}
+function loadDemo() {
+  showScreen(2);
+}
+
 /* ── Screen 2 ── */
 var TENANTS = [
   {name:'Sarah L. Mitchell', unit:'204B', moveOut:'06/24/2026', deposit:'$1,850.00', utility:'RUBS', insp:'Signed', status:'in_progress', lb:true},
@@ -1121,7 +1192,7 @@ function renderS2() {
       '<td>' + inTag + '</td>' +
       '<td>' + stTag + '</td>' +
       '<td style="text-align:right;">' + action + '</td>';
-    tr.onclick = function() { s2Sel = i; renderS2(); };
+    tr.onclick = (function(idx) { return function() { s2Sel = idx; renderS2(); showScreen(3); }; })(i);
     tb.appendChild(tr);
   });
   document.getElementById('s2-prev').className = 'nav-btn' + (s2Sel === 0 ? ' dis' : '');
@@ -1302,6 +1373,7 @@ function goSec(i) {
     prevBtn.style.opacity = i === 0 ? '.35' : '1';
     prevBtn.style.pointerEvents = i === 0 ? 'none' : '';
     nextBtn.textContent = i === SECS.length - 1 ? 'Review & Submit →' : 'Next →';
+    nextBtn.onclick = i === SECS.length - 1 ? function(){showScreen(4);} : null;
   } else {
     var target = document.getElementById('ff-hd-' + SECS[i].id);
     if (target) {
