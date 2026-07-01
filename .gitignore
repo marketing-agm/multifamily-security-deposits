@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# pr-screenshot-verify output (kept out of the code diff)
+.pr-shots/
