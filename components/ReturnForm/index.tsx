@@ -1,14 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
 import { ManualCharges, TenantReturn, RUBSManualInput } from '@/types';
-import { computeCalculatedCharges, calcNRCOffset, calcTotalCharges, calcTotalCredits, calcBalance, formatCurrency } from '@/lib/calculations';
-import { InspectionBadge } from '@/components/shared/InspectionBadge';
+import {
+  computeCalculatedCharges,
+  calcNRCOffset,
+  calcTotalCharges,
+  calcTotalCredits,
+  calcBalance,
+  formatCurrency,
+} from '@/lib/calculations';
 import { UtilityTag } from '@/components/shared/UtilityTag';
 
-const STEPS = ['Tenant', 'Lease', 'Utility', 'Charges', 'Review', 'Submit'];
+// 9 sections matching the AGM Checkout Report PDF form order
+const SECTIONS = [
+  { num: 1, key: 'tenant',  title: 'Property & Tenant',    sub: 'Name, unit, forwarding address' },
+  { num: 2, key: 'lease',   title: 'Lease & Dates',        sub: 'Rent, NRC, move-in / move-out' },
+  { num: 3, key: 'nrc',     title: 'NRC Fees',             sub: 'Non-refundable cleaning & pet' },
+  { num: 4, key: 'photos',  title: 'Move-In / Out Photos', sub: 'Inspection — drives repair charges' },
+  { num: 5, key: 'rent',    title: 'Rent Due',             sub: 'Pro-rated / lease break' },
+  { num: 6, key: 'utility', title: 'Utility Charges',      sub: 'RUBS or flat fee chargeback' },
+  { num: 7, key: 'legal',   title: 'Legal / Court Costs',  sub: 'Court fees, attorney costs' },
+  { num: 8, key: 'totals',  title: 'Total Charges',        sub: 'Summary of all deductions' },
+  { num: 9, key: 'credits', title: 'Refunds & Credits',    sub: 'Deposits held — final balance' },
+] as const;
+
+type SectionKey = (typeof SECTIONS)[number]['key'];
 
 interface Props {
   returnId: string;
@@ -17,9 +36,14 @@ interface Props {
 export function ReturnForm({ returnId }: Props) {
   const { session, updateReturn } = useSession();
   const router = useRouter();
-  const [step, setStep] = useState(0);
 
   const tenantReturn = session?.returns.find(r => r.id === returnId);
+
+  const [activeSection, setActiveSection] = useState<SectionKey>('tenant');
+  // fullFormMode = false → focused single-section view; true → all sections stacked
+  const [fullFormMode, setFullFormMode] = useState(false);
+  // Set of section numbers that are collapsed in full-form mode
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
 
   const [manualCharges, setManualCharges] = useState<ManualCharges>(
     tenantReturn?.manualCharges ?? {
@@ -34,14 +58,20 @@ export function ReturnForm({ returnId }: Props) {
   const [rubsInput, setRubsInput] = useState<RUBSManualInput>(
     tenantReturn?.rubsManualInput ?? { buildingTotal: 0, unitRatio: 0 }
   );
+  // Photo section condition checkboxes — drive carpet/painting charge suggestions
+  const [carpetCondition, setCarpetCondition] = useState(false);
+  const [paintCondition, setPaintCondition] = useState(false);
+  const [photosApplied, setPhotosApplied] = useState(false);
 
-  useEffect(() => {
-    if (!session) router.replace('/');
-  }, [session, router]);
+  // Refs for scroll-to in full-form mode
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  if (!tenantReturn) return null;
+  if (!session || !tenantReturn) {
+    if (typeof window !== 'undefined') router.replace('/');
+    return null;
+  }
 
-  const currentInspectionStatus: 'signed' | 'missing' = inspectionSigned ? 'signed' : 'missing';
+  const currentInspectionStatus = inspectionSigned ? 'signed' as const : 'missing' as const;
   const withCharges = {
     ...tenantReturn,
     manualCharges,
@@ -54,439 +84,599 @@ export function ReturnForm({ returnId }: Props) {
   const totalCharges = calcTotalCharges(displayReturn);
   const totalCredits = calcTotalCredits(displayReturn);
   const balance = calcBalance(displayReturn);
+  // NRC offset: the portion of cleaning covered by the NRC fee (not charged to tenant)
+  const nrcOffset = Math.min(manualCharges.generalCleaning, tenantReturn.depositData.nrcCleaningFee);
+  // cleaningTenant: what the tenant actually owes after the NRC credit
   const cleaningTenant = calcNRCOffset(manualCharges.generalCleaning, tenantReturn.depositData.nrcCleaningFee);
-
-  function saveProgress(extraStatus?: TenantReturn['processingStatus']) {
-    updateReturn(returnId, {
-      manualCharges,
-      rubsManualInput: rubsInput,
-      calculatedCharges,
-      tenantData: { ...tenantReturn!.tenantData, inspectionStatus: currentInspectionStatus },
-      processingStatus: extraStatus ?? (step < 4 ? 'in_progress' : tenantReturn!.processingStatus),
-    });
-  }
-
-  function saveAndContinue() {
-    saveProgress();
-    if (step < STEPS.length - 1) setStep(s => s + 1);
-  }
-
-  function goToReview() {
-    saveProgress('in_progress');
-    router.push(`/review/${returnId}`);
-  }
 
   function updateCharge(key: keyof ManualCharges, value: number | string) {
     setManualCharges(prev => ({ ...prev, [key]: value }));
   }
 
+  // Apply photo conditions: pre-fills carpet/painting with suggested amounts
+  function applyPhotoConditions() {
+    setManualCharges(prev => ({
+      ...prev,
+      carpetShampooing: carpetCondition ? (prev.carpetShampooing || 250) : prev.carpetShampooing,
+      painting: paintCondition ? (prev.painting || 350) : prev.painting,
+    }));
+    setPhotosApplied(true);
+  }
+
+  function saveAndProceed() {
+    updateReturn(returnId, {
+      manualCharges,
+      rubsManualInput: rubsInput,
+      calculatedCharges,
+      tenantData: { ...tenantReturn!.tenantData, inspectionStatus: currentInspectionStatus },
+      processingStatus: 'in_progress',
+    });
+    router.push(`/review/${returnId}`);
+  }
+
+  function goToSection(key: SectionKey) {
+    setActiveSection(key);
+    if (fullFormMode) {
+      const el = sectionRefs.current[key];
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function toggleCollapsed(num: number) {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(num)) next.delete(num); else next.add(num);
+      return next;
+    });
+  }
+
   const { tenantData, depositData, utilityData } = tenantReturn;
+  const activeIdx = SECTIONS.findIndex(s => s.key === activeSection);
+  const activeMeta = SECTIONS[activeIdx];
+
+  // Renders a section's field content — called both in focused and full-form modes
+  function renderSectionContent(key: SectionKey) {
+    switch (key) {
+      case 'tenant':
+        return (
+          <div className="space-y-1">
+            <InfoRow label="Tenant Name" value={tenantData.tenantName} />
+            {tenantData.coTenant && <InfoRow label="Co-Tenant" value={tenantData.coTenant} />}
+            <InfoRow label="Unit" value={tenantData.unit} />
+            <InfoRow label="Property" value={session!.propertyName} />
+            <div className="pt-3 mt-1 border-t border-[#e8e7e4]">
+              <p className="text-xs text-[#9b9b99] font-medium uppercase tracking-wide mb-2">Forwarding Address</p>
+              <InfoRow label="Street" value={tenantData.forwardingAddress.street} />
+              <InfoRow label="City" value={tenantData.forwardingAddress.city} />
+              <InfoRow label="State / ZIP" value={[tenantData.forwardingAddress.state, tenantData.forwardingAddress.zip].filter(Boolean).join('  ')} />
+            </div>
+          </div>
+        );
+
+      case 'lease':
+        return (
+          <div className="space-y-1">
+            <InfoRow label="Monthly Rent" value={formatCurrency(tenantData.monthlyRent)} variant="auto" />
+            <InfoRow label="NRC Cleaning Fee" value={formatCurrency(depositData.nrcCleaningFee)} variant="auto" />
+            {depositData.nrcPetFee > 0 && (
+              <InfoRow label="NRC Pet Fee" value={formatCurrency(depositData.nrcPetFee)} variant="auto" />
+            )}
+            <div className="pt-3 mt-1 border-t border-[#e8e7e4] space-y-1">
+              <InfoRow label="Move-In Date" value={tenantData.moveInDate} variant="auto" />
+              <InfoRow label="Move-Out Date" value={tenantData.moveOutDate} variant="auto" />
+              <InfoRow label="Paid Through" value={tenantData.paidThroughDate} variant="auto" />
+              <InfoRow label="Notice Date" value={tenantData.noticeDate} variant="auto" />
+              <InfoRow label="Lease End Date" value={tenantData.leaseEndDate} variant="auto" />
+              <InfoRow label="Lease Break" value={tenantData.leaseBreak ? 'Yes' : 'No'} variant={tenantData.leaseBreak ? 'manual' : 'auto'} />
+              {tenantData.leaseBreak && (
+                <InfoRow label="New Tenant Move-In" value={tenantData.newTenantMoveInDate ?? 'None confirmed'} variant="auto" />
+              )}
+            </div>
+          </div>
+        );
+
+      case 'nrc':
+        return (
+          <div className="space-y-3">
+            <p className="text-sm text-[#9b9b99]">
+              NRC (Non-Refundable Charge) fees are collected at move-in and applied as a credit against cleaning charges at move-out.
+            </p>
+            <CalcCard label="NRC Cleaning Fee" description="Applied as offset against general cleaning charge" amount={depositData.nrcCleaningFee} color="green" />
+            {depositData.nrcPetFee > 0 && (
+              <CalcCard label="NRC Pet Fee" description="Applied toward pet-related cleaning or damage" amount={depositData.nrcPetFee} color="green" />
+            )}
+            {depositData.nrcCleaningFee === 0 && depositData.nrcPetFee === 0 && (
+              <p className="text-sm text-[#9b9b99] italic">No NRC fees on file for this tenant.</p>
+            )}
+          </div>
+        );
+
+      case 'photos':
+        return (
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs text-[#9b9b99] font-medium uppercase tracking-wide mb-2">Move-In Inspection</p>
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={inspectionSigned}
+                  onChange={e => setInspectionSigned(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-[#e8e7e4] accent-[#2383e2]"
+                />
+                <div>
+                  <span className="text-sm font-medium text-[#1a1a19]">Signed move-in inspection is on file</span>
+                  {!inspectionSigned && (
+                    <p className="text-xs text-[#b3261e] mt-0.5">
+                      Without a signed inspection, deductions may be challenged in small claims court.
+                    </p>
+                  )}
+                </div>
+              </label>
+            </div>
+            <div className="border-t border-[#e8e7e4] pt-3">
+              <p className="text-xs text-[#9b9b99] font-medium uppercase tracking-wide mb-1">Move-Out Condition</p>
+              <p className="text-sm text-[#9b9b99] mb-3">
+                Check items needing repair. Click Apply to pre-fill suggested charge amounts.
+              </p>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={carpetCondition}
+                    onChange={e => { setCarpetCondition(e.target.checked); setPhotosApplied(false); }}
+                    className="w-4 h-4 rounded border-[#e8e7e4] accent-[#2383e2]"
+                  />
+                  <span className="text-sm text-[#1a1a19]">Carpet needs shampooing or replacement</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={paintCondition}
+                    onChange={e => { setPaintCondition(e.target.checked); setPhotosApplied(false); }}
+                    className="w-4 h-4 rounded border-[#e8e7e4] accent-[#2383e2]"
+                  />
+                  <span className="text-sm text-[#1a1a19]">Walls or ceiling need repainting</span>
+                </label>
+              </div>
+              <button
+                onClick={applyPhotoConditions}
+                className="mt-4 px-4 py-2 bg-[#2383e2] text-white text-sm font-medium rounded-lg hover:bg-[#1a6fc7] transition-colors"
+              >
+                Apply Conditions
+              </button>
+              {photosApplied && (
+                <p className="mt-2 text-xs text-[#1a7a3a]">
+                  Applied — suggested amounts added to Total Charges. Adjust as needed.
+                </p>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'rent':
+        return (
+          <div className="space-y-3">
+            {calculatedCharges.rentDue > 0 ? (
+              <CalcCard label="Rent Due" description={calculatedCharges.rentDueDateRange} amount={calculatedCharges.rentDue} color="blue" />
+            ) : (
+              <p className="text-sm text-[#9b9b99]">No rent owed — tenant paid through move-out date.</p>
+            )}
+            <div className="bg-[#f5f5f3] rounded-lg p-3 text-xs text-[#9b9b99] space-y-1">
+              <p className="font-medium">How this is calculated:</p>
+              <p>Paid through: {tenantData.paidThroughDate} · Move-out: {tenantData.moveOutDate}</p>
+              {tenantData.leaseBreak && (
+                <p className="text-[#8b6a00]">Lease break — rent owed until new tenant moves in or lease ends.</p>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'utility':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <UtilityTag type={utilityData.utilityType} />
+              {utilityData.utilityType === 'flat_fee' && (
+                <span className="text-sm text-[#9b9b99]">Rate: {formatCurrency(utilityData.flatFeeRate)}</span>
+              )}
+            </div>
+            {utilityData.utilityType === 'RUBS' && (
+              <div className="space-y-3">
+                <p className="text-sm text-[#9b9b99]">
+                  RUBS — enter the final water bill and this unit's ratio to calculate the tenant's share.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-xs text-[#9b9b99] font-medium">Building Total ($)</span>
+                    <input
+                      type="number" min={0} step={0.01}
+                      value={rubsInput.buildingTotal}
+                      onChange={e => setRubsInput(prev => ({ ...prev, buildingTotal: parseFloat(e.target.value) || 0 }))}
+                      className="mt-1 w-full border border-[#e8e7e4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2383e2] bg-white"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs text-[#9b9b99] font-medium">Unit Ratio (e.g. 0.08)</span>
+                    <input
+                      type="number" min={0} max={1} step={0.0001}
+                      value={rubsInput.unitRatio}
+                      onChange={e => setRubsInput(prev => ({ ...prev, unitRatio: parseFloat(e.target.value) || 0 }))}
+                      className="mt-1 w-full border border-[#e8e7e4] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2383e2] bg-white"
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+            {calculatedCharges.utilityCharge > 0 && (
+              <CalcCard
+                label="Utility Charge"
+                description={utilityData.utilityType === 'RUBS' ? `$${rubsInput.buildingTotal} × ${rubsInput.unitRatio}` : 'Flat fee — billed at move-out'}
+                amount={calculatedCharges.utilityCharge}
+                color="blue"
+              />
+            )}
+            {utilityData.utilityType === 'flat_fee' && calculatedCharges.utilityCharge === 0 && (
+              <p className="text-sm text-[#9b9b99]">Utility is included in rent — no charge at move-out.</p>
+            )}
+          </div>
+        );
+
+      case 'legal':
+        return (
+          <div className="space-y-3">
+            <p className="text-sm text-[#9b9b99]">
+              Enter any court filing fees or attorney costs being charged to the tenant.
+            </p>
+            <label className="block">
+              <span className="text-xs text-[#9b9b99] font-medium">Legal / Court Costs ($)</span>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9b9b99] text-sm">$</span>
+                <input
+                  type="number" min={0} step={0.01}
+                  value={manualCharges.legalCourtCosts}
+                  onChange={e => updateCharge('legalCourtCosts', parseFloat(e.target.value) || 0)}
+                  className="w-full border border-[#e8e7e4] rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2383e2] bg-white text-right"
+                />
+              </div>
+            </label>
+          </div>
+        );
+
+      case 'totals': {
+        const rows = [
+          { label: 'General Cleaning (tenant share)', amount: cleaningTenant },
+          { label: 'Blind / Drape Cleaning', amount: manualCharges.blindDrapeCleaning },
+          { label: 'Window Covering Replacement', amount: manualCharges.windowCoveringReplacement },
+          { label: 'Carpet Shampooing', amount: manualCharges.carpetShampooing },
+          { label: 'Flooring Restoration', amount: manualCharges.flooringRestoration },
+          { label: 'Painting', amount: manualCharges.painting },
+          { label: manualCharges.other1Label || 'Other', amount: manualCharges.other1 },
+          { label: manualCharges.other2Label || 'Other', amount: manualCharges.other2 },
+          { label: 'Rent Due', amount: calculatedCharges.rentDue },
+          { label: 'Utility Charge', amount: calculatedCharges.utilityCharge },
+          { label: 'Legal / Court Costs', amount: manualCharges.legalCourtCosts },
+        ];
+        return (
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs text-[#9b9b99] font-medium uppercase tracking-wide mb-2">Enter Charges</p>
+              <div className="space-y-2">
+                <ChargeInput label="General Cleaning" chargeKey="generalCleaning" value={manualCharges.generalCleaning} onChange={updateCharge} />
+                {depositData.nrcCleaningFee > 0 && manualCharges.generalCleaning > 0 && (
+                  <p className="text-xs text-[#1a7a3a] pl-2">
+                    NRC offset: {formatCurrency(nrcOffset)} → Tenant pays {formatCurrency(cleaningTenant)}
+                  </p>
+                )}
+                <ChargeInput label="Blind / Drape Cleaning" chargeKey="blindDrapeCleaning" value={manualCharges.blindDrapeCleaning} onChange={updateCharge} />
+                <ChargeInput label="Window Covering Replacement" chargeKey="windowCoveringReplacement" value={manualCharges.windowCoveringReplacement} onChange={updateCharge} />
+                <ChargeInput label="Carpet Shampooing" chargeKey="carpetShampooing" value={manualCharges.carpetShampooing} onChange={updateCharge} />
+                <ChargeInput label="Flooring Restoration" chargeKey="flooringRestoration" value={manualCharges.flooringRestoration} onChange={updateCharge} />
+                <ChargeInput label="Painting" chargeKey="painting" value={manualCharges.painting} onChange={updateCharge} />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text" value={manualCharges.other1Label}
+                    onChange={e => updateCharge('other1Label', e.target.value)}
+                    placeholder="Label"
+                    className="flex-1 border border-[#e8e7e4] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2383e2] bg-white"
+                  />
+                  <div className="relative w-28">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9b9b99] text-sm">$</span>
+                    <input type="number" min={0} step={0.01} value={manualCharges.other1}
+                      onChange={e => updateCharge('other1', parseFloat(e.target.value) || 0)}
+                      className="w-full border border-[#e8e7e4] rounded-lg pl-7 pr-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2383e2] bg-white text-right"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text" value={manualCharges.other2Label}
+                    onChange={e => updateCharge('other2Label', e.target.value)}
+                    placeholder="Label"
+                    className="flex-1 border border-[#e8e7e4] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2383e2] bg-white"
+                  />
+                  <div className="relative w-28">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9b9b99] text-sm">$</span>
+                    <input type="number" min={0} step={0.01} value={manualCharges.other2}
+                      onChange={e => updateCharge('other2', parseFloat(e.target.value) || 0)}
+                      className="w-full border border-[#e8e7e4] rounded-lg pl-7 pr-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2383e2] bg-white text-right"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-[#e8e7e4] pt-3">
+              <p className="text-xs text-[#9b9b99] font-medium uppercase tracking-wide mb-2">Summary</p>
+              <table className="w-full text-sm">
+                <tbody>
+                  {rows.filter(r => r.amount > 0).map(r => (
+                    <tr key={r.label} className="border-b border-[#f5f5f3]">
+                      <td className="py-1.5 text-[#9b9b99]">{r.label}</td>
+                      <td className="py-1.5 text-[#1a1a19] font-medium text-right">{formatCurrency(r.amount)}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td className="py-2 font-semibold text-[#1a1a19]">Total Charges</td>
+                    <td className="py-2 font-semibold text-[#1a1a19] text-right">{formatCurrency(totalCharges)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      }
+
+      case 'credits':
+        return (
+          <div className="space-y-3">
+            <p className="text-xs text-[#9b9b99] font-medium uppercase tracking-wide">Deposits Held</p>
+            <div className="space-y-1">
+              <InfoRow label="Security Deposit" value={formatCurrency(depositData.securityDeposit)} variant="auto" />
+              {depositData.petDeposit > 0 && <InfoRow label="Pet Deposit" value={formatCurrency(depositData.petDeposit)} variant="auto" />}
+              {depositData.keyDeposit > 0 && <InfoRow label="Key Deposit" value={formatCurrency(depositData.keyDeposit)} variant="auto" />}
+              {depositData.garageOpenerDeposit > 0 && <InfoRow label="Garage Opener Deposit" value={formatCurrency(depositData.garageOpenerDeposit)} variant="auto" />}
+            </div>
+            <div className="border-t border-[#e8e7e4] pt-3 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-[#9b9b99]">Total Credits (deposits held)</span>
+                <span className="font-medium text-[#1a1a19]">{formatCurrency(totalCredits)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-[#9b9b99]">Total Charges</span>
+                <span className="font-medium text-[#1a1a19]">{formatCurrency(totalCharges)}</span>
+              </div>
+              <div className={`flex justify-between text-sm font-bold pt-2 border-t border-[#e8e7e4] ${balance >= 0 ? 'text-[#1a7a3a]' : 'text-[#b3261e]'}`}>
+                <span>{balance >= 0 ? 'Return to Tenant' : 'Balance Owed to Landlord'}</span>
+                <span>{formatCurrency(Math.abs(balance))}</span>
+              </div>
+            </div>
+          </div>
+        );
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f5f5f3]">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white border-b border-[#e8e7e4] px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center gap-4">
-          <button onClick={() => router.push('/dashboard')} className="text-sm text-gray-500 hover:text-gray-700">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="text-sm text-[#9b9b99] hover:text-[#1a1a19] transition-colors"
+          >
             ← Dashboard
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-semibold text-gray-900">
+            <h1 className="text-base font-semibold text-[#1a1a19]">
               {tenantData.tenantName} · Unit {tenantData.unit}
             </h1>
+            <p className="text-xs text-[#9b9b99]">{session.propertyName}</p>
           </div>
-          <InspectionBadge status={currentInspectionStatus} />
-          <UtilityTag type={utilityData.utilityType} />
-        </div>
-        {/* Step bar */}
-        <div className="max-w-7xl mx-auto mt-3 flex gap-0">
-          {STEPS.map((label, i) => (
-            <button
-              key={label}
-              onClick={() => setStep(i)}
-              className={`flex-1 text-xs py-1.5 border-b-2 transition-colors font-medium ${
-                i === step ? 'border-blue-600 text-blue-700' :
-                i < step ? 'border-green-400 text-green-600' : 'border-gray-200 text-gray-400'
-              }`}
-            >
-              {i < step ? '✓ ' : ''}{label}
-            </button>
-          ))}
+          {/* Toggle between focused section view and full form */}
+          <button
+            onClick={() => setFullFormMode(m => !m)}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors font-medium ${
+              fullFormMode
+                ? 'bg-[#1a1a19] text-white border-[#1a1a19]'
+                : 'bg-white text-[#1a1a19] border-[#e8e7e4] hover:border-[#9b9b99]'
+            }`}
+          >
+            {fullFormMode ? 'Section view' : 'View full form'}
+          </button>
+          <button
+            onClick={saveAndProceed}
+            className="text-sm px-4 py-2 bg-[#2383e2] text-white font-medium rounded-lg hover:bg-[#1a6fc7] transition-colors"
+          >
+            Review & Submit →
+          </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-2 gap-6">
-        {/* Left panel — data entry / prompts */}
-        <div className="space-y-4">
-          {step === 0 && (
-            <StepTenant
-              t={tenantData}
-              inspectionSigned={inspectionSigned}
-              onInspectionChange={setInspectionSigned}
-            />
-          )}
-          {step === 1 && <StepLease t={tenantData} />}
-          {step === 2 && (
-            <StepUtility
-              utilityData={utilityData}
-              rubsInput={rubsInput}
-              onRubsChange={setRubsInput}
-              utilityCharge={calculatedCharges.utilityCharge}
-            />
-          )}
-          {step === 3 && (
-            <StepCharges
-              manualCharges={manualCharges}
-              onChange={updateCharge}
-              nrcCleaning={depositData.nrcCleaningFee}
-              cleaningTenant={cleaningTenant}
-            />
-          )}
-          {step === 4 && (
-            <StepReview
-              displayReturn={displayReturn}
-              totalCharges={totalCharges}
-              totalCredits={totalCredits}
-              balance={balance}
-            />
-          )}
-          {step === 5 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 text-center space-y-4">
-              <p className="text-gray-700">All steps complete. Proceed to compliance review and PDF download.</p>
+      <div className="max-w-7xl mx-auto flex" style={{ minHeight: 'calc(100vh - 73px)' }}>
+        {/* Left sidebar — section list */}
+        <aside className="w-64 shrink-0 bg-white border-r border-[#e8e7e4] py-4">
+          {SECTIONS.map(s => {
+            const isActive = s.key === activeSection;
+            return (
               <button
-                onClick={goToReview}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors"
+                key={s.key}
+                onClick={() => goToSection(s.key)}
+                className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors ${
+                  isActive
+                    ? 'bg-[#f5f5f3] border-r-2 border-[#2383e2]'
+                    : 'hover:bg-[#f5f5f3] border-r-2 border-transparent'
+                }`}
               >
-                Go to Review & Submit →
+                <span className={`mt-0.5 w-5 h-5 rounded-full text-xs flex items-center justify-center font-medium shrink-0 ${
+                  isActive ? 'bg-[#2383e2] text-white' : 'bg-[#e8e7e4] text-[#9b9b99]'
+                }`}>
+                  {s.num}
+                </span>
+                <div className="min-w-0">
+                  <p className={`text-sm font-medium truncate ${isActive ? 'text-[#2383e2]' : 'text-[#1a1a19]'}`}>
+                    {s.title}
+                  </p>
+                  <p className="text-xs text-[#9b9b99] mt-0.5 truncate">{s.sub}</p>
+                </div>
+              </button>
+            );
+          })}
+        </aside>
+
+        {/* Right panel */}
+        <main className="flex-1 p-6 overflow-auto">
+          {!fullFormMode ? (
+            // Focused view — one section at a time
+            <div className="max-w-2xl">
+              <div className="bg-white rounded-xl border border-[#e8e7e4] p-6">
+                <h2 className="text-base font-semibold text-[#1a1a19] mb-0.5">{activeMeta.title}</h2>
+                <p className="text-xs text-[#9b9b99] mb-5">{activeMeta.sub}</p>
+                {renderSectionContent(activeSection)}
+              </div>
+              {/* Section prev / next nav */}
+              <div className="flex justify-between mt-4">
+                {activeIdx > 0 ? (
+                  <button
+                    onClick={() => goToSection(SECTIONS[activeIdx - 1].key)}
+                    className="text-sm px-4 py-2 border border-[#e8e7e4] text-[#1a1a19] rounded-lg hover:bg-[#f5f5f3] transition-colors"
+                  >
+                    ← {SECTIONS[activeIdx - 1].title}
+                  </button>
+                ) : <div />}
+                {activeIdx < SECTIONS.length - 1 ? (
+                  <button
+                    onClick={() => goToSection(SECTIONS[activeIdx + 1].key)}
+                    className="text-sm px-4 py-2 bg-[#2383e2] text-white rounded-lg hover:bg-[#1a6fc7] transition-colors"
+                  >
+                    {SECTIONS[activeIdx + 1].title} →
+                  </button>
+                ) : (
+                  <button
+                    onClick={saveAndProceed}
+                    className="text-sm px-4 py-2 bg-[#1a7a3a] text-white rounded-lg hover:bg-[#155f2e] transition-colors"
+                  >
+                    Review & Submit →
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Full form — all 9 sections stacked with collapsible headers
+            <div className="max-w-2xl space-y-3">
+              {SECTIONS.map(s => {
+                const isCollapsed = collapsed.has(s.num);
+                return (
+                  <div
+                    key={s.key}
+                    className="bg-white rounded-xl border border-[#e8e7e4] overflow-hidden"
+                    ref={el => { sectionRefs.current[s.key] = el; }}
+                  >
+                    <button
+                      onClick={() => toggleCollapsed(s.num)}
+                      className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-[#f5f5f3] transition-colors"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-[#e8e7e4] text-[#9b9b99] text-xs flex items-center justify-center font-medium shrink-0">
+                        {s.num}
+                      </span>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-[#1a1a19]">{s.title}</p>
+                        <p className="text-xs text-[#9b9b99]">{s.sub}</p>
+                      </div>
+                      <span className="text-[#9b9b99] text-xs select-none">{isCollapsed ? '▸' : '▾'}</span>
+                    </button>
+                    {!isCollapsed && (
+                      <div className="px-5 pb-5 border-t border-[#e8e7e4] pt-4">
+                        {renderSectionContent(s.key)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              <button
+                onClick={saveAndProceed}
+                className="w-full py-3 bg-[#2383e2] text-white font-semibold rounded-xl hover:bg-[#1a6fc7] transition-colors"
+              >
+                Review & Submit →
               </button>
             </div>
           )}
-
-          {step < 5 && (
-            <div className="flex gap-3">
-              {step > 0 && (
-                <button
-                  onClick={() => setStep(s => s - 1)}
-                  className="flex-1 border border-gray-300 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Back
-                </button>
-              )}
-              <button
-                onClick={saveAndContinue}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors"
-              >
-                {step === 4 ? 'Go to Submit →' : 'Continue →'}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Right panel — live form summary */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3 self-start sticky top-6">
-          <h2 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">Live Form Preview</h2>
-          <SummaryRow label="Tenant" value={tenantData.tenantName} />
-          <SummaryRow label="Unit" value={tenantData.unit} />
-          <SummaryRow label="Move-Out" value={tenantData.moveOutDate} />
-          <SummaryRow label="Monthly Rent" value={formatCurrency(tenantData.monthlyRent)} />
-          <SummaryRow label="Security Deposit" value={formatCurrency(depositData.securityDeposit)} />
-          {depositData.petDeposit > 0 && <SummaryRow label="Pet Deposit" value={formatCurrency(depositData.petDeposit)} />}
-          {depositData.nrcCleaningFee > 0 && <SummaryRow label="NRC Cleaning" value={formatCurrency(depositData.nrcCleaningFee)} />}
-          <div className="border-t border-gray-100 pt-2 space-y-1">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Charges</h3>
-            {manualCharges.generalCleaning > 0 && (
-              <SummaryRow label="Cleaning (tenant)" value={formatCurrency(cleaningTenant)} sub />
-            )}
-            {manualCharges.carpetShampooing > 0 && (
-              <SummaryRow label="Carpet" value={formatCurrency(manualCharges.carpetShampooing)} sub />
-            )}
-            {manualCharges.painting > 0 && (
-              <SummaryRow label="Painting" value={formatCurrency(manualCharges.painting)} sub />
-            )}
-            {calculatedCharges.rentDue > 0 && (
-              <SummaryRow label="Rent Due" value={formatCurrency(calculatedCharges.rentDue)} sub />
-            )}
-            {calculatedCharges.utilityCharge > 0 && (
-              <SummaryRow label="Utility" value={formatCurrency(calculatedCharges.utilityCharge)} sub />
-            )}
-          </div>
-          <div className="border-t border-gray-200 pt-2 space-y-1">
-            <SummaryRow label="Total Charges" value={formatCurrency(totalCharges)} bold />
-            <SummaryRow label="Total Credits" value={formatCurrency(totalCredits)} bold />
-            <div className={`flex justify-between text-sm font-bold ${balance >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-              <span>{balance >= 0 ? 'Return to Tenant' : 'Balance Owed'}</span>
-              <span>{formatCurrency(Math.abs(balance))}</span>
-            </div>
-          </div>
-        </div>
+        </main>
       </div>
     </div>
   );
 }
 
-// Step sub-components
+// --- Sub-components ---
 
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between py-1 border-b border-gray-50">
-      <span className="text-sm text-gray-500">{label}</span>
-      <span className="text-sm font-medium text-gray-900">{value || '—'}</span>
-    </div>
-  );
-}
-
-function SummaryRow({ label, value, bold, sub }: { label: string; value: string; bold?: boolean; sub?: boolean }) {
-  return (
-    <div className={`flex justify-between ${sub ? 'pl-3' : ''}`}>
-      <span className={`text-sm ${bold ? 'font-semibold text-gray-800' : 'text-gray-500'}`}>{label}</span>
-      <span className={`text-sm ${bold ? 'font-semibold text-gray-800' : 'text-gray-700'}`}>{value}</span>
-    </div>
-  );
-}
-
-function StepTenant({
-  t, inspectionSigned, onInspectionChange,
+// InfoRow: displays a label + read-only value pair with color coding by data source
+// variant "auto" = green (from AppFolio), "calc" = blue (calculated), "manual" = amber (user-entered)
+function InfoRow({
+  label, value, variant,
 }: {
-  t: TenantReturn['tenantData'];
-  inspectionSigned: boolean;
-  onInspectionChange: (v: boolean) => void;
+  label: string;
+  value: string;
+  variant?: 'auto' | 'calc' | 'manual';
 }) {
+  const valueColor =
+    variant === 'auto'   ? 'text-[#1a7a3a]' :
+    variant === 'calc'   ? 'text-[#2383e2]' :
+    variant === 'manual' ? 'text-[#8b6a00]' :
+    'text-[#1a1a19]';
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-1">
-      <h2 className="text-sm font-semibold text-gray-700 mb-3">Tenant Information</h2>
-      <Field label="Tenant Name" value={t.tenantName} />
-      <Field label="Co-Tenant" value={t.coTenant} />
-      <Field label="Unit" value={t.unit} />
-      <Field label="Forwarding Street" value={t.forwardingAddress.street} />
-      <Field label="City / State / ZIP" value={[t.forwardingAddress.city, t.forwardingAddress.state, t.forwardingAddress.zip].filter(Boolean).join(', ')} />
-
-      <div className="pt-3 border-t border-gray-100 mt-2">
-        <label className="flex items-start gap-3 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={inspectionSigned}
-            onChange={e => onInspectionChange(e.target.checked)}
-            className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-blue-600"
-          />
-          <div>
-            <span className="text-sm font-medium text-gray-800">Signed move-in inspection is on file</span>
-            {!inspectionSigned && (
-              <p className="text-xs text-red-600 mt-0.5">
-                Without a signed inspection, deductions may be challenged in small claims court.
-              </p>
-            )}
-          </div>
-        </label>
-      </div>
+    <div className="flex justify-between py-1.5 border-b border-[#f5f5f3]">
+      <span className="text-sm text-[#9b9b99]">{label}</span>
+      <span className={`text-sm font-medium ${valueColor}`}>{value || '—'}</span>
     </div>
   );
 }
 
-function StepLease({ t }: { t: TenantReturn['tenantData'] }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-1">
-      <h2 className="text-sm font-semibold text-gray-700 mb-3">Lease Details</h2>
-      <Field label="Monthly Rent" value={formatCurrency(t.monthlyRent)} />
-      <Field label="Move-In Date" value={t.moveInDate} />
-      <Field label="Move-Out Date" value={t.moveOutDate} />
-      <Field label="Paid Through" value={t.paidThroughDate} />
-      <Field label="Notice Date" value={t.noticeDate} />
-      <Field label="Lease End Date" value={t.leaseEndDate} />
-      <Field label="Lease Break" value={t.leaseBreak ? 'Yes' : 'No'} />
-      {t.leaseBreak && <Field label="New Tenant Move-In" value={t.newTenantMoveInDate ?? 'None confirmed'} />}
-    </div>
-  );
-}
-
-function StepUtility({
-  utilityData, rubsInput, onRubsChange, utilityCharge,
+// CalcCard: highlighted card for auto-calculated amounts
+function CalcCard({
+  label, description, amount, color,
 }: {
-  utilityData: TenantReturn['utilityData'];
-  rubsInput: RUBSManualInput;
-  onRubsChange: (v: RUBSManualInput) => void;
-  utilityCharge: number;
+  label: string;
+  description: string;
+  amount: number;
+  color: 'green' | 'blue' | 'amber';
 }) {
+  const styles = {
+    green: { bg: 'bg-green-50 border-green-200', text: 'text-[#1a7a3a]' },
+    blue:  { bg: 'bg-blue-50 border-blue-200',   text: 'text-[#2383e2]' },
+    amber: { bg: 'bg-amber-50 border-amber-200', text: 'text-[#8b6a00]' },
+  }[color];
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-      <h2 className="text-sm font-semibold text-gray-700">Utility</h2>
-      <div className="flex items-center gap-2">
-        <UtilityTag type={utilityData.utilityType} />
-        {utilityData.utilityType === 'flat_fee' && (
-          <span className="text-sm text-gray-600">
-            Rate: {formatCurrency(utilityData.flatFeeRate)} ·{' '}
-            {utilityData.flatFeeBillingMethod === 'included_in_rent' ? 'Included in rent (no charge at move-out)' : 'Billed at move-out'}
-          </span>
-        )}
-      </div>
-
-      {utilityData.utilityType === 'RUBS' && (
-        <div className="space-y-3 border-t border-gray-100 pt-4">
-          <p className="text-sm text-gray-600">
-            Enter the final water bill from the city. RUBS charge = Building Total × Unit Ratio.
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-xs text-gray-500 font-medium">Building Total ($)</span>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={rubsInput.buildingTotal}
-                onChange={e => onRubsChange({ ...rubsInput, buildingTotal: parseFloat(e.target.value) || 0 })}
-                className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs text-gray-500 font-medium">Unit Ratio (e.g. 0.08)</span>
-              <input
-                type="number"
-                min={0}
-                max={1}
-                step={0.0001}
-                value={rubsInput.unitRatio}
-                onChange={e => onRubsChange({ ...rubsInput, unitRatio: parseFloat(e.target.value) || 0 })}
-                className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
-          </div>
-          <p className="text-sm font-medium text-blue-700">
-            Calculated Tenant Share: {formatCurrency(utilityCharge)}
-          </p>
+    <div className={`rounded-lg border p-3 ${styles.bg}`}>
+      <div className="flex justify-between items-start">
+        <div>
+          <p className={`text-sm font-medium ${styles.text}`}>{label}</p>
+          <p className="text-xs text-[#9b9b99] mt-0.5">{description}</p>
         </div>
-      )}
-
-      {utilityData.utilityType === 'flat_fee' && utilityCharge === 0 && (
-        <p className="text-sm text-gray-500">Utility included in rent — no charge at move-out.</p>
-      )}
-      {utilityData.utilityType === 'flat_fee' && utilityCharge > 0 && (
-        <p className="text-sm font-medium text-blue-700">Calculated Utility Charge: {formatCurrency(utilityCharge)}</p>
-      )}
+        <span className={`text-sm font-semibold ${styles.text}`}>{formatCurrency(amount)}</span>
+      </div>
     </div>
   );
 }
 
+// ChargeInput: dollar input for manual charge fields
 function ChargeInput({
   label, chargeKey, value, onChange,
 }: {
   label: string;
   chargeKey: keyof ManualCharges;
   value: number;
-  onChange: (key: keyof ManualCharges, v: number) => void;
+  onChange: (key: keyof ManualCharges, v: number | string) => void;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="flex-1 text-sm text-gray-700">{label}</span>
-      <div className="relative w-32">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+    <div className="flex items-center gap-2">
+      <span className="flex-1 text-sm text-[#1a1a19]">{label}</span>
+      <div className="relative w-28">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9b9b99] text-sm">$</span>
         <input
-          type="number"
-          min={0}
-          step={0.01}
+          type="number" min={0} step={0.01}
           value={value}
           onChange={e => onChange(chargeKey, parseFloat(e.target.value) || 0)}
-          className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+          className="w-full border border-[#e8e7e4] rounded-lg pl-7 pr-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2383e2] bg-white text-right"
         />
       </div>
-    </div>
-  );
-}
-
-function StepCharges({
-  manualCharges, onChange, nrcCleaning, cleaningTenant,
-}: {
-  manualCharges: ManualCharges;
-  onChange: (key: keyof ManualCharges, v: number | string) => void;
-  nrcCleaning: number;
-  cleaningTenant: number;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-      <h2 className="text-sm font-semibold text-gray-700">Turnover Charges</h2>
-      <p className="text-xs text-gray-500">Enter total cost for each item. NRC offset is applied automatically to cleaning.</p>
-      <div className="space-y-2">
-        <ChargeInput label="General Cleaning" chargeKey="generalCleaning" value={manualCharges.generalCleaning} onChange={onChange} />
-        {nrcCleaning > 0 && (
-          <p className="text-xs text-green-700 pl-1">
-            NRC offset: {formatCurrency(nrcCleaning)} → Tenant pays {formatCurrency(cleaningTenant)}
-          </p>
-        )}
-        <ChargeInput label="Blind / Drape Cleaning" chargeKey="blindDrapeCleaning" value={manualCharges.blindDrapeCleaning} onChange={onChange} />
-        <ChargeInput label="Window Covering Replacement" chargeKey="windowCoveringReplacement" value={manualCharges.windowCoveringReplacement} onChange={onChange} />
-        <ChargeInput label="Carpet Shampooing" chargeKey="carpetShampooing" value={manualCharges.carpetShampooing} onChange={onChange} />
-        <ChargeInput label="Flooring Restoration" chargeKey="flooringRestoration" value={manualCharges.flooringRestoration} onChange={onChange} />
-        <ChargeInput label="Painting" chargeKey="painting" value={manualCharges.painting} onChange={onChange} />
-        <div className="flex items-center gap-3">
-          <input
-            type="text"
-            value={manualCharges.other1Label}
-            onChange={e => onChange('other1Label', e.target.value)}
-            placeholder="Other label"
-            className="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <div className="relative w-32">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-            <input
-              type="number" min={0} step={0.01} value={manualCharges.other1}
-              onChange={e => onChange('other1', parseFloat(e.target.value) || 0)}
-              className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <input
-            type="text"
-            value={manualCharges.other2Label}
-            onChange={e => onChange('other2Label', e.target.value)}
-            placeholder="Other label"
-            className="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <div className="relative w-32">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-            <input
-              type="number" min={0} step={0.01} value={manualCharges.other2}
-              onChange={e => onChange('other2', parseFloat(e.target.value) || 0)}
-              className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
-            />
-          </div>
-        </div>
-        <ChargeInput label="Legal / Court Costs" chargeKey="legalCourtCosts" value={manualCharges.legalCourtCosts} onChange={onChange} />
-      </div>
-    </div>
-  );
-}
-
-function StepReview({
-  displayReturn, totalCharges, totalCredits, balance,
-}: {
-  displayReturn: TenantReturn;
-  totalCharges: number;
-  totalCredits: number;
-  balance: number;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-      <h2 className="text-sm font-semibold text-gray-700">Calculation Summary</h2>
-      <div className="space-y-1">
-        <h3 className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Credits</h3>
-        <SummaryRow label="Security Deposit" value={formatCurrency(displayReturn.depositData.securityDeposit)} />
-        {displayReturn.depositData.petDeposit > 0 && <SummaryRow label="Pet Deposit" value={formatCurrency(displayReturn.depositData.petDeposit)} />}
-        {displayReturn.depositData.keyDeposit > 0 && <SummaryRow label="Key Deposit" value={formatCurrency(displayReturn.depositData.keyDeposit)} />}
-        {displayReturn.depositData.garageOpenerDeposit > 0 && <SummaryRow label="Garage Deposit" value={formatCurrency(displayReturn.depositData.garageOpenerDeposit)} />}
-        <SummaryRow label="Total Credits" value={formatCurrency(totalCredits)} bold />
-      </div>
-      <div className="space-y-1 border-t border-gray-100 pt-2">
-        <h3 className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Charges</h3>
-        <SummaryRow label="Total Charges" value={formatCurrency(totalCharges)} bold />
-      </div>
-      <div className={`border-t border-gray-200 pt-2 text-sm font-bold flex justify-between ${balance >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-        <span>{balance >= 0 ? 'Return to Tenant' : 'Balance Owed to Landlord'}</span>
-        <span>{formatCurrency(Math.abs(balance))}</span>
-      </div>
-      {displayReturn.tenantData.inspectionStatus === 'missing' && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-          Warning: Signed move-in inspection is not on file. Deductions may be challenged in small claims court.
-        </div>
-      )}
     </div>
   );
 }
