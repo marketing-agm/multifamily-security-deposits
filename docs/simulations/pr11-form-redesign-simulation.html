@@ -392,7 +392,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
     <div class="tb-r" style="gap:6px;">
       <button class="btn btn-ghost btn-sm" onclick="toggleFF()" id="ff-btn">View full form</button>
-      <button class="btn btn-blue btn-sm">Review & Submit →</button>
+      <button class="btn btn-blue btn-sm">Review &amp; Submit →</button>
     </div>
   </div>
   <div class="s3">
@@ -403,7 +403,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
           <div class="sb-hd-t">Form sections</div>
           <div class="sb-hd-s">Click a section to focus it</div>
         </div>
-        <div class="ref-btn" id="ref-toggle" onclick="toggleRefDrawer()" title="View data & calculations">ⓘ</div>
+        <div class="ref-btn" id="ref-toggle" onclick="toggleRefDrawer()" title="View data &amp; calculations">ⓘ</div>
       </div>
       <div class="sb-list" id="sb-list"></div>
     </div>
@@ -1175,7 +1175,6 @@ function recalcAll() {
   var tenantCleaning = Math.max(0, cleaning - NRC_CLEANING);
   var totalCharges = tenantCleaning + blind + window_ + carpet + floor + paint + other1 + other2 + rent + util + legal;
 
-  // NRC note
   var nrcOffset = Math.min(cleaning, NRC_CLEANING);
   var nrcNote = document.getElementById('nrc-note');
   if (nrcNote) {
@@ -1186,7 +1185,6 @@ function recalcAll() {
     }
   }
 
-  // NRC section
   var nrcEntered = document.getElementById('nrc-cleaning-entered');
   if (nrcEntered) nrcEntered.textContent = fmtMoney(cleaning);
   var nrcOffsetDisplay = document.getElementById('nrc-offset-display');
@@ -1194,11 +1192,9 @@ function recalcAll() {
     nrcOffsetDisplay.textContent = fmtMoney(nrcOffset) + ' → Tenant pays ' + fmtMoney(tenantCleaning);
   }
 
-  // Total charges
   document.getElementById('tot-total').textContent = fmtMoney(totalCharges);
   document.getElementById('tot-total').style.color = totalCharges > 0 ? '#b3261e' : '#1a1a19';
 
-  // Credits and balance
   var secDep = parseMoney(document.getElementById('inp-sec-dep').value);
   var petDep = parseMoney(document.getElementById('inp-pet-dep').value);
   var totalCredits = secDep + petDep;
@@ -1234,10 +1230,7 @@ function recalcUtil() {
   recalcAll();
 }
 
-function parseFieldRent(v) {
-  // when monthly rent changes, update rent section label (simplified)
-  recalcAll();
-}
+function parseFieldRent(v) { recalcAll(); }
 function parseFieldNRC(v) {
   NRC_CLEANING = parseMoney(v);
   document.getElementById('nrc-display').textContent = fmtMoney(NRC_CLEANING);
@@ -1252,8 +1245,7 @@ function applyPhoto() {
   document.getElementById('inp-carpet').value = '120.00';
   document.getElementById('inp-paint').value = '150.00';
   recalcAll();
-  // Jump to totals
-  goSec(7); // section 8 (index 7)
+  goSec(7);
 }
 
 /* ── Section navigation ── */
@@ -1458,22 +1450,18 @@ function updateRefDrawer() {
   var totalCharges = netCleaning + blind + window_ + carpet + floor + paint + other1 + other2 + rent + util + legal;
   var balance = 2150 - totalCharges;
 
-  // NRC section
   set('ref-cleaning-entered', fmtMoney(cleaning));
   set('ref-nrc-offset', fmtMoney(nrcOffset));
   set('ref-cleaning-net', fmtMoney(netCleaning));
 
-  // RUBS
   var bldg  = parseMoney(document.getElementById('util-bldg').value);
   var ratio = parseFloat(document.getElementById('util-ratio').value) || 0;
   set('ref-rubs-total', fmtMoney(bldg));
   set('ref-rubs-ratio', (ratio * 100).toFixed(1) + '%');
   set('ref-rubs-charge', fmtMoney(bldg * ratio));
 
-  // Rent
   set('ref-rent-due', fmtMoney(rent));
 
-  // Running total rows
   set('ref-t-cleaning', fmtMoney(netCleaning));
   set('ref-t-carpet',   fmtMoney(carpet));
   set('ref-t-paint',    fmtMoney(paint));
@@ -1494,7 +1482,6 @@ function updateRefDrawer() {
     balEl.textContent = '$0.00 — even';
     balEl.className = 'rr-v';
   }
-  // update the last .rr-l to match
   var balRow = balEl.closest('.rr');
   balRow.querySelector('.rr-l').textContent = balance >= -0.005 ? 'Balance due to tenant' : 'Balance owing landlord';
 }
