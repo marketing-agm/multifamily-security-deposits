@@ -204,7 +204,7 @@ export default function UploadPage() {
           {/* ── Demo data banner ── */}
           <div className="bg-[#fdf3da] border border-[#e8c840]/40 rounded-[6px] px-4 py-3 flex items-center justify-between gap-4">
             <p className="text-[12px] text-[#8b6a00]">
-              <span className="font-semibold">No Excel file?</span> Load 3 sample tenants to explore the tool.
+              <span className="font-semibold">No Excel file?</span> Load 5 sample tenants to explore the tool.
             </p>
             <button
               onClick={() => { setSession(DUMMY_SESSION); router.push('/dashboard'); }}
