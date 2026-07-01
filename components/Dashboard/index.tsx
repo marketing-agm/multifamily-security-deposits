@@ -58,6 +58,17 @@ export function Dashboard() {
 
       {/* Table */}
       <div className="max-w-6xl mx-auto px-6 py-6">
+
+        {/* Property category header */}
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-[11px] font-semibold text-[#9b9b99] uppercase tracking-[0.06em] shrink-0">Property</span>
+          <div className="flex items-center gap-2.5 px-4 py-2 bg-white border border-[#e8e7e4] rounded-[8px]">
+            <span className="text-[18px]">🏢</span>
+            <span className="text-[16px] font-bold text-[#1a1a19]">{session.propertyName || 'Unknown property'}</span>
+            <span className="text-[13px] font-semibold text-[#9b9b99]">· {session.returns.length} move-out{session.returns.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -84,8 +95,9 @@ export function Dashboard() {
                     {r.tenantData.coTenant && (
                       <span className="text-gray-400 ml-1">+ {r.tenantData.coTenant}</span>
                     )}
+                    {/* Lease break is highlighted in red — it means extra rent may be owed */}
                     {r.tenantData.leaseBreak && (
-                      <span className="ml-2 text-xs text-orange-600 font-medium bg-orange-50 px-1.5 py-0.5 rounded">
+                      <span className="ml-2 text-xs text-[#b3261e] font-medium bg-[#fceae8] px-1.5 py-0.5 rounded">
                         Lease Break
                       </span>
                     )}
