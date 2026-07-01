@@ -1,0 +1,1492 @@
+
+<title>AGM Tool — Screen Simulation</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#dcdad6;padding:32px 20px 60px;color:#1a1a19;line-height:1.4;font-size:13px;}
+
+/* Screen wrapper */
+.sw{margin-bottom:48px;}
+.sl{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#9b9b99;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.sl span{background:#fff;border:.5px solid #e8e7e4;border-radius:20px;padding:2px 10px;color:#6b6b6a;}
+.frame{background:#fff;border:.5px solid #c5c3bf;border-radius:12px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.09);}
+
+/* Topbar */
+.tb{background:#fff;border-bottom:.5px solid #e8e7e4;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;}
+.tb-l,.tb-r{display:flex;align-items:center;gap:8px;}
+.tb-brand{font-size:13px;font-weight:600;color:#1a1a19;}
+.tb-sub{font-size:11px;color:#9b9b99;}
+.tb-div{width:1px;height:16px;background:#e8e7e4;}
+.back{font-size:12px;color:#2383e2;cursor:pointer;text-decoration:none;}
+.tb-title{font-size:13px;font-weight:500;color:#1a1a19;}
+.tb-ns{font-size:11px;color:#9b9b99;}
+
+/* Buttons */
+.btn{padding:5px 11px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:.5px solid;display:inline-flex;align-items:center;gap:5px;transition:all .12s;line-height:1.3;}
+.btn-ghost{background:#f5f5f3;border-color:#e8e7e4;color:#6b6b6a;}
+.btn-ghost:hover{border-color:#2383e2;color:#2383e2;background:#e8f0fd;}
+.btn-primary{background:#1a1a19;border-color:#1a1a19;color:#fff;}
+.btn-primary:hover{background:#2a2a28;}
+.btn-blue{background:#2383e2;border-color:#2383e2;color:#fff;}
+.btn-blue:hover{background:#1a6fc7;}
+.btn-green{background:#1a7a3a;border-color:#1a7a3a;color:#fff;}
+.btn-green:hover{background:#155f2e;}
+.btn-sm{padding:4px 9px;font-size:11px;}
+
+/* Tags / badges */
+.tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;}
+.tok{background:#e3f5e6;color:#1a7a3a;}
+.twarn{background:#fceae8;color:#b3261e;}
+.tamb{background:#fdf3da;color:#8b6a00;}
+.tblue{background:#e8f0fd;color:#2383e2;}
+.tgray{background:#f5f5f3;color:#9b9b99;border:.5px solid #e8e7e4;}
+
+/* ── SCREEN 2 ── */
+.s2-body{padding:18px 22px;background:#f5f5f3;}
+.prop-drop{position:relative;}
+.prop-btn{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;border:.5px solid #e8e7e4;background:#f5f5f3;cursor:pointer;font-size:13px;font-weight:600;color:#1a1a19;user-select:none;}
+.prop-btn:hover{border-color:#2383e2;background:#e8f0fd;color:#2383e2;}
+.prop-arr{font-size:10px;color:#9b9b99;margin-left:1px;}
+.prop-menu{position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:.5px solid #e8e7e4;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.1);z-index:20;min-width:220px;display:none;overflow:hidden;}
+.prop-menu.open{display:block;}
+.prop-item{padding:9px 13px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:9px;color:#1a1a19;}
+.prop-item:hover{background:#f5f5f3;}
+.prop-item.sel{color:#2383e2;font-weight:500;}
+.prop-check{font-size:11px;color:#1a7a3a;width:14px;flex-shrink:0;}
+
+.s2-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.s2-hd-l{display:flex;align-items:center;gap:10px;}
+.s2-ttl{font-size:14px;font-weight:600;color:#1a1a19;}
+.s2-sub{font-size:11px;color:#9b9b99;margin-top:1px;}
+.prog-bar{height:3px;background:#e8e7e4;border-radius:2px;margin-bottom:13px;overflow:hidden;}
+.prog-fill{height:100%;background:#1a7a3a;border-radius:2px;transition:width .4s;}
+
+.nav-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
+.nav-info{font-size:11px;color:#9b9b99;}
+.nav-btns{display:flex;gap:4px;}
+.nav-btn{width:28px;height:28px;border-radius:6px;border:.5px solid #e8e7e4;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#6b6b6a;transition:all .1s;}
+.nav-btn:hover{border-color:#2383e2;color:#2383e2;background:#e8f0fd;}
+.nav-btn.dis{opacity:.3;pointer-events:none;}
+
+.tbl-wrap{background:#fff;border:.5px solid #e8e7e4;border-radius:10px;overflow:hidden;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:11px;font-weight:500;color:#9b9b99;padding:8px 13px;text-align:left;border-bottom:.5px solid #e8e7e4;background:#f9f9f8;letter-spacing:.02em;}
+.tbl td{padding:10px 13px;border-bottom:.5px solid #f0eeeb;font-size:12px;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr.sel-row td{background:#e8f0fd;}
+.tbl tr:hover:not(.sel-row) td{background:#f7f6f4;cursor:pointer;}
+.t-name{font-weight:600;color:#1a1a19;font-size:12.5px;}
+.t-sub{font-size:10.5px;color:#9b9b99;margin-top:2px;}
+
+/* ── SCREEN 3 ── */
+.s3{display:flex;height:680px;position:relative;}
+.sb{width:224px;border-right:.5px solid #e8e7e4;display:flex;flex-direction:column;background:#f9f9f8;flex-shrink:0;}
+.sb-hd{padding:9px 12px;border-bottom:.5px solid #e8e7e4;background:#fff;display:flex;align-items:flex-start;justify-content:space-between;}
+.sb-hd-l{flex:1;}
+.sb-hd-t{font-size:11px;font-weight:600;color:#1a1a19;}
+.sb-hd-s{font-size:10px;color:#9b9b99;margin-top:1px;}
+.sb-list{flex:1;overflow-y:auto;padding:5px 0;}
+
+/* Data reference toggle button in sidebar header */
+.ref-btn{width:22px;height:22px;border-radius:5px;border:.5px solid #e8e7e4;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:#9b9b99;flex-shrink:0;transition:all .1s;margin-top:1px;}
+.ref-btn:hover{border-color:#2383e2;color:#2383e2;background:#e8f0fd;}
+.ref-btn.active{border-color:#2383e2;color:#2383e2;background:#e8f0fd;}
+
+/* Data reference drawer — slides over the main panel */
+.ref-drawer{position:absolute;top:0;left:224px;right:0;bottom:0;background:#fff;border-left:.5px solid #e8e7e4;z-index:10;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .18s ease;pointer-events:none;}
+.ref-drawer.open{transform:translateX(0);pointer-events:auto;}
+.ref-dh{padding:9px 13px;border-bottom:.5px solid #e8e7e4;background:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ref-dh-t{font-size:12px;font-weight:600;color:#1a1a19;}
+.ref-dh-s{font-size:10px;color:#9b9b99;margin-top:1px;}
+.ref-dx{width:24px;height:24px;border-radius:5px;border:.5px solid #e8e7e4;background:#f5f5f3;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#9b9b99;}
+.ref-dx:hover{background:#fceae8;border-color:#e8a09b;color:#b3261e;}
+.ref-body{flex:1;overflow-y:auto;padding:10px 13px;}
+
+/* Data reference groups */
+.rg{margin-bottom:8px;border:.5px solid #e8e7e4;border-radius:7px;overflow:hidden;}
+.rg-hd{padding:7px 11px;background:#f9f9f8;display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;}
+.rg-hd:hover{background:#f2f1ef;}
+.rg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.rg-lbl{font-size:10.5px;font-weight:600;color:#1a1a19;flex:1;}
+.rg-chev{font-size:9px;color:#9b9b99;transition:transform .12s;}
+.rg-chev.up{transform:rotate(180deg);}
+.rg-body{padding:8px 11px;display:none;}
+.rg-body.open{display:block;}
+.rr{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;padding:3px 0;border-bottom:.5px solid #f0eeeb;}
+.rr:last-child{border-bottom:none;}
+.rr-l{color:#6b6b6a;}
+.rr-v{font-variant-numeric:tabular-nums;font-weight:500;color:#1a1a19;}
+.rr-v.blue{color:#2383e2;}
+.rr-v.green{color:#1a7a3a;}
+.rr-v.red{color:#b3261e;}
+.rr-v.amber{color:#8b6a00;}
+.rr.total{font-weight:700;font-size:11.5px;border-top:.5px solid #d5d3cf;margin-top:3px;padding-top:6px;}
+.rr.total .rr-l{color:#1a1a19;}
+.ref-live-note{font-size:9.5px;color:#9b9b99;text-align:center;padding:6px 0 2px;}
+
+.step{display:flex;align-items:flex-start;gap:9px;padding:7px 12px;cursor:pointer;border-left:2px solid transparent;transition:all .1s;}
+.step:hover{background:#f2f1ef;}
+.step.act{background:#e8f0fd;border-left-color:#2383e2;}
+.step.done{border-left-color:#1a7a3a;}
+.step-n{width:20px;height:20px;border-radius:50%;border:.5px solid #dddbd8;background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#9b9b99;flex-shrink:0;margin-top:1px;}
+.step.act .step-n{background:#2383e2;border-color:#2383e2;color:#fff;}
+.step.done .step-n{background:#e3f5e6;border-color:#1a7a3a;color:#1a7a3a;font-size:9px;}
+.step-lbl{font-size:11.5px;font-weight:500;color:#1a1a19;}
+.step.act .step-lbl{color:#2383e2;}
+.step-sub{font-size:10px;color:#9b9b99;margin-top:1px;line-height:1.3;}
+
+.mp{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#f5f5f3;}
+.mp-hd{padding:9px 14px;border-bottom:.5px solid #e8e7e4;background:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.mp-hd-t{font-size:12.5px;font-weight:600;color:#1a1a19;}
+.mp-hd-s{font-size:10px;color:#9b9b99;margin-top:1px;}
+.mp-body{flex:1;overflow-y:auto;padding:12px 14px;}
+.mp-foot{padding:9px 14px;border-top:.5px solid #e8e7e4;background:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+
+/* Form cards */
+.fc{background:#fff;border:.5px solid #e8e7e4;border-radius:8px;padding:12px;margin-bottom:9px;}
+.fc-t{font-size:11px;font-weight:600;color:#6b6b6a;text-transform:uppercase;letter-spacing:.05em;padding-bottom:8px;border-bottom:.5px solid #f0eeeb;margin-bottom:10px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;}
+.gfull{grid-column:1/-1;}
+
+/* Form fields */
+.fi{display:flex;flex-direction:column;gap:3px;}
+.fi label{font-size:10px;color:#9b9b99;letter-spacing:.02em;}
+.fi input,.fi select{
+  height:28px;font-size:12px;padding:0 8px;border-radius:5px;border:.5px solid #e0deda;
+  background:#fff;color:#1a1a19;width:100%;font-variant-numeric:tabular-nums;
+  transition:border-color .1s,background .1s;
+  font-family:inherit;
+}
+.fi input:focus,.fi select:focus{outline:none;border-color:#2383e2;box-shadow:0 0 0 2px rgba(35,131,226,.12);}
+.fi input.auto{background:#edfaf2;border-color:#a8d8b9;color:#1a7a3a;}
+.fi input.auto:focus{border-color:#1a7a3a;}
+.fi input.calc{background:#e8f0fd;border-color:#aac8f0;color:#2383e2;font-weight:500;}
+.fi input.calc:focus{border-color:#2383e2;}
+.fi input.manual{background:#fdf7e3;border-color:#dfc84a;}
+.fi input.manual:focus{border-color:#8b6a00;}
+
+.leg{display:flex;gap:12px;flex-wrap:wrap;padding:8px 10px;background:#f9f9f8;border:.5px solid #e8e7e4;border-radius:6px;margin-top:6px;}
+.leg-i{display:flex;align-items:center;gap:4px;font-size:10px;color:#9b9b99;}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+
+/* Calc cards */
+.cc{border-radius:7px;padding:10px 12px;border:.5px solid;margin-bottom:8px;}
+.cc.blue{background:#e8f0fd;border-color:#aac8f0;}
+.cc.green{background:#edfaf2;border-color:#a8d8b9;}
+.cc.amber{background:#fdf7e3;border-color:#dfc84a;}
+.cc.red{background:#fceae8;border-color:#e8a09b;}
+.cc-row{display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;border-bottom:.5px solid rgba(0,0,0,.05);}
+.cc-row:last-child{border-bottom:none;font-weight:600;}
+.cc-l{color:#6b6b6a;}
+.cv-b{color:#2383e2;font-variant-numeric:tabular-nums;}
+.cv-g{color:#1a7a3a;font-variant-numeric:tabular-nums;}
+.cv-r{color:#b3261e;font-variant-numeric:tabular-nums;}
+.cv-a{color:#8b6a00;font-variant-numeric:tabular-nums;}
+
+/* Photo section */
+.photo-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.ph-lbl{font-size:10px;color:#9b9b99;font-weight:500;margin-bottom:4px;letter-spacing:.02em;}
+.ph-box{aspect-ratio:4/3;border-radius:7px;border:.5px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;position:relative;font-size:32px;}
+.ph-status{position:absolute;bottom:5px;left:5px;font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600;}
+.cond-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;}
+.cond-item{padding:7px 9px;background:#f9f9f8;border:.5px solid #e8e7e4;border-radius:5px;font-size:11px;display:flex;align-items:center;gap:7px;cursor:pointer;transition:background .1s;}
+.cond-item:hover{background:#f0eeeb;}
+.cond-item input[type=checkbox]{width:13px;height:13px;accent-color:#1a7a3a;flex-shrink:0;cursor:pointer;}
+.sug-box{background:#fdf7e3;border:.5px solid #dfc84a;border-radius:7px;padding:11px 13px;}
+.sug-t{font-size:10px;font-weight:700;color:#8b6a00;margin-bottom:7px;text-transform:uppercase;letter-spacing:.05em;}
+.sug-row{display:flex;justify-content:space-between;font-size:11.5px;color:#1a1a19;padding:2.5px 0;}
+.apply-btn{width:100%;padding:7px;font-size:11px;font-weight:600;background:#8b6a00;border:none;border-radius:5px;color:#fff;cursor:pointer;margin-top:8px;transition:background .1s;letter-spacing:.02em;}
+.apply-btn:hover{background:#6e5100;}
+
+/* Totals table */
+.tot-t{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+.tot-t td{padding:5.5px 0;border-bottom:.5px solid #f0eeeb;font-size:12px;}
+.tot-t td:last-child{text-align:right;font-weight:500;}
+.tot-t .sep td{border-top:.5px solid #d5d3cf;padding-top:9px;font-weight:700;font-size:12.5px;}
+.tot-lbl{color:#6b6b6a;}
+.charge-row td{vertical-align:middle;}
+.charge-inp{width:90px;height:24px;font-size:12px;padding:0 7px;border:.5px solid #e0deda;border-radius:4px;text-align:right;font-variant-numeric:tabular-nums;font-family:inherit;color:#1a1a19;background:#fff;}
+.charge-inp:focus{outline:none;border-color:#2383e2;box-shadow:0 0 0 2px rgba(35,131,226,.1);}
+
+/* Balance cards */
+.bal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.bal-c{border-radius:8px;padding:11px 13px;border:.5px solid;}
+.bal-c.pos{background:#edfaf2;border-color:#a8d8b9;}
+.bal-c.neg{background:#fceae8;border-color:#e8a09b;}
+.bal-c.zero{background:#f5f5f3;border-color:#e8e7e4;}
+.bal-lbl{font-size:10px;color:#9b9b99;margin-bottom:4px;}
+.bal-val{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;}
+.bvg{color:#1a7a3a;}
+.bvr{color:#b3261e;}
+.bvm{color:#9b9b99;}
+
+/* Full form mode */
+.ff-hd{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fff;border:.5px solid #e8e7e4;border-radius:7px 7px 0 0;cursor:pointer;user-select:none;}
+.ff-hd.coll{border-radius:7px;}
+.ff-hd:hover{background:#f9f9f8;}
+.ff-num{width:20px;height:20px;border-radius:50%;background:#f0eeeb;border:.5px solid #e8e7e4;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#9b9b99;flex-shrink:0;}
+.ff-lbl{font-size:12px;font-weight:500;color:#1a1a19;flex:1;}
+.chev{font-size:11px;color:#9b9b99;transition:transform .15s;}
+.chev.up{transform:rotate(180deg);}
+.ff-body{background:#fff;border:.5px solid #e8e7e4;border-top:none;border-radius:0 0 7px 7px;padding:12px;}
+.ff-body.hid{display:none;}
+.ff-sec{margin-bottom:7px;}
+
+/* Sections */
+.sec{display:none;}
+.sec.act{display:block;}
+
+/* ── SCREEN 4 ── */
+.s4-body{padding:22px 26px;background:#f5f5f3;}
+.s4-center{max-width:520px;margin:0 auto;}
+
+/* Deadline banner */
+.deadline-banner{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;background:#fdf7e3;border:.5px solid #dfc84a;border-left:4px solid #c8a800;border-radius:0 8px 8px 0;padding:13px 16px;margin-bottom:16px;}
+.db-body{flex:1;}
+.db-eyebrow{font-size:10px;font-weight:700;color:#8b6a00;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.db-text{font-size:12.5px;color:#1a1a19;line-height:1.55;}
+.db-pill{background:#fff;border:.5px solid #dfc84a;border-radius:8px;padding:9px 16px;text-align:center;flex-shrink:0;}
+.db-n{font-size:24px;font-weight:600;color:#8b6a00;line-height:1;font-variant-numeric:tabular-nums;}
+.db-l{font-size:10px;color:#9b9b99;margin-top:2px;}
+
+/* Mail card */
+.mail-card{background:#fff;border:.5px solid #e8e7e4;border-radius:10px;padding:16px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.mail-block{display:flex;flex-direction:column;gap:3px;}
+.mail-eyebrow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9b9b99;margin-bottom:4px;}
+.mail-name{font-size:13px;font-weight:600;color:#1a1a19;}
+.mail-addr{font-size:12px;color:#6b6b6a;line-height:1.55;}
+.mail-arrow{display:flex;align-items:center;justify-content:center;font-size:20px;color:#d0cfcc;align-self:center;}
+
+/* PDF preview card */
+.pdf-card{background:#fff;border:.5px solid #e8e7e4;border-radius:10px;padding:20px;margin-bottom:12px;}
+.pdf-card.ready{background:#edfaf2;border-color:#a8d8b9;}
+.pdf-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;}
+.pdf-icon{font-size:36px;line-height:1;flex-shrink:0;}
+.pdf-info{flex:1;}
+.pdf-filename{font-size:12px;font-weight:600;color:#1a1a19;font-variant-numeric:tabular-nums;}
+.pdf-meta{font-size:11px;color:#9b9b99;margin-top:3px;line-height:1.5;}
+.pdf-bal-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;margin-top:5px;padding:2px 8px;border-radius:20px;}
+.pdf-actions{display:flex;gap:6px;margin-top:10px;}
+
+.comp-row{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:8px;border:.5px solid #e8e7e4;background:#fff;margin-bottom:10px;cursor:pointer;transition:all .12s;}
+.comp-row.checked{background:#edfaf2;border-color:#a8d8b9;}
+.comp-row input[type=checkbox]{width:15px;height:15px;accent-color:#1a7a3a;flex-shrink:0;margin-top:1px;cursor:pointer;}
+.comp-row label{font-size:12.5px;color:#6b6b6a;cursor:pointer;line-height:1.45;}
+.comp-row.checked label{color:#1a7a3a;}
+
+.dl-btn{width:100%;padding:12px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;letter-spacing:.01em;}
+.dl-btn.locked{background:#e8e7e4;color:#9b9b99;cursor:not-allowed;}
+.dl-btn.ready{background:#1a7a3a;color:#fff;}
+.dl-btn.ready:hover{background:#155f2e;}
+.dl-btn.done{background:#edfaf2;color:#1a7a3a;border:.5px solid #a8d8b9;cursor:default;}
+
+/* ── PDF PREVIEW MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(20,20,18,.65);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);}
+.modal-overlay.hidden{display:none;}
+.modal-wrap{background:#f0eeea;border-radius:12px;width:100%;max-width:780px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.modal-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#fff;border-bottom:1px solid #e8e7e4;flex-shrink:0;}
+.modal-title{font-size:13px;font-weight:600;color:#1a1a19;}
+.modal-meta{font-size:11px;color:#9b9b99;margin-top:1px;}
+.modal-x{width:28px;height:28px;border-radius:6px;border:.5px solid #e8e7e4;background:#f5f5f3;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#6b6b6a;flex-shrink:0;}
+.modal-x:hover{background:#fceae8;border-color:#e8a09b;color:#b3261e;}
+.modal-scroll{overflow-y:auto;flex:1;padding:20px;}
+
+/* PDF Document */
+.pdf-doc{background:#fff;border:1px solid #d0cfcc;border-radius:4px;padding:28px 32px;font-family:'Times New Roman',Times,serif;font-size:10.5px;color:#1a1a19;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.pdf-doc-hd{text-align:center;margin-bottom:16px;border-bottom:2px solid #1a1a19;padding-bottom:12px;}
+.pdf-doc-co{font-size:16px;font-weight:700;letter-spacing:.02em;}
+.pdf-doc-form{font-size:11px;color:#555;margin-top:3px;}
+.pdf-section{margin-bottom:14px;}
+.pdf-row{display:flex;gap:10px;margin-bottom:6px;align-items:flex-end;}
+.pdf-field{display:flex;flex-direction:column;gap:2px;flex:1;}
+.pdf-field-label{font-size:8.5px;color:#888;text-transform:uppercase;letter-spacing:.05em;}
+.pdf-field-val{border-bottom:1px solid #555;padding:2px 3px 2px;font-size:10.5px;min-height:18px;color:#1a1a19;font-family:'Times New Roman',Times,serif;}
+.pdf-field-val.filled{color:#1a1a19;}
+.pdf-to-block{border:1px solid #888;padding:10px 12px;margin-bottom:12px;min-height:70px;}
+.pdf-to-line{font-size:11px;line-height:1.7;font-family:'Times New Roman',Times,serif;}
+.pdf-to-attn{font-size:8.5px;color:#888;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;}
+.pdf-divider{border:none;border-top:1px solid #aaa;margin:10px 0;}
+.pdf-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.pdf-tbl th{border:1px solid #888;padding:4px 5px;background:#f5f5f3;font-size:9.5px;font-weight:700;text-align:center;}
+.pdf-tbl td{border:1px solid #c0bebb;padding:4px 5px;vertical-align:middle;}
+.pdf-tbl td.r{text-align:right;font-variant-numeric:tabular-nums;}
+.pdf-tbl tr.total-row td{background:#f5f5f3;font-weight:700;}
+.pdf-cb{display:inline-flex;align-items:center;gap:4px;font-size:10px;margin-right:10px;}
+.pdf-cb-box{width:11px;height:11px;border:1px solid #555;display:inline-flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
+.pdf-cb-box.chk{background:#1a1a19;color:#fff;}
+.pdf-sig-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px;}
+.pdf-sig-field{border-bottom:1px solid #555;padding-bottom:2px;margin-top:14px;font-size:10px;}
+.pdf-sig-lbl{font-size:8.5px;color:#888;margin-top:3px;text-transform:uppercase;letter-spacing:.04em;}
+.pdf-credits-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pdf-bal-row{display:flex;align-items:center;justify-content:space-between;border:1px solid #888;padding:7px 10px;margin-top:8px;font-size:10.5px;}
+</style>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 2 — Tenant Dashboard
+     ══════════════════════════════════════════ -->
+<div class="sw">
+<div class="sl"><span>Screen 2</span> Tenant dashboard — Westlake Commons</div>
+<div class="frame">
+  <div class="tb">
+    <div class="tb-l">
+      <div><div class="tb-brand">AGM Security Deposit Tool</div><div class="tb-sub">AGM Real Estate Group</div></div>
+      <div class="tb-div"></div>
+      <div class="prop-drop">
+        <div class="prop-btn" onclick="toggleProp()">🏢 <span id="prop-name">Westlake Commons</span> <span class="prop-arr">▾</span></div>
+        <div class="prop-menu" id="prop-menu">
+          <div class="prop-item sel" onclick="selectProp('Westlake Commons',this)"><span class="prop-check">✓</span>Westlake Commons — June 2026</div>
+          <div class="prop-item" onclick="selectProp('Lakeview Apartments',this)"><span class="prop-check" style="opacity:0">✓</span>Lakeview Apartments — May 2026</div>
+          <div class="prop-item" onclick="selectProp('Horizon Terrace',this)"><span class="prop-check" style="opacity:0">✓</span>Horizon Terrace — April 2026</div>
+        </div>
+      </div>
+    </div>
+    <div class="tb-r">
+      <button class="btn btn-ghost btn-sm">+ Start new upload</button>
+    </div>
+  </div>
+  <div class="s2-body">
+    <div class="s2-hd">
+      <div class="s2-hd-l">
+        <div>
+          <div class="s2-ttl" id="dash-ttl">Westlake Commons — June 2026 Move-Outs</div>
+          <div class="s2-sub">1 of 5 complete · Uploaded June 28, 2026</div>
+        </div>
+        <span class="tag tamb">4 pending</span>
+      </div>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" style="width:20%"></div></div>
+    <div class="nav-row">
+      <div class="nav-info" id="nav-info">Showing 1–5 of 5 tenants</div>
+      <div class="nav-btns">
+        <div class="nav-btn dis" id="s2-prev" onclick="s2Nav(-1)">←</div>
+        <div class="nav-btn dis" id="s2-next" onclick="s2Nav(1)">→</div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr>
+          <th>Tenant</th><th>Unit</th><th>Move-out</th><th>Deposit</th><th>Utility</th><th>Inspection</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody id="s2-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 3 — Return Form (Sarah Mitchell)
+     ══════════════════════════════════════════ -->
+<div class="sw">
+<div class="sl"><span>Screen 3</span> Return form — Sarah L. Mitchell · Unit 204B</div>
+<div class="frame">
+  <div class="tb">
+    <div class="tb-l">
+      <a class="back">← Dashboard</a>
+      <div class="tb-div"></div>
+      <div>
+        <div class="tb-title">Sarah L. Mitchell — Unit 204B</div>
+        <div class="tb-ns">Westlake Commons · Move-out 06/24/2026 · RUBS · <span style="color:#8b6a00;font-weight:500;">Lease break</span></div>
+      </div>
+    </div>
+    <div class="tb-r" style="gap:6px;">
+      <button class="btn btn-ghost btn-sm" onclick="toggleFF()" id="ff-btn">View full form</button>
+      <button class="btn btn-blue btn-sm">Review &amp; Submit →</button>
+    </div>
+  </div>
+  <div class="s3">
+    <!-- Sidebar -->
+    <div class="sb">
+      <div class="sb-hd">
+        <div class="sb-hd-l">
+          <div class="sb-hd-t">Form sections</div>
+          <div class="sb-hd-s">Click a section to focus it</div>
+        </div>
+        <div class="ref-btn" id="ref-toggle" onclick="toggleRefDrawer()" title="View data &amp; calculations">ⓘ</div>
+      </div>
+      <div class="sb-list" id="sb-list"></div>
+    </div>
+    <!-- Main panel -->
+    <div class="mp">
+      <div class="mp-hd">
+        <div><div class="mp-hd-t" id="mp-t">Property &amp; Tenant</div><div class="mp-hd-s" id="mp-s">Name, unit, forwarding address</div></div>
+      </div>
+      <div class="mp-body" id="mp-body">
+
+        <!-- Focused view -->
+        <div id="focused-view">
+
+          <!-- §1 Property & Tenant -->
+          <div class="sec act" id="sec-tenant">
+            <div class="fc">
+              <div class="fc-t">Property &amp; Tenant</div>
+              <div class="g2" style="margin-bottom:8px;">
+                <div class="fi"><label>Property name</label><input class="auto" value="Westlake Commons"></div>
+                <div class="fi"><label>Unit #</label><input class="auto" value="204B"></div>
+              </div>
+              <div class="fi" style="margin-bottom:8px;"><label>Primary tenant</label><input class="auto" value="Sarah L. Mitchell"></div>
+              <div class="fi" style="margin-bottom:8px;"><label>Co-tenant / co-signer</label><input placeholder="None"></div>
+              <div class="fi"><label>Forwarding address (where to mail the check)</label><input class="auto" value="412 Elmwood Dr, Kirkland WA 98033"></div>
+            </div>
+            <div class="leg">
+              <div class="leg-i"><div class="leg-dot" style="background:#a8d8b9;"></div>From AppFolio (editable)</div>
+              <div class="leg-i"><div class="leg-dot" style="background:#aac8f0;"></div>Calculated (override OK)</div>
+              <div class="leg-i"><div class="leg-dot" style="background:#dfc84a;"></div>Manual entry</div>
+            </div>
+          </div>
+
+          <!-- §2 Lease & Dates -->
+          <div class="sec" id="sec-lease">
+            <div class="fc">
+              <div class="fc-t">Lease &amp; Dates</div>
+              <div class="g3" style="margin-bottom:8px;">
+                <div class="fi"><label>Monthly rent</label><input class="auto" id="f-rent" value="$1,724.00" oninput="parseFieldRent(this.value)"></div>
+                <div class="fi"><label>NRC cleaning fee paid</label><input class="auto" id="f-nrc" value="$250.00" oninput="parseFieldNRC(this.value)"></div>
+                <div class="fi"><label>NRC pet fee paid</label><input class="auto" value="$0.00"></div>
+              </div>
+              <div class="g2" style="margin-bottom:8px;">
+                <div class="fi"><label>Date of move-in</label><input class="auto" value="03/01/2023"></div>
+                <div class="fi"><label>Date of move-out</label><input class="auto" value="06/24/2026"></div>
+              </div>
+              <div class="g2" style="margin-bottom:8px;">
+                <div class="fi"><label>Paid rent through</label><input class="auto" value="06/24/2026"></div>
+                <div class="fi"><label>Notice date</label><input class="auto" value="05/24/2026"></div>
+              </div>
+              <div class="g2">
+                <div class="fi"><label>Lease break?</label><input class="calc" value="Yes — confirmed" readonly></div>
+                <div class="fi"><label>New tenant move-in</label><input class="calc" value="07/27/2026"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- §3 NRC Fees -->
+          <div class="sec" id="sec-nrc">
+            <div class="fc">
+              <div class="fc-t">NRC Fees</div>
+              <p style="font-size:11.5px;color:#6b6b6a;margin-bottom:10px;line-height:1.5;">NRC (Non-Refundable Charge) fees are collected at move-in. They offset the first dollar of the matching charge at move-out — the tenant is not charged twice.</p>
+              <div class="cc green" style="margin-bottom:8px;">
+                <div class="cc-row"><span class="cc-l">NRC cleaning fee on file</span><span class="cv-g" id="nrc-display">$250.00</span></div>
+                <div class="cc-row"><span class="cc-l">General cleaning entered (§8)</span><span class="cv-g" id="nrc-cleaning-entered">$0.00</span></div>
+                <div class="cc-row"><span class="cc-l">NRC offsets</span><span class="cv-g" id="nrc-offset-display">$0.00 → Tenant pays $0.00</span></div>
+              </div>
+              <div class="cc blue">
+                <div class="cc-row"><span class="cc-l">NRC pet fee on file</span><span class="cv-b">$0.00</span></div>
+                <div class="cc-row"><span class="cc-l">No pet NRC — any pet cleaning billed directly</span><span class="cv-b">—</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- §4 Move-In/Out Photos -->
+          <div class="sec" id="sec-photos">
+            <div class="fc">
+              <div class="fc-t">Move-In / Out Photos</div>
+              <div style="margin-bottom:10px;">
+                <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;">
+                  <input type="checkbox" id="insp-chk" checked style="width:14px;height:14px;accent-color:#1a7a3a;margin-top:1px;flex-shrink:0;">
+                  <div>
+                    <div style="font-size:12px;font-weight:500;color:#1a1a19;">Signed move-in inspection is on file</div>
+                    <div style="font-size:10.5px;color:#9b9b99;margin-top:2px;">Required to support deductions in small claims court (CA Civil Code §1950.5)</div>
+                  </div>
+                </label>
+              </div>
+              <div class="photo-row">
+                <div>
+                  <div class="ph-lbl">Move-in · 03/01/2023</div>
+                  <div class="ph-box" style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-color:#a8d8b9;">🏠<div class="ph-status" style="background:rgba(15,100,55,.85);color:#e1f5ee;">✓ Clean</div></div>
+                </div>
+                <div>
+                  <div class="ph-lbl">Move-out · 06/24/2026</div>
+                  <div class="ph-box" style="background:linear-gradient(135deg,#fff3e0,#ffe0b2);border-color:#dfc84a;">🏠<div class="ph-status" style="background:rgba(155,40,40,.85);color:#fcebeb;">⚠ Flagged</div></div>
+                </div>
+              </div>
+              <p style="font-size:11px;color:#9b9b99;margin-bottom:8px;">Check conditions needing repair. Apply to pre-fill charge amounts in §8.</p>
+              <div class="cond-grid">
+                <div class="cond-item"><input type="checkbox" id="cond-carpet" checked> Carpet needs shampoo</div>
+                <div class="cond-item"><input type="checkbox"> Carpet — normal wear</div>
+                <div class="cond-item"><input type="checkbox" id="cond-paint" checked> Painting touch-up needed</div>
+                <div class="cond-item"><input type="checkbox"> Paint — normal wear</div>
+                <div class="cond-item"><input type="checkbox"> Blinds damaged</div>
+                <div class="cond-item"><input type="checkbox" checked> Blinds intact</div>
+                <div class="cond-item"><input type="checkbox"> Kitchen dirty</div>
+                <div class="cond-item"><input type="checkbox" checked> Kitchen clean</div>
+              </div>
+              <div class="sug-box">
+                <div class="sug-t">Suggested charges from inspection</div>
+                <div class="sug-row"><span>Carpet shampooing</span><span style="font-weight:600;">$120.00</span></div>
+                <div class="sug-row"><span>Painting touch-up</span><span style="font-weight:600;">$150.00</span></div>
+                <button class="apply-btn" onclick="applyPhoto()">Apply $270.00 to charges →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- §5 Rent Due -->
+          <div class="sec" id="sec-rent">
+            <div class="fc">
+              <div class="fc-t">Rent Due</div>
+              <div class="cc green" style="margin-bottom:8px;">
+                <div class="cc-row"><span class="cc-l">Monthly rent</span><span class="cv-g">$1,724.00</span></div>
+                <div class="cc-row"><span class="cc-l">Daily rate (÷ 30)</span><span class="cv-g">$57.47 / day</span></div>
+                <div class="cc-row"><span class="cc-l">Lease break — 06/24 → 07/27</span><span class="cv-g">33 days</span></div>
+                <div class="cc-row"><span class="cc-l">Calculated rent due</span><span class="cv-g">$1,896.51</span></div>
+              </div>
+              <div class="fi"><label>Rent due override (if calculated amount needs adjustment)</label>
+                <input class="calc" id="rent-override" value="$1,896.51" oninput="parseOverrideRent(this.value)">
+              </div>
+              <p style="font-size:10.5px;color:#9b9b99;margin-top:8px;">Lease break: Mitchell owed rent from move-out (06/24) through new tenant move-in (07/27). Charged at daily rate.</p>
+            </div>
+          </div>
+
+          <!-- §6 Utility Charges -->
+          <div class="sec" id="sec-utility">
+            <div class="fc">
+              <div class="fc-t">Utility Charges</div>
+              <div class="cc blue" style="margin-bottom:10px;">
+                <div class="cc-row"><span class="cc-l">Billing type</span><span class="cv-b">RUBS — Ratio Utility Billing</span></div>
+                <div class="cc-row"><span class="cc-l">Building water bill (Jun 2026)</span><span class="cv-b">$1,240.00</span></div>
+                <div class="cc-row"><span class="cc-l">Unit 204B share</span><span class="cv-b">8.3%</span></div>
+                <div class="cc-row"><span class="cc-l">Tenant chargeback</span><span class="cv-b" id="util-display">$102.92</span></div>
+              </div>
+              <div class="g2">
+                <div class="fi"><label>Building total ($)</label>
+                  <input class="calc" id="util-bldg" value="1240.00" oninput="recalcUtil()">
+                </div>
+                <div class="fi"><label>Unit ratio (e.g. 0.083)</label>
+                  <input class="calc" id="util-ratio" value="0.083" oninput="recalcUtil()">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- §7 Legal / Court Costs -->
+          <div class="sec" id="sec-legal">
+            <div class="fc">
+              <div class="fc-t">Legal / Court Costs</div>
+              <p style="font-size:11.5px;color:#6b6b6a;margin-bottom:10px;line-height:1.5;">Enter court filing fees or attorney costs to be charged to the tenant. Leave at $0.00 if none apply.</p>
+              <div class="g2">
+                <div class="fi"><label>Legal / attorney fees ($)</label>
+                  <input class="manual" id="legal-fees" value="0.00" oninput="recalcFromInput()">
+                </div>
+                <div class="fi"><label>Court filing costs ($)</label>
+                  <input class="manual" id="court-costs" value="0.00" oninput="recalcFromInput()">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- §8 Total Charges -->
+          <div class="sec" id="sec-totals">
+            <div class="fc">
+              <div class="fc-t">Total Charges</div>
+              <table class="tot-t" style="margin-bottom:0;">
+                <tr class="charge-row">
+                  <td class="tot-lbl">General cleaning</td>
+                  <td style="text-align:right;"><input class="charge-inp" id="inp-cleaning" value="0.00" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr><td colspan="2" style="padding:2px 0 5px;">
+                  <div style="font-size:10.5px;color:#1a7a3a;padding-left:2px;" id="nrc-note">NRC $250.00 covers first $250 → tenant pays $0.00</div>
+                </td></tr>
+                <tr class="charge-row">
+                  <td class="tot-lbl">Blind / drape cleaning</td>
+                  <td style="text-align:right;"><input class="charge-inp" id="inp-blind" value="0.00" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr class="charge-row">
+                  <td class="tot-lbl">Window covering replacement</td>
+                  <td style="text-align:right;"><input class="charge-inp" id="inp-window" value="0.00" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr class="charge-row">
+                  <td class="tot-lbl">Carpet shampooing</td>
+                  <td style="text-align:right;"><input class="charge-inp" id="inp-carpet" value="120.00" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr class="charge-row">
+                  <td class="tot-lbl">Flooring restoration</td>
+                  <td style="text-align:right;"><input class="charge-inp" id="inp-floor" value="0.00" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr class="charge-row">
+                  <td class="tot-lbl">Painting</td>
+                  <td style="text-align:right;"><input class="charge-inp" id="inp-paint" value="150.00" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr class="charge-row">
+                  <td class="tot-lbl">Key replacement</td>
+                  <td style="text-align:right;"><input class="charge-inp" id="inp-other1" value="50.00" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr class="charge-row">
+                  <td class="tot-lbl">Other</td>
+                  <td style="text-align:right;"><input class="charge-inp" id="inp-other2" value="0.00" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr class="charge-row">
+                  <td class="tot-lbl">Rent due (lease break — 33 days)</td>
+                  <td style="text-align:right;"><input class="charge-inp calc" id="inp-rent" value="1896.51" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr class="charge-row">
+                  <td class="tot-lbl">Utility — RUBS chargeback</td>
+                  <td style="text-align:right;"><input class="charge-inp calc" id="inp-util" value="102.92" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr class="charge-row">
+                  <td class="tot-lbl">Legal / court costs</td>
+                  <td style="text-align:right;"><input class="charge-inp manual" id="inp-legal" value="0.00" oninput="recalcFromInput()"></td>
+                </tr>
+                <tr class="sep">
+                  <td>Total charges</td>
+                  <td style="text-align:right;color:#b3261e;" id="tot-total">$2,049.43</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- §9 Refunds & Credits -->
+          <div class="sec" id="sec-credits">
+            <div class="fc">
+              <div class="fc-t">Refunds &amp; Credits</div>
+              <div class="g3" style="margin-bottom:12px;">
+                <div class="fi"><label>Security deposit</label>
+                  <input class="auto" id="inp-sec-dep" value="$1,850.00" oninput="recalcCredits()">
+                </div>
+                <div class="fi"><label>Pet deposit</label>
+                  <input class="auto" id="inp-pet-dep" value="$300.00" oninput="recalcCredits()">
+                </div>
+                <div class="fi"><label>Total credits</label>
+                  <input class="calc" id="tot-credits" value="$2,150.00" readonly>
+                </div>
+              </div>
+              <div class="bal-grid">
+                <div class="bal-c pos" id="bal-tenant">
+                  <div class="bal-lbl">Balance due to tenant</div>
+                  <div class="bal-val bvg" id="bal-tenant-val">$100.57</div>
+                </div>
+                <div class="bal-c zero" id="bal-landlord">
+                  <div class="bal-lbl">Balance owing landlord</div>
+                  <div class="bal-val bvm" id="bal-landlord-val">$0.00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /focused-view -->
+
+        <!-- Full form view -->
+        <div id="full-view" style="display:none;">
+          <div id="ff-container"></div>
+        </div>
+
+      </div><!-- /mp-body -->
+
+      <!-- Data reference drawer -->
+      <div class="ref-drawer" id="ref-drawer">
+        <div class="ref-dh">
+          <div>
+            <div class="ref-dh-t">Data &amp; Calculations</div>
+            <div class="ref-dh-s">All values driving this return</div>
+          </div>
+          <div class="ref-dx" onclick="toggleRefDrawer()" title="Close">✕</div>
+        </div>
+        <div class="ref-body">
+
+          <!-- Tenant & Property -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#a8d8b9;"></div>
+              <div class="rg-lbl">Tenant &amp; Property</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="rr"><span class="rr-l">Tenant</span><span class="rr-v">Sarah L. Mitchell</span></div>
+              <div class="rr"><span class="rr-l">Co-tenant</span><span class="rr-v" style="color:#9b9b99;">None</span></div>
+              <div class="rr"><span class="rr-l">Unit</span><span class="rr-v">204B</span></div>
+              <div class="rr"><span class="rr-l">Property</span><span class="rr-v">Westlake Commons</span></div>
+              <div class="rr"><span class="rr-l">Forwarding address</span><span class="rr-v" style="text-align:right;max-width:160px;">412 Elmwood Dr, Kirkland WA 98033</span></div>
+              <div class="rr"><span class="rr-l">Inspection on file</span><span class="rr-v green">✓ Signed</span></div>
+            </div>
+          </div>
+
+          <!-- Deposits held -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#aac8f0;"></div>
+              <div class="rg-lbl">Deposits Held</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="rr"><span class="rr-l">Security deposit</span><span class="rr-v">$1,850.00</span></div>
+              <div class="rr"><span class="rr-l">Pet deposit</span><span class="rr-v">$300.00</span></div>
+              <div class="rr"><span class="rr-l">Key deposit</span><span class="rr-v" style="color:#9b9b99;">$0.00</span></div>
+              <div class="rr"><span class="rr-l">Garage opener deposit</span><span class="rr-v" style="color:#9b9b99;">$0.00</span></div>
+              <div class="rr total"><span class="rr-l">Total credits</span><span class="rr-v blue">$2,150.00</span></div>
+            </div>
+          </div>
+
+          <!-- Lease & Dates -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#dfc84a;"></div>
+              <div class="rg-lbl">Lease &amp; Dates</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="rr"><span class="rr-l">Move-in</span><span class="rr-v">03/01/2023</span></div>
+              <div class="rr"><span class="rr-l">Move-out</span><span class="rr-v">06/24/2026</span></div>
+              <div class="rr"><span class="rr-l">Paid rent through</span><span class="rr-v">06/24/2026</span></div>
+              <div class="rr"><span class="rr-l">Notice date</span><span class="rr-v">05/24/2026</span></div>
+              <div class="rr"><span class="rr-l">Lease end date</span><span class="rr-v">07/27/2026</span></div>
+              <div class="rr"><span class="rr-l">Monthly rent</span><span class="rr-v">$1,724.00</span></div>
+              <div class="rr"><span class="rr-l">Lease break?</span><span class="rr-v amber">Yes</span></div>
+              <div class="rr"><span class="rr-l">New tenant move-in</span><span class="rr-v">07/27/2026</span></div>
+            </div>
+          </div>
+
+          <!-- NRC Fees -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#e8a09b;"></div>
+              <div class="rg-lbl">NRC Fees</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="rr"><span class="rr-l">NRC cleaning (paid at move-in)</span><span class="rr-v">$250.00</span></div>
+              <div class="rr"><span class="rr-l">NRC pet fee</span><span class="rr-v" style="color:#9b9b99;">$0.00</span></div>
+              <div class="rr"><span class="rr-l">Cleaning entered (§8)</span><span class="rr-v" id="ref-cleaning-entered">$0.00</span></div>
+              <div class="rr"><span class="rr-l">NRC offset applied</span><span class="rr-v green" id="ref-nrc-offset">$0.00</span></div>
+              <div class="rr total"><span class="rr-l">Tenant cleaning charge</span><span class="rr-v" id="ref-cleaning-net">$0.00</span></div>
+            </div>
+          </div>
+
+          <!-- Calculated Charges -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#2383e2;"></div>
+              <div class="rg-lbl">Calculated Charges</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="rr"><span class="rr-l">Daily rent (÷ 30 days)</span><span class="rr-v blue">$57.47 / day</span></div>
+              <div class="rr"><span class="rr-l">Lease break period</span><span class="rr-v blue">06/24 → 07/27 (33 days)</span></div>
+              <div class="rr"><span class="rr-l">Rent due</span><span class="rr-v blue" id="ref-rent-due">$1,896.51</span></div>
+              <div class="rr" style="margin-top:4px;"><span class="rr-l">RUBS building total</span><span class="rr-v blue" id="ref-rubs-total">$1,240.00</span></div>
+              <div class="rr"><span class="rr-l">Unit share (ratio)</span><span class="rr-v blue" id="ref-rubs-ratio">8.3%</span></div>
+              <div class="rr"><span class="rr-l">RUBS chargeback</span><span class="rr-v blue" id="ref-rubs-charge">$102.92</span></div>
+            </div>
+          </div>
+
+          <!-- Live Running Total -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#1a1a19;"></div>
+              <div class="rg-lbl">Live Running Total</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="ref-live-note">Updates as you edit charges above</div>
+              <div class="rr"><span class="rr-l">Cleaning (net of NRC)</span><span class="rr-v" id="ref-t-cleaning">$0.00</span></div>
+              <div class="rr"><span class="rr-l">Carpet shampooing</span><span class="rr-v" id="ref-t-carpet">$120.00</span></div>
+              <div class="rr"><span class="rr-l">Painting</span><span class="rr-v" id="ref-t-paint">$150.00</span></div>
+              <div class="rr"><span class="rr-l">Key replacement</span><span class="rr-v" id="ref-t-other1">$50.00</span></div>
+              <div class="rr"><span class="rr-l">Rent due (lease break)</span><span class="rr-v" id="ref-t-rent">$1,896.51</span></div>
+              <div class="rr"><span class="rr-l">RUBS utility</span><span class="rr-v" id="ref-t-util">$102.92</span></div>
+              <div class="rr"><span class="rr-l">Legal / court costs</span><span class="rr-v" id="ref-t-legal">$0.00</span></div>
+              <div class="rr total"><span class="rr-l">Total charges</span><span class="rr-v red" id="ref-total-charges">$2,319.43</span></div>
+              <div class="rr total" style="margin-top:2px;"><span class="rr-l">Total credits (deposits)</span><span class="rr-v green">$2,150.00</span></div>
+              <div class="rr total" style="margin-top:2px;border-top:.5px solid #d5d3cf;padding-top:6px;"><span class="rr-l">Balance owing landlord</span><span class="rr-v red" id="ref-balance">$169.43</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="mp-foot" id="mp-foot">
+        <button class="btn btn-ghost btn-sm" id="prev-btn" onclick="secNav(-1)">← Previous</button>
+        <span style="font-size:11px;color:#9b9b99;" id="sec-pos">Section 1 of 9</span>
+        <button class="btn btn-primary btn-sm" id="next-btn" onclick="secNav(1)">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 4 — Review & Download
+     ══════════════════════════════════════════ -->
+<div class="sw">
+<div class="sl"><span>Screen 4</span> Review &amp; download — Sarah L. Mitchell · Unit 204B</div>
+<div class="frame">
+  <div class="tb">
+    <div class="tb-l">
+      <a class="back">← Edit form</a>
+      <div class="tb-div"></div>
+      <div>
+        <div class="tb-title">Review &amp; Download — Sarah L. Mitchell · Unit 204B</div>
+        <div class="tb-ns">All sections complete · Ready for compliance check</div>
+      </div>
+    </div>
+  </div>
+  <div class="s4-body">
+    <div class="s4-center">
+
+      <!-- Deadline / notice banner -->
+      <div class="deadline-banner">
+        <div class="db-body">
+          <div class="db-eyebrow">California Civil Code §1950.5 — 21-day deadline</div>
+          <div class="db-text">
+            Deposit return must be postmarked by <strong>July 15, 2026</strong>. Mail the itemized statement and any refund check to the forwarding address below.
+          </div>
+        </div>
+        <div class="db-pill"><div class="db-n">16</div><div class="db-l">days left</div></div>
+      </div>
+
+      <!-- Mailing card: FROM → TO -->
+      <div class="mail-card">
+        <div class="mail-block">
+          <div class="mail-eyebrow">From</div>
+          <div class="mail-name">AGM Real Estate Group</div>
+          <div class="mail-addr">
+            Westlake Commons<br>
+            4820 Lakewood Blvd, Suite 200<br>
+            Bellevue, WA 98004
+          </div>
+        </div>
+        <div class="mail-arrow">→</div>
+        <div class="mail-block">
+          <div class="mail-eyebrow">Mail to (tenant forwarding address)</div>
+          <div class="mail-name">Sarah L. Mitchell</div>
+          <div class="mail-addr">
+            412 Elmwood Dr<br>
+            Kirkland, WA 98033
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF card -->
+      <div class="pdf-card" id="pdf-card">
+        <div class="pdf-top">
+          <div class="pdf-icon" id="pdf-icon">📋</div>
+          <div class="pdf-info">
+            <div class="pdf-filename">AGM_Checkout_Report_204B_WestlakeCommons.pdf</div>
+            <div class="pdf-meta">
+              Westlake Commons · Unit 204B · Move-out 06/24/2026<br>
+              72 / 72 fields populated · AGM Real Estate Group
+            </div>
+            <div class="pdf-bal-tag tamb" id="pdf-bal-tag">⚠ Balance owing landlord: $169.43</div>
+          </div>
+        </div>
+        <div class="pdf-actions">
+          <button class="btn btn-ghost btn-sm" id="preview-btn" onclick="openPreview()">👁 Preview form</button>
+          <button class="btn btn-ghost btn-sm" id="pdf-dl-sm" disabled style="opacity:.4;cursor:not-allowed;">↓ Download</button>
+        </div>
+      </div>
+
+      <!-- Compliance checkbox -->
+      <div class="comp-row" id="comp-row" onclick="toggleComp()">
+        <input type="checkbox" id="comp-chk" onchange="toggleComp()">
+        <label for="comp-chk">I confirm all charges reflect company-approved rates and this return is accurate and complete per California Civil Code §1950.5.</label>
+      </div>
+
+      <!-- Download button -->
+      <button class="dl-btn locked" id="dl-btn" onclick="handleDl()">↓ Download AGM_Checkout_Report_204B_WestlakeCommons.pdf</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PDF PREVIEW MODAL
+     ══════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closePreviewOverlay(event)">
+  <div class="modal-wrap" onclick="event.stopPropagation()">
+    <div class="modal-bar">
+      <div>
+        <div class="modal-title">AGM Security Deposit Return — Form Preview</div>
+        <div class="modal-meta">Westlake Commons · Unit 204B · Sarah L. Mitchell · Preview only — not the actual PDF</div>
+      </div>
+      <div class="modal-x" onclick="closePreview()" title="Close preview">✕</div>
+    </div>
+    <div class="modal-scroll">
+      <div class="pdf-doc">
+
+        <!-- Document header -->
+        <div class="pdf-doc-hd">
+          <div class="pdf-doc-co">AGM REAL ESTATE GROUP</div>
+          <div class="pdf-doc-form">Security Deposit Return — Itemized Statement</div>
+          <div style="font-size:9px;color:#888;margin-top:3px;">California Civil Code §1950.5</div>
+        </div>
+
+        <!-- Top row: Property / Unit / Final -->
+        <div class="pdf-section">
+          <div class="pdf-row">
+            <div class="pdf-field" style="flex:3;">
+              <div class="pdf-field-label">Property name</div>
+              <div class="pdf-field-val filled">Westlake Commons</div>
+            </div>
+            <div class="pdf-field" style="flex:1;">
+              <div class="pdf-field-label">Unit #</div>
+              <div class="pdf-field-val filled">204B</div>
+            </div>
+            <div class="pdf-field" style="flex:1.5;">
+              <div class="pdf-field-label">Statement type</div>
+              <div class="pdf-field-val">
+                <span class="pdf-cb"><span class="pdf-cb-box">  </span>Estimated</span>
+                <span class="pdf-cb"><span class="pdf-cb-box chk">✓</span>Final</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TO block -->
+        <div class="pdf-section">
+          <div class="pdf-to-attn">Send to (tenant forwarding address)</div>
+          <div class="pdf-to-block">
+            <div class="pdf-to-line">Sarah L. Mitchell</div>
+            <div class="pdf-to-line">412 Elmwood Dr</div>
+            <div class="pdf-to-line">Kirkland, WA  98033</div>
+          </div>
+        </div>
+
+        <hr class="pdf-divider">
+
+        <!-- Lease summary -->
+        <div class="pdf-section">
+          <div style="font-size:9.5px;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;">Lease Summary</div>
+          <div class="pdf-row">
+            <div class="pdf-field"><div class="pdf-field-label">Date of move-in</div><div class="pdf-field-val filled">03/01/2023</div></div>
+            <div class="pdf-field"><div class="pdf-field-label">Date of move-out</div><div class="pdf-field-val filled">06/24/2026</div></div>
+            <div class="pdf-field"><div class="pdf-field-label">Paid rent through</div><div class="pdf-field-val filled">06/24/2026</div></div>
+            <div class="pdf-field"><div class="pdf-field-label">Notice date</div><div class="pdf-field-val filled">05/24/2026</div></div>
+          </div>
+          <div class="pdf-row" style="margin-top:5px;">
+            <div class="pdf-field"><div class="pdf-field-label">Monthly rent</div><div class="pdf-field-val filled">$1,724.00</div></div>
+            <div class="pdf-field"><div class="pdf-field-label">NRC cleaning</div><div class="pdf-field-val filled">$250.00</div></div>
+            <div class="pdf-field"><div class="pdf-field-label">NRC pet</div><div class="pdf-field-val filled">$0.00</div></div>
+            <div class="pdf-field"><div class="pdf-field-label">New tenant move-in</div><div class="pdf-field-val filled">07/27/2026</div></div>
+          </div>
+          <div style="margin-top:5px;font-size:10px;">
+            Lease break:
+            <span class="pdf-cb"><span class="pdf-cb-box chk">✓</span>Yes</span>
+            <span class="pdf-cb"><span class="pdf-cb-box">  </span>No</span>
+          </div>
+        </div>
+
+        <hr class="pdf-divider">
+
+        <!-- Charges table -->
+        <div class="pdf-section">
+          <div style="font-size:9.5px;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;">Itemized Charges</div>
+          <table class="pdf-tbl">
+            <thead>
+              <tr>
+                <th style="text-align:left;width:40%;">Description</th>
+                <th>Completed By</th>
+                <th>Total Cost</th>
+                <th>Tenant Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>General Cleaning</td>
+                <td>Pristine Clean Co.</td>
+                <td class="r">$250.00</td>
+                <td class="r">$0.00 <span style="font-size:8.5px;color:#888;">(NRC offset)</span></td>
+              </tr>
+              <tr><td>Blind / Drape Cleaning</td><td></td><td class="r">$0.00</td><td class="r">$0.00</td></tr>
+              <tr><td>Replacement of Window Coverings</td><td></td><td class="r">$0.00</td><td class="r">$0.00</td></tr>
+              <tr>
+                <td>Carpet Shampooing</td>
+                <td>Pacific Carpet Care</td>
+                <td class="r" id="pdf-carpet-total">$120.00</td>
+                <td class="r" id="pdf-carpet-tenant">$120.00</td>
+              </tr>
+              <tr><td>Restore / Replace Flooring</td><td></td><td class="r">$0.00</td><td class="r">$0.00</td></tr>
+              <tr>
+                <td>Painting</td>
+                <td>Apex Painting LLC</td>
+                <td class="r" id="pdf-paint-total">$150.00</td>
+                <td class="r" id="pdf-paint-tenant">$150.00</td>
+              </tr>
+              <tr>
+                <td>Key Replacement</td>
+                <td>AGM Maintenance</td>
+                <td class="r">$50.00</td>
+                <td class="r">$50.00</td>
+              </tr>
+              <tr><td>Other</td><td></td><td class="r">$0.00</td><td class="r">$0.00</td></tr>
+              <tr>
+                <td>Rent Due — 06/24/2026 to 07/27/2026<br><span style="font-size:8.5px;color:#888;">(lease break — 33 days @ $57.47/day)</span></td>
+                <td></td>
+                <td class="r">$1,896.51</td>
+                <td class="r">$1,896.51</td>
+              </tr>
+              <tr>
+                <td>Utility — RUBS Water Chargeback<br><span style="font-size:8.5px;color:#888;">($1,240.00 × 8.3% unit share)</span></td>
+                <td></td>
+                <td class="r">$102.92</td>
+                <td class="r">$102.92</td>
+              </tr>
+              <tr><td>Legal / Court Costs</td><td></td><td class="r">$0.00</td><td class="r">$0.00</td></tr>
+              <tr class="total-row">
+                <td colspan="2"><strong>Total Charges</strong></td>
+                <td class="r"><strong>$2,319.43</strong></td>
+                <td class="r"><strong>$2,319.43</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <hr class="pdf-divider">
+
+        <!-- Credits / Refunds -->
+        <div class="pdf-section">
+          <div style="font-size:9.5px;font-weight:700;margin-bottom:7px;text-transform:uppercase;letter-spacing:.05em;">Credits / Refunds</div>
+          <div class="pdf-credits-grid">
+            <div>
+              <div class="pdf-field" style="margin-bottom:6px;"><div class="pdf-field-label">Security deposit paid</div><div class="pdf-field-val filled">$1,850.00</div></div>
+              <div class="pdf-field" style="margin-bottom:6px;"><div class="pdf-field-label">Other deposits paid (pet)</div><div class="pdf-field-val filled">$300.00</div></div>
+              <div class="pdf-field"><div class="pdf-field-label">Other refunds / description</div><div class="pdf-field-val"> </div></div>
+            </div>
+            <div>
+              <div class="pdf-field" style="margin-bottom:6px;"><div class="pdf-field-label">Rent refund due (pre-paid beyond move-out)</div><div class="pdf-field-val">— none —</div></div>
+              <div class="pdf-field"><div class="pdf-field-label">Total credits</div><div class="pdf-field-val filled" style="font-weight:700;">$2,150.00</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Balance row -->
+        <div class="pdf-bal-row">
+          <div>
+            <span class="pdf-cb"><span class="pdf-cb-box">  </span>$0.00 Balance Due</span>
+            <span class="pdf-cb"><span class="pdf-cb-box">  </span>Balance Due to Tenant</span>
+            <span class="pdf-cb"><span class="pdf-cb-box chk">✓</span>Balance Owing Landlord</span>
+          </div>
+          <div style="font-weight:700;font-size:12px;color:#b3261e;">$169.43</div>
+        </div>
+
+        <!-- Signature block -->
+        <div class="pdf-sig-row">
+          <div>
+            <div class="pdf-sig-field"> </div>
+            <div class="pdf-sig-lbl">Site Manager</div>
+          </div>
+          <div>
+            <div class="pdf-sig-field"> </div>
+            <div class="pdf-sig-lbl">Property Manager</div>
+          </div>
+          <div>
+            <div class="pdf-sig-field"> </div>
+            <div class="pdf-sig-lbl">Date mailed to tenant</div>
+          </div>
+        </div>
+
+        <div style="font-size:9px;color:#aaa;text-align:center;margin-top:16px;border-top:1px solid #eee;padding-top:10px;">
+          AGM Real Estate Group · 4820 Lakewood Blvd Suite 200, Bellevue WA 98004 · (206) 555-0182<br>
+          This statement prepared in compliance with California Civil Code §1950.5
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Screen 2 ── */
+var TENANTS = [
+  {name:'Sarah L. Mitchell', unit:'204B', moveOut:'06/24/2026', deposit:'$1,850.00', utility:'RUBS', insp:'Signed', status:'in_progress', lb:true},
+  {name:'Jordan K. Patel',   unit:'205C', moveOut:'06/30/2026', deposit:'$500.00',   utility:'Flat fee', insp:'Signed',  status:'not_started', lb:false},
+  {name:'Priya S. Nair',     unit:'312D', moveOut:'07/01/2026', deposit:'$1,600.00', utility:'RUBS',     insp:'Missing', status:'not_started', lb:false},
+  {name:'Damien R. Cruz',    unit:'108A', moveOut:'06/28/2026', deposit:'$1,200.00', utility:'Flat fee', insp:'Signed',  status:'complete',    lb:false},
+  {name:'Yuki Tanaka',       unit:'410E', moveOut:'07/05/2026', deposit:'$2,200.00', utility:'RUBS',     insp:'Signed',  status:'not_started', lb:true},
+];
+var s2Sel = 0;
+
+function renderS2() {
+  var tb = document.getElementById('s2-tbody');
+  tb.innerHTML = '';
+  TENANTS.forEach(function(t, i) {
+    var stTag = t.status === 'in_progress'
+      ? '<span class="tag tamb">In progress</span>'
+      : t.status === 'complete'
+        ? '<span class="tag tok">Complete</span>'
+        : '<span class="tag tgray">Not started</span>';
+    var inTag = t.insp === 'Signed'
+      ? '<span class="tag tok">✓ Signed</span>'
+      : '<span class="tag twarn">⚠ Missing</span>';
+    var utTag = t.utility === 'RUBS'
+      ? '<span class="tag tblue">RUBS</span>'
+      : '<span class="tag tok">Flat fee</span>';
+    var action = t.status === 'complete'
+      ? '<button class="btn btn-ghost btn-sm">View →</button>'
+      : '<button class="btn btn-ghost btn-sm" style="border-color:#2383e2;color:#2383e2;background:#e8f0fd;">Open →</button>';
+    var lbTag = t.lb ? '<span class="tag tamb" style="font-size:9px;margin-left:4px;">Lease break</span>' : '';
+    var tr = document.createElement('tr');
+    if (i === s2Sel) tr.className = 'sel-row';
+    tr.innerHTML =
+      '<td><div class="t-name">' + t.name + lbTag + '</div><div class="t-sub">Unit ' + t.unit + ' · ' + t.deposit + ' deposit</div></td>' +
+      '<td style="color:#6b6b6a;">' + t.moveOut + '</td>' +
+      '<td>' + utTag + '</td>' +
+      '<td>' + inTag + '</td>' +
+      '<td>' + stTag + '</td>' +
+      '<td style="text-align:right;">' + action + '</td>';
+    tr.onclick = function() { s2Sel = i; renderS2(); };
+    tb.appendChild(tr);
+  });
+  document.getElementById('s2-prev').className = 'nav-btn' + (s2Sel === 0 ? ' dis' : '');
+  document.getElementById('s2-next').className = 'nav-btn' + (s2Sel === TENANTS.length - 1 ? ' dis' : '');
+}
+renderS2();
+
+function s2Nav(d) { s2Sel = Math.max(0, Math.min(TENANTS.length - 1, s2Sel + d)); renderS2(); }
+
+document.addEventListener('click', function(e) {
+  var m = document.getElementById('prop-menu');
+  if (!e.target.closest('.prop-drop')) m.classList.remove('open');
+});
+function toggleProp() { document.getElementById('prop-menu').classList.toggle('open'); }
+function selectProp(name, el) {
+  document.getElementById('prop-name').textContent = name;
+  document.getElementById('dash-ttl').textContent = name + ' — June 2026 Move-Outs';
+  document.querySelectorAll('.prop-item').forEach(function(item) {
+    item.classList.remove('sel');
+    item.querySelector('.prop-check').style.opacity = item === el ? '1' : '0';
+  });
+  el.classList.add('sel');
+  document.getElementById('prop-menu').classList.remove('open');
+}
+
+/* ── Screen 3 state ── */
+var NRC_CLEANING = 250;
+var CHARGES = { cleaning: 0, blind: 0, window: 0, carpet: 120, floor: 0, paint: 150, other1: 50, other2: 0, rent: 1896.51, util: 102.92, legal: 0 };
+var CREDITS = { sec: 1850, pet: 300 };
+
+function parseMoney(s) {
+  return parseFloat(String(s).replace(/[$,]/g, '')) || 0;
+}
+function fmtMoney(n) {
+  return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function recalcAll() {
+  var cleaning = parseMoney(document.getElementById('inp-cleaning').value);
+  var blind    = parseMoney(document.getElementById('inp-blind').value);
+  var window_  = parseMoney(document.getElementById('inp-window').value);
+  var carpet   = parseMoney(document.getElementById('inp-carpet').value);
+  var floor    = parseMoney(document.getElementById('inp-floor').value);
+  var paint    = parseMoney(document.getElementById('inp-paint').value);
+  var other1   = parseMoney(document.getElementById('inp-other1').value);
+  var other2   = parseMoney(document.getElementById('inp-other2').value);
+  var rent     = parseMoney(document.getElementById('inp-rent').value);
+  var util     = parseMoney(document.getElementById('inp-util').value);
+  var legal    = parseMoney(document.getElementById('inp-legal').value);
+
+  var tenantCleaning = Math.max(0, cleaning - NRC_CLEANING);
+  var totalCharges = tenantCleaning + blind + window_ + carpet + floor + paint + other1 + other2 + rent + util + legal;
+
+  var nrcOffset = Math.min(cleaning, NRC_CLEANING);
+  var nrcNote = document.getElementById('nrc-note');
+  if (nrcNote) {
+    if (cleaning > 0) {
+      nrcNote.textContent = 'NRC $' + NRC_CLEANING.toFixed(2) + ' covers $' + nrcOffset.toFixed(2) + ' → tenant pays ' + fmtMoney(tenantCleaning);
+    } else {
+      nrcNote.textContent = 'NRC $' + NRC_CLEANING.toFixed(2) + ' will offset first $' + NRC_CLEANING.toFixed(2) + ' of cleaning';
+    }
+  }
+
+  var nrcEntered = document.getElementById('nrc-cleaning-entered');
+  if (nrcEntered) nrcEntered.textContent = fmtMoney(cleaning);
+  var nrcOffsetDisplay = document.getElementById('nrc-offset-display');
+  if (nrcOffsetDisplay) {
+    nrcOffsetDisplay.textContent = fmtMoney(nrcOffset) + ' → Tenant pays ' + fmtMoney(tenantCleaning);
+  }
+
+  document.getElementById('tot-total').textContent = fmtMoney(totalCharges);
+  document.getElementById('tot-total').style.color = totalCharges > 0 ? '#b3261e' : '#1a1a19';
+
+  var secDep = parseMoney(document.getElementById('inp-sec-dep').value);
+  var petDep = parseMoney(document.getElementById('inp-pet-dep').value);
+  var totalCredits = secDep + petDep;
+  document.getElementById('tot-credits').value = fmtMoney(totalCredits);
+
+  var balance = totalCredits - totalCharges;
+  var balTen = document.getElementById('bal-tenant');
+  var balTenVal = document.getElementById('bal-tenant-val');
+  var balLand = document.getElementById('bal-landlord');
+  var balLandVal = document.getElementById('bal-landlord-val');
+
+  if (Math.abs(balance) < 0.005) {
+    balTen.className = 'bal-c zero'; balTenVal.textContent = '$0.00'; balTenVal.className = 'bal-val bvm';
+    balLand.className = 'bal-c zero'; balLandVal.textContent = '$0.00'; balLandVal.className = 'bal-val bvm';
+  } else if (balance > 0) {
+    balTen.className = 'bal-c pos'; balTenVal.textContent = fmtMoney(balance); balTenVal.className = 'bal-val bvg';
+    balLand.className = 'bal-c zero'; balLandVal.textContent = '$0.00'; balLandVal.className = 'bal-val bvm';
+  } else {
+    balTen.className = 'bal-c zero'; balTenVal.textContent = '$0.00'; balTenVal.className = 'bal-val bvm';
+    balLand.className = 'bal-c neg'; balLandVal.textContent = fmtMoney(-balance); balLandVal.className = 'bal-val bvr';
+  }
+}
+
+function recalcFromInput() { recalcAll(); updateRefDrawer(); }
+function recalcCredits() { recalcAll(); updateRefDrawer(); }
+
+function recalcUtil() {
+  var bldg = parseMoney(document.getElementById('util-bldg').value);
+  var ratio = parseFloat(document.getElementById('util-ratio').value) || 0;
+  var charge = bldg * ratio;
+  document.getElementById('util-display').textContent = fmtMoney(charge);
+  document.getElementById('inp-util').value = charge.toFixed(2);
+  recalcAll();
+}
+
+function parseFieldRent(v) { recalcAll(); }
+function parseFieldNRC(v) {
+  NRC_CLEANING = parseMoney(v);
+  document.getElementById('nrc-display').textContent = fmtMoney(NRC_CLEANING);
+  recalcAll();
+}
+function parseOverrideRent(v) {
+  document.getElementById('inp-rent').value = parseMoney(v).toFixed(2);
+  recalcAll();
+}
+
+function applyPhoto() {
+  document.getElementById('inp-carpet').value = '120.00';
+  document.getElementById('inp-paint').value = '150.00';
+  recalcAll();
+  goSec(7);
+}
+
+/* ── Section navigation ── */
+var SECS = [
+  {id:'tenant',  num:1, label:'Property & Tenant',    sub:'Name, unit, forwarding address'},
+  {id:'lease',   num:2, label:'Lease & Dates',        sub:'Rent, NRC, move-in / move-out'},
+  {id:'nrc',     num:3, label:'NRC Fees',             sub:'Non-refundable cleaning & pet'},
+  {id:'photos',  num:4, label:'Move-In / Out Photos', sub:'Inspection — drives repair charges'},
+  {id:'rent',    num:5, label:'Rent Due',             sub:'Pro-rated / lease break'},
+  {id:'utility', num:6, label:'Utility Charges',      sub:'RUBS or flat fee'},
+  {id:'legal',   num:7, label:'Legal / Court Costs',  sub:'Court fees, attorney costs'},
+  {id:'totals',  num:8, label:'Total Charges',        sub:'All deductions'},
+  {id:'credits', num:9, label:'Refunds & Credits',    sub:'Deposits held — final balance'},
+];
+var curSec = 0;
+var doneSecs = new Set();
+var fullFormMode = false;
+var ffBuilt = false;
+
+function renderSidebar() {
+  var list = document.getElementById('sb-list');
+  list.innerHTML = '';
+  SECS.forEach(function(s, i) {
+    var div = document.createElement('div');
+    div.className = 'step' + (i === curSec ? ' act' : '') + (doneSecs.has(i) ? ' done' : '');
+    div.innerHTML = '<div class="step-n">' + (doneSecs.has(i) ? '✓' : s.num) + '</div>' +
+      '<div><div class="step-lbl">' + s.label + '</div><div class="step-sub">' + s.sub + '</div></div>';
+    div.onclick = (function(idx){ return function(){ goSec(idx); }; })(i);
+    list.appendChild(div);
+  });
+}
+
+function goSec(i) {
+  if (i > 0) doneSecs.add(i - 1);
+  curSec = i;
+  if (!fullFormMode) {
+    SECS.forEach(function(s) {
+      var el = document.getElementById('sec-' + s.id);
+      if (el) el.className = 'sec' + (s === SECS[i] ? ' act' : '');
+    });
+    document.getElementById('mp-t').textContent = SECS[i].label;
+    document.getElementById('mp-s').textContent = SECS[i].sub;
+    document.getElementById('sec-pos').textContent = 'Section ' + (i + 1) + ' of ' + SECS.length;
+    var prevBtn = document.getElementById('prev-btn');
+    var nextBtn = document.getElementById('next-btn');
+    prevBtn.style.opacity = i === 0 ? '.35' : '1';
+    prevBtn.style.pointerEvents = i === 0 ? 'none' : '';
+    nextBtn.textContent = i === SECS.length - 1 ? 'Review & Submit →' : 'Next →';
+  } else {
+    var target = document.getElementById('ff-hd-' + SECS[i].id);
+    if (target) {
+      target.scrollIntoView({behavior:'smooth', block:'start'});
+      var body = document.getElementById('ff-body-' + SECS[i].id);
+      if (body && body.classList.contains('hid')) {
+        body.classList.remove('hid');
+        target.querySelector('.chev').classList.add('up');
+        target.classList.remove('coll');
+      }
+    }
+  }
+  renderSidebar();
+  recalcAll();
+}
+
+function secNav(d) {
+  goSec(Math.max(0, Math.min(SECS.length - 1, curSec + d)));
+}
+
+function toggleFF() {
+  fullFormMode = !fullFormMode;
+  var btn = document.getElementById('ff-btn');
+  var fv = document.getElementById('focused-view');
+  var ffv = document.getElementById('full-view');
+  var foot = document.getElementById('mp-foot');
+  if (fullFormMode) {
+    btn.textContent = '← Focused view';
+    fv.style.display = 'none';
+    ffv.style.display = 'block';
+    foot.style.display = 'none';
+    buildFullForm();
+    document.getElementById('mp-t').textContent = 'Full Form';
+    document.getElementById('mp-s').textContent = 'All 9 sections — click headers to collapse';
+  } else {
+    btn.textContent = 'View full form';
+    fv.style.display = 'block';
+    ffv.style.display = 'none';
+    foot.style.display = 'flex';
+    goSec(curSec);
+  }
+  renderSidebar();
+}
+
+function buildFullForm() {
+  if (ffBuilt) return;
+  ffBuilt = true;
+  var container = document.getElementById('ff-container');
+  SECS.forEach(function(s, i) {
+    var wrap = document.createElement('div');
+    wrap.className = 'ff-sec';
+    var hd = document.createElement('div');
+    hd.className = 'ff-hd' + (i > 0 ? ' coll' : '');
+    hd.id = 'ff-hd-' + s.id;
+    hd.innerHTML = '<div class="ff-num">' + s.num + '</div><div class="ff-lbl">' + s.label + '</div><span class="chev' + (i === 0 ? ' up' : '') + '">▾</span>';
+    var body = document.createElement('div');
+    body.className = 'ff-body' + (i > 0 ? ' hid' : '');
+    body.id = 'ff-body-' + s.id;
+    var src = document.getElementById('sec-' + s.id);
+    if (src) body.innerHTML = src.innerHTML;
+    hd.onclick = (function(secId, h, b) {
+      return function() {
+        var open = !b.classList.contains('hid');
+        if (open) { b.classList.add('hid'); h.classList.add('coll'); h.querySelector('.chev').classList.remove('up'); }
+        else { b.classList.remove('hid'); h.classList.remove('coll'); h.querySelector('.chev').classList.add('up'); }
+      };
+    })(s.id, hd, body);
+    wrap.appendChild(hd);
+    wrap.appendChild(body);
+    container.appendChild(wrap);
+  });
+}
+
+renderSidebar();
+goSec(0);
+recalcAll();
+
+/* ── Screen 4 ── */
+var compChecked = false;
+var dlDone = false;
+
+function toggleComp() {
+  var chk = document.getElementById('comp-chk');
+  var row = document.getElementById('comp-row');
+  compChecked = chk.checked;
+  row.className = 'comp-row' + (compChecked ? ' checked' : '');
+  var dlBtn = document.getElementById('dl-btn');
+  var dlSm = document.getElementById('pdf-dl-sm');
+  if (compChecked && !dlDone) {
+    dlBtn.className = 'dl-btn ready';
+    dlSm.disabled = false; dlSm.style.opacity = '1'; dlSm.style.cursor = 'pointer';
+  } else if (!dlDone) {
+    dlBtn.className = 'dl-btn locked';
+    dlSm.disabled = true; dlSm.style.opacity = '.4'; dlSm.style.cursor = 'not-allowed';
+  }
+}
+
+function handleDl() {
+  if (!compChecked || dlDone) return;
+  dlDone = true;
+  document.getElementById('pdf-card').className = 'pdf-card ready';
+  document.getElementById('pdf-icon').textContent = '✅';
+  document.getElementById('dl-btn').className = 'dl-btn done';
+  document.getElementById('dl-btn').textContent = '✓ Downloaded — AGM_Checkout_Report_204B_WestlakeCommons.pdf';
+}
+
+/* ── PDF Preview Modal ── */
+function openPreview() {
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closePreview() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+function closePreviewOverlay(e) {
+  if (e.target === document.getElementById('modal-overlay')) closePreview();
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closePreview();
+});
+
+/* ── Data reference drawer ── */
+var refOpen = false;
+function toggleRefDrawer() {
+  refOpen = !refOpen;
+  document.getElementById('ref-drawer').classList.toggle('open', refOpen);
+  document.getElementById('ref-toggle').classList.toggle('active', refOpen);
+  if (refOpen) updateRefDrawer();
+}
+function toggleRg(hd) {
+  var body = hd.nextElementSibling;
+  var chev = hd.querySelector('.rg-chev');
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chev.classList.toggle('up', !isOpen);
+}
+function updateRefDrawer() {
+  if (!refOpen) return;
+  var cleaning = parseMoney(document.getElementById('inp-cleaning').value);
+  var carpet   = parseMoney(document.getElementById('inp-carpet').value);
+  var paint    = parseMoney(document.getElementById('inp-paint').value);
+  var other1   = parseMoney(document.getElementById('inp-other1').value);
+  var other2   = parseMoney(document.getElementById('inp-other2').value);
+  var rent     = parseMoney(document.getElementById('inp-rent').value);
+  var util     = parseMoney(document.getElementById('inp-util').value);
+  var legal    = parseMoney(document.getElementById('inp-legal').value);
+  var blind    = parseMoney(document.getElementById('inp-blind').value);
+  var window_  = parseMoney(document.getElementById('inp-window').value);
+  var floor    = parseMoney(document.getElementById('inp-floor').value);
+
+  var nrcOffset   = Math.min(cleaning, NRC_CLEANING);
+  var netCleaning = Math.max(0, cleaning - NRC_CLEANING);
+  var totalCharges = netCleaning + blind + window_ + carpet + floor + paint + other1 + other2 + rent + util + legal;
+  var balance = 2150 - totalCharges;
+
+  set('ref-cleaning-entered', fmtMoney(cleaning));
+  set('ref-nrc-offset', fmtMoney(nrcOffset));
+  set('ref-cleaning-net', fmtMoney(netCleaning));
+
+  var bldg  = parseMoney(document.getElementById('util-bldg').value);
+  var ratio = parseFloat(document.getElementById('util-ratio').value) || 0;
+  set('ref-rubs-total', fmtMoney(bldg));
+  set('ref-rubs-ratio', (ratio * 100).toFixed(1) + '%');
+  set('ref-rubs-charge', fmtMoney(bldg * ratio));
+
+  set('ref-rent-due', fmtMoney(rent));
+
+  set('ref-t-cleaning', fmtMoney(netCleaning));
+  set('ref-t-carpet',   fmtMoney(carpet));
+  set('ref-t-paint',    fmtMoney(paint));
+  set('ref-t-other1',   fmtMoney(other1));
+  set('ref-t-rent',     fmtMoney(rent));
+  set('ref-t-util',     fmtMoney(util));
+  set('ref-t-legal',    fmtMoney(legal));
+  set('ref-total-charges', fmtMoney(totalCharges));
+
+  var balEl = document.getElementById('ref-balance');
+  if (balance > 0.005) {
+    balEl.textContent = fmtMoney(balance) + ' to tenant';
+    balEl.className = 'rr-v green';
+  } else if (balance < -0.005) {
+    balEl.textContent = fmtMoney(-balance) + ' to landlord';
+    balEl.className = 'rr-v red';
+  } else {
+    balEl.textContent = '$0.00 — even';
+    balEl.className = 'rr-v';
+  }
+  var balRow = balEl.closest('.rr');
+  balRow.querySelector('.rr-l').textContent = balance >= -0.005 ? 'Balance due to tenant' : 'Balance owing landlord';
+}
+function set(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+</script>
