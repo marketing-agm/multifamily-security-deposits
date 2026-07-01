@@ -1,8 +1,8 @@
 export const runtime = 'edge';
 
-import { ReviewScreen } from '@/components/Review';
+import { ReviewSubmit } from '@/components/ReviewSubmit';
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <ReviewScreen returnId={decodeURIComponent(id)} />;
+  return <ReviewSubmit returnId={decodeURIComponent(id)} />;
 }
