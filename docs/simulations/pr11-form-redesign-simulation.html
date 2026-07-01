@@ -78,12 +78,50 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .t-sub{font-size:10.5px;color:#9b9b99;margin-top:2px;}
 
 /* ── SCREEN 3 ── */
-.s3{display:flex;height:680px;}
+.s3{display:flex;height:680px;position:relative;}
 .sb{width:224px;border-right:.5px solid #e8e7e4;display:flex;flex-direction:column;background:#f9f9f8;flex-shrink:0;}
-.sb-hd{padding:9px 12px;border-bottom:.5px solid #e8e7e4;background:#fff;}
+.sb-hd{padding:9px 12px;border-bottom:.5px solid #e8e7e4;background:#fff;display:flex;align-items:flex-start;justify-content:space-between;}
+.sb-hd-l{flex:1;}
 .sb-hd-t{font-size:11px;font-weight:600;color:#1a1a19;}
 .sb-hd-s{font-size:10px;color:#9b9b99;margin-top:1px;}
 .sb-list{flex:1;overflow-y:auto;padding:5px 0;}
+
+/* Data reference toggle button in sidebar header */
+.ref-btn{width:22px;height:22px;border-radius:5px;border:.5px solid #e8e7e4;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:#9b9b99;flex-shrink:0;transition:all .1s;margin-top:1px;}
+.ref-btn:hover{border-color:#2383e2;color:#2383e2;background:#e8f0fd;}
+.ref-btn.active{border-color:#2383e2;color:#2383e2;background:#e8f0fd;}
+
+/* Data reference drawer — slides over the main panel */
+.ref-drawer{position:absolute;top:0;left:224px;right:0;bottom:0;background:#fff;border-left:.5px solid #e8e7e4;z-index:10;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .18s ease;pointer-events:none;}
+.ref-drawer.open{transform:translateX(0);pointer-events:auto;}
+.ref-dh{padding:9px 13px;border-bottom:.5px solid #e8e7e4;background:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ref-dh-t{font-size:12px;font-weight:600;color:#1a1a19;}
+.ref-dh-s{font-size:10px;color:#9b9b99;margin-top:1px;}
+.ref-dx{width:24px;height:24px;border-radius:5px;border:.5px solid #e8e7e4;background:#f5f5f3;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#9b9b99;}
+.ref-dx:hover{background:#fceae8;border-color:#e8a09b;color:#b3261e;}
+.ref-body{flex:1;overflow-y:auto;padding:10px 13px;}
+
+/* Data reference groups */
+.rg{margin-bottom:8px;border:.5px solid #e8e7e4;border-radius:7px;overflow:hidden;}
+.rg-hd{padding:7px 11px;background:#f9f9f8;display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;}
+.rg-hd:hover{background:#f2f1ef;}
+.rg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.rg-lbl{font-size:10.5px;font-weight:600;color:#1a1a19;flex:1;}
+.rg-chev{font-size:9px;color:#9b9b99;transition:transform .12s;}
+.rg-chev.up{transform:rotate(180deg);}
+.rg-body{padding:8px 11px;display:none;}
+.rg-body.open{display:block;}
+.rr{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;padding:3px 0;border-bottom:.5px solid #f0eeeb;}
+.rr:last-child{border-bottom:none;}
+.rr-l{color:#6b6b6a;}
+.rr-v{font-variant-numeric:tabular-nums;font-weight:500;color:#1a1a19;}
+.rr-v.blue{color:#2383e2;}
+.rr-v.green{color:#1a7a3a;}
+.rr-v.red{color:#b3261e;}
+.rr-v.amber{color:#8b6a00;}
+.rr.total{font-weight:700;font-size:11.5px;border-top:.5px solid #d5d3cf;margin-top:3px;padding-top:6px;}
+.rr.total .rr-l{color:#1a1a19;}
+.ref-live-note{font-size:9.5px;color:#9b9b99;text-align:center;padding:6px 0 2px;}
 
 .step{display:flex;align-items:flex-start;gap:9px;padding:7px 12px;cursor:pointer;border-left:2px solid transparent;transition:all .1s;}
 .step:hover{background:#f2f1ef;}
@@ -361,8 +399,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     <!-- Sidebar -->
     <div class="sb">
       <div class="sb-hd">
-        <div class="sb-hd-t">Form sections</div>
-        <div class="sb-hd-s">Click a section to focus it</div>
+        <div class="sb-hd-l">
+          <div class="sb-hd-t">Form sections</div>
+          <div class="sb-hd-s">Click a section to focus it</div>
+        </div>
+        <div class="ref-btn" id="ref-toggle" onclick="toggleRefDrawer()" title="View data & calculations">ⓘ</div>
       </div>
       <div class="sb-list" id="sb-list"></div>
     </div>
@@ -587,7 +628,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
                 </tr>
                 <tr class="sep">
                   <td>Total charges</td>
-                  <td style="text-align:right;color:#b3261e;" id="tot-total">$2,319.43</td>
+                  <td style="text-align:right;color:#b3261e;" id="tot-total">$2,049.43</td>
                 </tr>
               </table>
             </div>
@@ -609,13 +650,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
                 </div>
               </div>
               <div class="bal-grid">
-                <div class="bal-c zero" id="bal-tenant">
+                <div class="bal-c pos" id="bal-tenant">
                   <div class="bal-lbl">Balance due to tenant</div>
-                  <div class="bal-val bvm" id="bal-tenant-val">$0.00</div>
+                  <div class="bal-val bvg" id="bal-tenant-val">$100.57</div>
                 </div>
-                <div class="bal-c neg" id="bal-landlord">
+                <div class="bal-c zero" id="bal-landlord">
                   <div class="bal-lbl">Balance owing landlord</div>
-                  <div class="bal-val bvr" id="bal-landlord-val">$169.43</div>
+                  <div class="bal-val bvm" id="bal-landlord-val">$0.00</div>
                 </div>
               </div>
             </div>
@@ -629,6 +670,128 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
         </div>
 
       </div><!-- /mp-body -->
+
+      <!-- Data reference drawer -->
+      <div class="ref-drawer" id="ref-drawer">
+        <div class="ref-dh">
+          <div>
+            <div class="ref-dh-t">Data &amp; Calculations</div>
+            <div class="ref-dh-s">All values driving this return</div>
+          </div>
+          <div class="ref-dx" onclick="toggleRefDrawer()" title="Close">✕</div>
+        </div>
+        <div class="ref-body">
+
+          <!-- Tenant & Property -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#a8d8b9;"></div>
+              <div class="rg-lbl">Tenant &amp; Property</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="rr"><span class="rr-l">Tenant</span><span class="rr-v">Sarah L. Mitchell</span></div>
+              <div class="rr"><span class="rr-l">Co-tenant</span><span class="rr-v" style="color:#9b9b99;">None</span></div>
+              <div class="rr"><span class="rr-l">Unit</span><span class="rr-v">204B</span></div>
+              <div class="rr"><span class="rr-l">Property</span><span class="rr-v">Westlake Commons</span></div>
+              <div class="rr"><span class="rr-l">Forwarding address</span><span class="rr-v" style="text-align:right;max-width:160px;">412 Elmwood Dr, Kirkland WA 98033</span></div>
+              <div class="rr"><span class="rr-l">Inspection on file</span><span class="rr-v green">✓ Signed</span></div>
+            </div>
+          </div>
+
+          <!-- Deposits held -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#aac8f0;"></div>
+              <div class="rg-lbl">Deposits Held</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="rr"><span class="rr-l">Security deposit</span><span class="rr-v">$1,850.00</span></div>
+              <div class="rr"><span class="rr-l">Pet deposit</span><span class="rr-v">$300.00</span></div>
+              <div class="rr"><span class="rr-l">Key deposit</span><span class="rr-v" style="color:#9b9b99;">$0.00</span></div>
+              <div class="rr"><span class="rr-l">Garage opener deposit</span><span class="rr-v" style="color:#9b9b99;">$0.00</span></div>
+              <div class="rr total"><span class="rr-l">Total credits</span><span class="rr-v blue">$2,150.00</span></div>
+            </div>
+          </div>
+
+          <!-- Lease & Dates -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#dfc84a;"></div>
+              <div class="rg-lbl">Lease &amp; Dates</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="rr"><span class="rr-l">Move-in</span><span class="rr-v">03/01/2023</span></div>
+              <div class="rr"><span class="rr-l">Move-out</span><span class="rr-v">06/24/2026</span></div>
+              <div class="rr"><span class="rr-l">Paid rent through</span><span class="rr-v">06/24/2026</span></div>
+              <div class="rr"><span class="rr-l">Notice date</span><span class="rr-v">05/24/2026</span></div>
+              <div class="rr"><span class="rr-l">Lease end date</span><span class="rr-v">07/27/2026</span></div>
+              <div class="rr"><span class="rr-l">Monthly rent</span><span class="rr-v">$1,724.00</span></div>
+              <div class="rr"><span class="rr-l">Lease break?</span><span class="rr-v amber">Yes</span></div>
+              <div class="rr"><span class="rr-l">New tenant move-in</span><span class="rr-v">07/27/2026</span></div>
+            </div>
+          </div>
+
+          <!-- NRC Fees -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#e8a09b;"></div>
+              <div class="rg-lbl">NRC Fees</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="rr"><span class="rr-l">NRC cleaning (paid at move-in)</span><span class="rr-v">$250.00</span></div>
+              <div class="rr"><span class="rr-l">NRC pet fee</span><span class="rr-v" style="color:#9b9b99;">$0.00</span></div>
+              <div class="rr"><span class="rr-l">Cleaning entered (§8)</span><span class="rr-v" id="ref-cleaning-entered">$0.00</span></div>
+              <div class="rr"><span class="rr-l">NRC offset applied</span><span class="rr-v green" id="ref-nrc-offset">$0.00</span></div>
+              <div class="rr total"><span class="rr-l">Tenant cleaning charge</span><span class="rr-v" id="ref-cleaning-net">$0.00</span></div>
+            </div>
+          </div>
+
+          <!-- Calculated Charges -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#2383e2;"></div>
+              <div class="rg-lbl">Calculated Charges</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="rr"><span class="rr-l">Daily rent (÷ 30 days)</span><span class="rr-v blue">$57.47 / day</span></div>
+              <div class="rr"><span class="rr-l">Lease break period</span><span class="rr-v blue">06/24 → 07/27 (33 days)</span></div>
+              <div class="rr"><span class="rr-l">Rent due</span><span class="rr-v blue" id="ref-rent-due">$1,896.51</span></div>
+              <div class="rr" style="margin-top:4px;"><span class="rr-l">RUBS building total</span><span class="rr-v blue" id="ref-rubs-total">$1,240.00</span></div>
+              <div class="rr"><span class="rr-l">Unit share (ratio)</span><span class="rr-v blue" id="ref-rubs-ratio">8.3%</span></div>
+              <div class="rr"><span class="rr-l">RUBS chargeback</span><span class="rr-v blue" id="ref-rubs-charge">$102.92</span></div>
+            </div>
+          </div>
+
+          <!-- Live Running Total -->
+          <div class="rg">
+            <div class="rg-hd" onclick="toggleRg(this)">
+              <div class="rg-dot" style="background:#1a1a19;"></div>
+              <div class="rg-lbl">Live Running Total</div>
+              <div class="rg-chev up">▾</div>
+            </div>
+            <div class="rg-body open">
+              <div class="ref-live-note">Updates as you edit charges above</div>
+              <div class="rr"><span class="rr-l">Cleaning (net of NRC)</span><span class="rr-v" id="ref-t-cleaning">$0.00</span></div>
+              <div class="rr"><span class="rr-l">Carpet shampooing</span><span class="rr-v" id="ref-t-carpet">$120.00</span></div>
+              <div class="rr"><span class="rr-l">Painting</span><span class="rr-v" id="ref-t-paint">$150.00</span></div>
+              <div class="rr"><span class="rr-l">Key replacement</span><span class="rr-v" id="ref-t-other1">$50.00</span></div>
+              <div class="rr"><span class="rr-l">Rent due (lease break)</span><span class="rr-v" id="ref-t-rent">$1,896.51</span></div>
+              <div class="rr"><span class="rr-l">RUBS utility</span><span class="rr-v" id="ref-t-util">$102.92</span></div>
+              <div class="rr"><span class="rr-l">Legal / court costs</span><span class="rr-v" id="ref-t-legal">$0.00</span></div>
+              <div class="rr total"><span class="rr-l">Total charges</span><span class="rr-v red" id="ref-total-charges">$2,319.43</span></div>
+              <div class="rr total" style="margin-top:2px;"><span class="rr-l">Total credits (deposits)</span><span class="rr-v green">$2,150.00</span></div>
+              <div class="rr total" style="margin-top:2px;border-top:.5px solid #d5d3cf;padding-top:6px;"><span class="rr-l">Balance owing landlord</span><span class="rr-v red" id="ref-balance">$169.43</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <div class="mp-foot" id="mp-foot">
         <button class="btn btn-ghost btn-sm" id="prev-btn" onclick="secNav(-1)">← Previous</button>
         <span style="font-size:11px;color:#9b9b99;" id="sec-pos">Section 1 of 9</span>
@@ -1059,8 +1222,8 @@ function recalcAll() {
   }
 }
 
-function recalcFromInput() { recalcAll(); }
-function recalcCredits() { recalcAll(); }
+function recalcFromInput() { recalcAll(); updateRefDrawer(); }
+function recalcCredits() { recalcAll(); updateRefDrawer(); }
 
 function recalcUtil() {
   var bldg = parseMoney(document.getElementById('util-bldg').value);
@@ -1072,6 +1235,7 @@ function recalcUtil() {
 }
 
 function parseFieldRent(v) {
+  // when monthly rent changes, update rent section label (simplified)
   recalcAll();
 }
 function parseFieldNRC(v) {
@@ -1088,7 +1252,8 @@ function applyPhoto() {
   document.getElementById('inp-carpet').value = '120.00';
   document.getElementById('inp-paint').value = '150.00';
   recalcAll();
-  goSec(7);
+  // Jump to totals
+  goSec(7); // section 8 (index 7)
 }
 
 /* ── Section navigation ── */
@@ -1258,4 +1423,83 @@ function closePreviewOverlay(e) {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closePreview();
 });
+
+/* ── Data reference drawer ── */
+var refOpen = false;
+function toggleRefDrawer() {
+  refOpen = !refOpen;
+  document.getElementById('ref-drawer').classList.toggle('open', refOpen);
+  document.getElementById('ref-toggle').classList.toggle('active', refOpen);
+  if (refOpen) updateRefDrawer();
+}
+function toggleRg(hd) {
+  var body = hd.nextElementSibling;
+  var chev = hd.querySelector('.rg-chev');
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chev.classList.toggle('up', !isOpen);
+}
+function updateRefDrawer() {
+  if (!refOpen) return;
+  var cleaning = parseMoney(document.getElementById('inp-cleaning').value);
+  var carpet   = parseMoney(document.getElementById('inp-carpet').value);
+  var paint    = parseMoney(document.getElementById('inp-paint').value);
+  var other1   = parseMoney(document.getElementById('inp-other1').value);
+  var other2   = parseMoney(document.getElementById('inp-other2').value);
+  var rent     = parseMoney(document.getElementById('inp-rent').value);
+  var util     = parseMoney(document.getElementById('inp-util').value);
+  var legal    = parseMoney(document.getElementById('inp-legal').value);
+  var blind    = parseMoney(document.getElementById('inp-blind').value);
+  var window_  = parseMoney(document.getElementById('inp-window').value);
+  var floor    = parseMoney(document.getElementById('inp-floor').value);
+
+  var nrcOffset   = Math.min(cleaning, NRC_CLEANING);
+  var netCleaning = Math.max(0, cleaning - NRC_CLEANING);
+  var totalCharges = netCleaning + blind + window_ + carpet + floor + paint + other1 + other2 + rent + util + legal;
+  var balance = 2150 - totalCharges;
+
+  // NRC section
+  set('ref-cleaning-entered', fmtMoney(cleaning));
+  set('ref-nrc-offset', fmtMoney(nrcOffset));
+  set('ref-cleaning-net', fmtMoney(netCleaning));
+
+  // RUBS
+  var bldg  = parseMoney(document.getElementById('util-bldg').value);
+  var ratio = parseFloat(document.getElementById('util-ratio').value) || 0;
+  set('ref-rubs-total', fmtMoney(bldg));
+  set('ref-rubs-ratio', (ratio * 100).toFixed(1) + '%');
+  set('ref-rubs-charge', fmtMoney(bldg * ratio));
+
+  // Rent
+  set('ref-rent-due', fmtMoney(rent));
+
+  // Running total rows
+  set('ref-t-cleaning', fmtMoney(netCleaning));
+  set('ref-t-carpet',   fmtMoney(carpet));
+  set('ref-t-paint',    fmtMoney(paint));
+  set('ref-t-other1',   fmtMoney(other1));
+  set('ref-t-rent',     fmtMoney(rent));
+  set('ref-t-util',     fmtMoney(util));
+  set('ref-t-legal',    fmtMoney(legal));
+  set('ref-total-charges', fmtMoney(totalCharges));
+
+  var balEl = document.getElementById('ref-balance');
+  if (balance > 0.005) {
+    balEl.textContent = fmtMoney(balance) + ' to tenant';
+    balEl.className = 'rr-v green';
+  } else if (balance < -0.005) {
+    balEl.textContent = fmtMoney(-balance) + ' to landlord';
+    balEl.className = 'rr-v red';
+  } else {
+    balEl.textContent = '$0.00 — even';
+    balEl.className = 'rr-v';
+  }
+  // update the last .rr-l to match
+  var balRow = balEl.closest('.rr');
+  balRow.querySelector('.rr-l').textContent = balance >= -0.005 ? 'Balance due to tenant' : 'Balance owing landlord';
+}
+function set(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
 </script>
