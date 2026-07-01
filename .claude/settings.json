@@ -9,5 +9,30 @@
       "Bash(ls *)",
       "Bash(cat *)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/skills/learnings-log/scripts/commit-hook.mjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/skills/learnings-log/scripts/stop-hook.mjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
   }
 }

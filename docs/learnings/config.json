@@ -1,0 +1,14 @@
+{
+  "areas": {
+    "ui": "UI — App Router pages, React components, session/context",
+    "lib": "Lib — Excel parsing, calculations, field mapping, PDF filling",
+    "infra": "Infra — build / Cloudflare Pages / wrangler / tooling / git / devex",
+    "misc": "Misc — catch-all"
+  },
+  "appCodePaths": [
+    "app/",
+    "components/",
+    "context/",
+    "lib/"
+  ]
+}
