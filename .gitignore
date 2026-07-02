@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/worktrees/
+
+# pr-screenshot-verify output (kept out of the code diff)
+.pr-shots/
