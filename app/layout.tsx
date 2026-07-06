@@ -22,7 +22,7 @@ export default function RootLayout({
         {/* Prevent flash of wrong theme — runs before paint */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('agm-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})();` }} />
       </head>
-      <body className="min-h-full bg-[#f2f2f7] dark:bg-[#1c1c1e] text-[#1c1c1e] dark:text-white transition-colors">
+      <body className="min-h-full bg-bg text-app-text transition-colors">
         <ThemeProvider>
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>

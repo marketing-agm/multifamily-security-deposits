@@ -116,10 +116,10 @@ export function ReviewScreen({ returnId }: Props) {
     daysUntilDeadline === null
       ? 'bg-fill border-separator text-secondary'
       : daysUntilDeadline <= 3
-      ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+      ? 'bg-danger/10 border-danger/30 text-danger-fg'
       : daysUntilDeadline <= 7
-      ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300'
-      : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-400';
+      ? 'bg-warning/10 border-warning/30 text-warning-fg'
+      : 'bg-success/10 border-success/30 text-success-fg';
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
@@ -144,7 +144,7 @@ export function ReviewScreen({ returnId }: Props) {
           </div>
           <button
             onClick={toggle}
-            className="w-8 h-8 rounded-full bg-fill flex items-center justify-center text-sm hover:bg-fill transition-colors shrink-0"
+            className="w-9 h-9 rounded-full bg-fill flex items-center justify-center text-base hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? '☀️' : '🌙'}
@@ -212,7 +212,7 @@ export function ReviewScreen({ returnId }: Props) {
                 {forwardingLine2 && <p className="text-sm text-secondary">{forwardingLine2}</p>}
               </>
             ) : (
-              <p className="text-sm text-red-500 dark:text-red-400 mt-0.5 italic">
+              <p className="text-sm text-danger-fg mt-0.5 italic">
                 No forwarding address — go back to add one.
               </p>
             )}
@@ -225,9 +225,9 @@ export function ReviewScreen({ returnId }: Props) {
 
           <div className="flex items-start gap-4">
             {/* PDF icon */}
-            <div className="w-12 h-14 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex flex-col items-center justify-center shrink-0 gap-0.5">
+            <div className="w-12 h-14 bg-fill border border-separator rounded-xl flex flex-col items-center justify-center shrink-0 gap-0.5">
               <span className="text-lg">📄</span>
-              <span className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">PDF</span>
+              <span className="text-[9px] font-bold text-secondary uppercase tracking-wide">PDF</span>
             </div>
 
             {/* Filename + status */}
@@ -237,7 +237,7 @@ export function ReviewScreen({ returnId }: Props) {
                 <p className="text-xs text-secondary mt-1">Generating…</p>
               )}
               {pdfReady && fieldsPopulated !== null && (
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                <p className="text-xs text-success-fg mt-1">
                   ✓ {fieldsPopulated}/{TOTAL_FIELDS} fields populated
                 </p>
               )}
@@ -246,7 +246,7 @@ export function ReviewScreen({ returnId }: Props) {
               )}
               {/* Balance warning in PDF card */}
               {balance < 0 && (
-                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                <p className="text-xs text-warning-fg mt-1">
                   ⚠ Balance owing landlord — confirm charges before sending
                 </p>
               )}
@@ -257,7 +257,7 @@ export function ReviewScreen({ returnId }: Props) {
               <button
                 onClick={handlePreview}
                 disabled={!pdfReady}
-                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:text-secondary disabled:no-underline disabled:cursor-not-allowed transition-colors"
+                className="text-xs font-medium text-accent hover:underline disabled:text-secondary disabled:no-underline disabled:cursor-not-allowed transition-colors"
               >
                 Preview form
               </button>
@@ -277,15 +277,15 @@ export function ReviewScreen({ returnId }: Props) {
           balance === 0
             ? 'bg-fill border-separator'
             : balance > 0
-            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-            : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+            ? 'bg-success/10 border-success/30'
+            : 'bg-danger/10 border-danger/30'
         }`}>
           <div className="flex justify-between items-center">
             <div>
               <p className={`text-sm font-semibold ${
                 balance === 0 ? 'text-secondary'
-                : balance > 0 ? 'text-green-800 dark:text-green-400'
-                : 'text-red-800 dark:text-red-400'
+                : balance > 0 ? 'text-success-fg'
+                : 'text-danger-fg'
               }`}>
                 {balance === 0 ? 'No balance due' : balance > 0 ? 'Return to tenant' : 'Balance owing landlord'}
               </p>
@@ -295,8 +295,8 @@ export function ReviewScreen({ returnId }: Props) {
             </div>
             <span className={`text-2xl font-bold tabular-nums ${
               balance === 0 ? 'text-secondary'
-              : balance > 0 ? 'text-green-800 dark:text-green-400'
-              : 'text-red-800 dark:text-red-400'
+              : balance > 0 ? 'text-success-fg'
+              : 'text-danger-fg'
             }`}>
               {formatCurrency(Math.abs(balance))}
             </span>
@@ -311,7 +311,7 @@ export function ReviewScreen({ returnId }: Props) {
               type="checkbox"
               checked={complianceChecked}
               onChange={e => setComplianceChecked(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-blue-600"
+              className="mt-0.5 w-4 h-4 rounded border-tertiary accent-accent"
             />
             <span className="text-sm text-app-text">
               I confirm all charges reflect company-approved rates and this return complies with

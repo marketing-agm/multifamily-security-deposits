@@ -61,19 +61,19 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#1c1c1e] flex flex-col">
+    <div className="min-h-screen bg-bg flex flex-col">
       {/* Header */}
-      <header className="bg-white dark:bg-[#2c2c2e] border-b border-[#e5e5ea] dark:border-[#38383a] px-6 py-4">
+      <header className="bg-surface border-b border-separator px-6 py-4">
         <div className="w-full flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-[#1c1c1e] dark:text-white">AGM Security Deposit Return Tool</h1>
-            <p className="text-xs text-[#8e8e93] mt-0.5">AGM Real Estate Group</p>
+            <h1 className="text-lg font-semibold text-app-text">AGM Security Deposit Return Tool</h1>
+            <p className="text-xs text-secondary mt-0.5">AGM Real Estate Group</p>
           </div>
           <div className="flex items-center gap-3">
             {hasSession && (
               <button
                 onClick={() => router.push('/dashboard')}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                className="text-sm text-accent hover:underline font-medium"
               >
                 Resume session ({session.returns.length} tenant{session.returns.length !== 1 ? 's' : ''}) →
               </button>
@@ -81,7 +81,7 @@ export default function UploadPage() {
             {/* Dark mode toggle */}
             <button
               onClick={toggle}
-              className="w-9 h-9 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] flex items-center justify-center text-base hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] transition-colors"
+              className="w-9 h-9 rounded-full bg-fill flex items-center justify-center text-base hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? '☀️' : '🌙'}
@@ -93,8 +93,8 @@ export default function UploadPage() {
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-xl space-y-4">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-[#1c1c1e] dark:text-white">Upload AppFolio Export</h2>
-            <p className="text-[#8e8e93] mt-2 text-sm">
+            <h2 className="text-2xl font-bold text-app-text">Upload AppFolio Export</h2>
+            <p className="text-secondary mt-2 text-sm">
               Export your AppFolio move-out report to Excel and upload it here. All move-outs in the file will be loaded at once.
             </p>
           </div>
@@ -107,26 +107,26 @@ export default function UploadPage() {
             onClick={() => fileRef.current?.click()}
             className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-colors ${
               dragging
-                ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-[#d1d1d6] dark:border-[#48484a] hover:border-blue-400 dark:hover:border-blue-500 hover:bg-white dark:hover:bg-[#2c2c2e]'
+                ? 'border-accent bg-accent/10'
+                : 'border-tertiary hover:border-accent hover:bg-surface'
             }`}
           >
             <div className="text-4xl mb-4">📂</div>
-            <p className="text-[#1c1c1e] dark:text-[#ebebf5] font-medium">Drop your .xlsx file here</p>
-            <p className="text-[#8e8e93] text-sm mt-1">or click to browse</p>
+            <p className="text-app-text font-medium">Drop your .xlsx file here</p>
+            <p className="text-secondary text-sm mt-1">or click to browse</p>
             <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={onFileChange} className="hidden" />
           </div>
 
           {loading && (
-            <div className="text-center text-sm text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+            <div className="text-center text-sm text-accent font-medium animate-pulse">
               Parsing file...
             </div>
           )}
 
           {errors.length > 0 && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 space-y-1">
+            <div className="bg-danger/10 border border-danger/30 rounded-2xl p-4 space-y-1">
               {errors.map((e, i) => (
-                <p key={i} className="text-sm text-red-700 dark:text-red-400">
+                <p key={i} className="text-sm text-danger-fg">
                   {e.sheet ? <span className="font-medium">[{e.sheet}]</span> : null} {e.message}
                 </p>
               ))}
@@ -134,9 +134,9 @@ export default function UploadPage() {
           )}
 
           {/* Instructions */}
-          <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-3">
-            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">What to export from AppFolio</p>
-            <ol className="text-sm text-[#1c1c1e] dark:text-[#ebebf5] space-y-2 list-decimal list-inside">
+          <div className="bg-surface rounded-2xl border border-separator p-5 space-y-3">
+            <p className="text-xs font-semibold text-secondary uppercase tracking-wider">What to export from AppFolio</p>
+            <ol className="text-sm text-app-text space-y-2 list-decimal list-inside">
               <li>Run the Move-Out report in AppFolio for the target property</li>
               <li>Export to Excel (.xlsx)</li>
               <li>Ensure the file contains all 4 required sheets: Tenant &amp; Lease, Deposits &amp; Fees, Utility, Ledger</li>

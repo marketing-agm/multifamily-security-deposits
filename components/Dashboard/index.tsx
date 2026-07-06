@@ -41,10 +41,10 @@ export function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Dark mode toggle — 44px min tap target per HIG */}
+            {/* Dark mode toggle — shared 36px icon-button style across all screens */}
             <button
               onClick={toggle}
-              className="w-11 h-11 rounded-full bg-fill flex items-center justify-center text-base hover:brightness-95 dark:hover:brightness-110 transition-colors"
+              className="w-9 h-9 rounded-full bg-fill flex items-center justify-center text-base hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? '☀️' : '🌙'}
@@ -101,7 +101,7 @@ export function Dashboard() {
                   <div className="flex items-center gap-2">
                     <span className="text-subhead font-medium text-app-text">{r.tenantData.tenantName}</span>
                     {r.tenantData.leaseBreak && (
-                      <span className="text-[10px] font-semibold text-warning bg-warning/12 px-1.5 py-0.5 rounded-full">
+                      <span className="text-[10px] font-semibold text-warning-fg bg-warning/12 px-1.5 py-0.5 rounded-full">
                         Lease Break
                       </span>
                     )}
@@ -125,8 +125,8 @@ export function Dashboard() {
                 <div className="flex items-center">
                   {daysLeft !== null ? (
                     <span className={`font-medium px-2 py-0.5 rounded-full text-caption ${
-                      daysLeft <= 3 ? 'bg-danger/15 text-danger' :
-                      daysLeft <= 7 ? 'bg-warning/15 text-warning' :
+                      daysLeft <= 3 ? 'bg-danger/12 text-danger-fg' :
+                      daysLeft <= 7 ? 'bg-warning/12 text-warning-fg' :
                       'bg-fill text-secondary'
                     }`}>
                       {daysLeft}d left
