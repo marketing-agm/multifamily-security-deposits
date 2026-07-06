@@ -6,6 +6,7 @@ import { useSession } from '@/context/SessionContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ManualCharges, TenantReturn, RUBSManualInput, TenantData, DepositData, InspectionPhotos } from '@/types';
 import { compressImageFile } from '@/lib/imageCompress';
+import { fillAGMCheckoutPDF } from '@/lib/pdfFiller';
 import {
   computeCalculatedCharges, calcNRCOffset, calcTotalCharges,
   calcTotalCredits, calcBalance, formatCurrency,
@@ -76,6 +77,11 @@ export function ReturnForm({ returnId }: Props) {
   const [photos, setPhotos] = useState<InspectionPhotos>(
     tenantReturn?.inspectionPhotos ?? { moveIn: [], moveOut: [] }
   );
+
+  // "View full form" — live preview of the real AGM Checkout PDF, filled from
+  // whatever's been entered so far (unfilled fields simply stay blank).
+  const [fullFormUrl, setFullFormUrl] = useState<string | null>(null);
+  const [fullFormLoading, setFullFormLoading] = useState(false);
 
   useEffect(() => {
     if (!session) router.replace('/');
@@ -166,6 +172,28 @@ export function ReturnForm({ returnId }: Props) {
     updateReturn(returnId, { inspectionPhotos: next });
   }
 
+  // Fill the real AGM Checkout PDF with the current (possibly partial) data and
+  // open it in an inline preview overlay.
+  async function openFullForm() {
+    setFullFormLoading(true);
+    try {
+      const res = await fetch('/AGM_template.pdf');
+      if (!res.ok) throw new Error('PDF template not found.');
+      const bytes = await res.arrayBuffer();
+      const { filled } = await fillAGMCheckoutPDF(bytes, displayReturn, session?.propertyName ?? '', session?.propertyConfig);
+      const blob = new Blob([filled.buffer as ArrayBuffer], { type: 'application/pdf' });
+      setFullFormUrl(URL.createObjectURL(blob));
+    } catch {
+      // Button simply re-enables; the Review screen also surfaces PDF errors.
+    } finally {
+      setFullFormLoading(false);
+    }
+  }
+  function closeFullForm() {
+    if (fullFormUrl) URL.revokeObjectURL(fullFormUrl);
+    setFullFormUrl(null);
+  }
+
   function nextSection() {
     saveProgress();
     if (section < SECTIONS.length - 1) setSection(s => s + 1);
@@ -211,10 +239,11 @@ export function ReturnForm({ returnId }: Props) {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={goToReview}
-              className="text-sm text-secondary hover:text-app-text border border-separator px-3 py-1.5 rounded-lg transition-colors"
+              onClick={openFullForm}
+              disabled={fullFormLoading}
+              className="text-sm text-secondary hover:text-app-text border border-separator px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
             >
-              View full form
+              {fullFormLoading ? 'Loading…' : 'View full form'}
             </button>
             <button
               onClick={goToReview}
@@ -480,6 +509,30 @@ export function ReturnForm({ returnId }: Props) {
             </div>
           </div>
         </>
+      )}
+
+      {/* ── Full-form preview overlay (live AGM Checkout PDF) ─────────────────── */}
+      {fullFormUrl && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex flex-col" onClick={closeFullForm}>
+          <div
+            className="bg-surface m-auto w-[92vw] h-[92vh] rounded-2xl overflow-hidden flex flex-col shadow-card"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-separator shrink-0">
+              <div>
+                <p className="text-sm font-semibold text-app-text">AGM Checkout Report — full form preview</p>
+                <p className="text-xs text-secondary">Completed fields are filled in; the rest stay blank until you enter them.</p>
+              </div>
+              <button
+                onClick={closeFullForm}
+                className="text-sm text-secondary hover:text-app-text border border-separator px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+            <iframe src={fullFormUrl} title="AGM Checkout Report preview" className="flex-1 w-full bg-white" />
+          </div>
+        </div>
       )}
     </div>
   );
