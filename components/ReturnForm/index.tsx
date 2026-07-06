@@ -36,6 +36,10 @@ export function ReturnForm({ returnId }: Props) {
   const [rubsInput, setRubsInput] = useState<RUBSManualInput>(
     tenantReturn?.rubsManualInput ?? { buildingTotal: 0, unitRatio: 0 }
   );
+  // Pre-filled from property config via parser; editable per tenant
+  const [utilityRate, setUtilityRate] = useState<number>(
+    tenantReturn?.utilityData.flatFeeRate ?? 0
+  );
 
   useEffect(() => {
     if (!session) router.replace('/');
@@ -44,10 +48,12 @@ export function ReturnForm({ returnId }: Props) {
   if (!tenantReturn) return null;
 
   const currentInspectionStatus: 'signed' | 'missing' = inspectionSigned ? 'signed' : 'missing';
+  const liveUtilityData = { ...tenantReturn.utilityData, flatFeeRate: utilityRate };
   const withCharges = {
     ...tenantReturn,
     manualCharges,
     rubsManualInput: rubsInput,
+    utilityData: liveUtilityData,
     tenantData: { ...tenantReturn.tenantData, inspectionStatus: currentInspectionStatus },
   };
   const calculatedCharges = computeCalculatedCharges(withCharges);
@@ -63,6 +69,7 @@ export function ReturnForm({ returnId }: Props) {
       manualCharges,
       rubsManualInput: rubsInput,
       calculatedCharges,
+      utilityData: liveUtilityData,
       tenantData: { ...tenantReturn!.tenantData, inspectionStatus: currentInspectionStatus },
       processingStatus: extraStatus ?? (step < 4 ? 'in_progress' : tenantReturn!.processingStatus),
     });
@@ -82,7 +89,7 @@ export function ReturnForm({ returnId }: Props) {
     setManualCharges(prev => ({ ...prev, [key]: value }));
   }
 
-  const { tenantData, depositData, utilityData } = tenantReturn;
+  const { tenantData, depositData } = tenantReturn;
 
   return (
     <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#1c1c1e]">
@@ -101,7 +108,7 @@ export function ReturnForm({ returnId }: Props) {
             </h1>
           </div>
           <InspectionBadge status={currentInspectionStatus} />
-          <UtilityTag type={utilityData.utilityType} />
+          <UtilityTag type={liveUtilityData.utilityType} />
           {/* Dark mode toggle */}
           <button
             onClick={toggle}
@@ -144,10 +151,12 @@ export function ReturnForm({ returnId }: Props) {
           {step === 1 && <StepLease t={tenantData} />}
           {step === 2 && (
             <StepUtility
-              utilityData={utilityData}
+              utilityData={liveUtilityData}
               rubsInput={rubsInput}
               onRubsChange={setRubsInput}
               utilityCharge={calculatedCharges.utilityCharge}
+              utilityRate={utilityRate}
+              onRateChange={setUtilityRate}
             />
           )}
           {step === 3 && (
@@ -319,25 +328,50 @@ function StepLease({ t }: { t: TenantReturn['tenantData'] }) {
 }
 
 function StepUtility({
-  utilityData, rubsInput, onRubsChange, utilityCharge,
+  utilityData, rubsInput, onRubsChange, utilityCharge, utilityRate, onRateChange,
 }: {
   utilityData: TenantReturn['utilityData'];
   rubsInput: RUBSManualInput;
   onRubsChange: (v: RUBSManualInput) => void;
   utilityCharge: number;
+  utilityRate: number;
+  onRateChange: (v: number) => void;
 }) {
   return (
     <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-4">
       <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">Utility</p>
       <div className="flex items-center gap-2">
         <UtilityTag type={utilityData.utilityType} />
-        {utilityData.utilityType === 'flat_fee' && (
-          <span className="text-sm text-[#8e8e93]">
-            Rate: {formatCurrency(utilityData.flatFeeRate)} ·{' '}
-            {utilityData.flatFeeBillingMethod === 'included_in_rent' ? 'Included in rent (no charge at move-out)' : 'Billed at move-out'}
-          </span>
-        )}
       </div>
+
+      {utilityData.utilityType === 'flat_fee' && (
+        <div className="space-y-3 border-t border-[#e5e5ea] dark:border-[#38383a] pt-4">
+          <p className="text-sm text-[#8e8e93]">
+            Monthly flat fee charged at move-out. Pre-filled from property config — edit if this unit differs.
+          </p>
+          <label className="block">
+            <span className="text-xs text-[#8e8e93] font-medium">Flat Fee Rate ($/month)</span>
+            <div className="relative mt-1 w-40">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e93] text-sm">$</span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={utilityRate}
+                onChange={e => onRateChange(parseFloat(e.target.value) || 0)}
+                className="w-full bg-[#f2f2f7] dark:bg-[#3a3a3c] border border-[#e5e5ea] dark:border-[#48484a] rounded-xl pl-7 pr-3 py-2 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </label>
+          {utilityCharge === 0 ? (
+            <p className="text-sm text-[#8e8e93]">Utility included in rent — no charge at move-out.</p>
+          ) : (
+            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+              Calculated Utility Charge: {formatCurrency(utilityCharge)}
+            </p>
+          )}
+        </div>
+      )}
 
       {utilityData.utilityType === 'RUBS' && (
         <div className="space-y-3 border-t border-[#e5e5ea] dark:border-[#38383a] pt-4">
@@ -373,13 +407,6 @@ function StepUtility({
             Calculated Tenant Share: {formatCurrency(utilityCharge)}
           </p>
         </div>
-      )}
-
-      {utilityData.utilityType === 'flat_fee' && utilityCharge === 0 && (
-        <p className="text-sm text-[#8e8e93]">Utility included in rent — no charge at move-out.</p>
-      )}
-      {utilityData.utilityType === 'flat_fee' && utilityCharge > 0 && (
-        <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Calculated Utility Charge: {formatCurrency(utilityCharge)}</p>
       )}
     </div>
   );
