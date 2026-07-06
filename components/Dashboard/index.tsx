@@ -28,7 +28,7 @@ export function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="w-full flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-gray-900">{session.propertyName || 'Security Deposit Returns'}</h1>
             <p className="text-sm text-gray-500 mt-0.5">
@@ -46,7 +46,7 @@ export function Dashboard() {
 
       {/* Progress bar */}
       <div className="bg-white border-b border-gray-200 px-6 py-2">
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full">
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-green-500 rounded-full transition-all"
@@ -57,7 +57,7 @@ export function Dashboard() {
       </div>
 
       {/* Table */}
-      <div className="max-w-6xl mx-auto px-6 py-6">
+      <div className="w-full px-6 py-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
