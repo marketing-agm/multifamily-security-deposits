@@ -35,12 +35,20 @@ export function Dashboard() {
               {complete} of {total} complete · Uploaded {session.uploadDate}
             </p>
           </div>
-          <button
-            onClick={() => { clearSession(); router.push('/'); }}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
-          >
-            Start new upload
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/admin')}
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
+              Admin
+            </button>
+            <button
+              onClick={() => { clearSession(); router.push('/'); }}
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
+              Start new upload
+            </button>
+          </div>
         </div>
       </div>
 

@@ -95,3 +95,35 @@ export interface SessionState {
   uploadDate: string;
   returns: TenantReturn[];
 }
+
+// ── Admin settings ───────────────────────────────────────────
+// These are app-wide configuration values (not tied to a single upload).
+// They live in their own localStorage store so they survive "Start new upload".
+
+// How strict the review step is before a checkout PDF can be generated.
+//  - 'off'  : no review step at all
+//  - 'soft' : the compliance review is shown, but it never blocks the PDF
+//  - 'hard' : the PDF stays locked until the return has been reviewed
+// (This mirrors the "Off / Soft / Hard" review gates in the Report Studio admin panel.)
+export type ReviewGateLevel = 'off' | 'soft' | 'hard';
+
+// Company-standard default dollar amounts for common move-out charges.
+// A user can still override these per tenant on the return form — these are
+// just the starting numbers so nobody has to retype the usual figures.
+export interface DefaultCharges {
+  generalCleaning: number;
+  carpetShampooing: number;
+  blindDrapeCleaning: number;
+  painting: number;
+}
+
+export interface AdminSettings {
+  // The legal window (in days) to return a deposit. California = 21 days.
+  deadlineDays: number;
+  // When true we use the statutory 21 days automatically; false = manual override.
+  deadlineDaysIsAuto: boolean;
+  // How strict the pre-PDF review is (see ReviewGateLevel above).
+  reviewGate: ReviewGateLevel;
+  // Default charge amounts (see DefaultCharges above).
+  defaultCharges: DefaultCharges;
+}

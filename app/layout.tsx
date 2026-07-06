@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/context/SessionContext";
+import { AdminSettingsProvider } from "@/context/AdminSettingsContext";
 
 export const metadata: Metadata = {
   title: "AGM Security Deposit Return Tool",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full">
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <AdminSettingsProvider>{children}</AdminSettingsProvider>
+        </SessionProvider>
       </body>
     </html>
   );
