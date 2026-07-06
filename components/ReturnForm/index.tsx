@@ -1007,6 +1007,8 @@ function ChargeRow({
   value: number;
   onChange: (key: keyof ManualCharges, v: number) => void;
 }) {
+  // Flag still-blank ($0) charges in orange so PMs can see what's unfilled.
+  const isEmpty = !value;
   return (
     <div className="flex items-center gap-3">
       <span className="flex-1 text-sm text-app-text">{label}</span>
@@ -1018,7 +1020,9 @@ function ChargeRow({
           step={0.01}
           value={value}
           onChange={e => onChange(chargeKey, parseFloat(e.target.value) || 0)}
-          className="w-full bg-surface border border-tertiary rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right"
+          className={`w-full rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right border ${
+            isEmpty ? 'bg-warning/5 border-warning' : 'bg-surface border-tertiary'
+          }`}
         />
       </div>
     </div>
@@ -1067,7 +1071,9 @@ function SectionTotalCharges({
             <input
               type="number" min={0} step={0.01} value={manualCharges.other1}
               onChange={e => onChange('other1', parseFloat(e.target.value) || 0)}
-              className="w-full bg-surface border border-tertiary rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right"
+              className={`w-full rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right border ${
+                manualCharges.other1 ? 'bg-surface border-tertiary' : 'bg-warning/5 border-warning'
+              }`}
             />
           </div>
         </div>
@@ -1085,7 +1091,9 @@ function SectionTotalCharges({
             <input
               type="number" min={0} step={0.01} value={manualCharges.other2}
               onChange={e => onChange('other2', parseFloat(e.target.value) || 0)}
-              className="w-full bg-surface border border-tertiary rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right"
+              className={`w-full rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right border ${
+                manualCharges.other2 ? 'bg-surface border-tertiary' : 'bg-warning/5 border-warning'
+              }`}
             />
           </div>
         </div>
