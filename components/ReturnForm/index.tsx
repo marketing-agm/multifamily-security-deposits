@@ -156,21 +156,24 @@ export function ReturnForm({ returnId }: Props) {
     if (!files || files.length === 0) return;
     try {
       const encoded = await Promise.all(Array.from(files).map(compressImageFile));
-      // Compute next from the current value, then set state and persist OUTSIDE
-      // the updater — calling updateReturn inside setPhotos(prev => ...) would
-      // update SessionProvider mid-render (React warns about that).
-      const next = { ...photos, [which]: [...photos[which], ...encoded] };
-      setPhotos(next);
-      updateReturn(returnId, { inspectionPhotos: next });
+      // Functional update so two quick uploads (move-in + move-out) don't read
+      // the same stale `photos` and clobber each other. Persistence happens in
+      // the effect below — never inside the updater (that would setState during
+      // render in SessionProvider).
+      setPhotos(prev => ({ ...prev, [which]: [...prev[which], ...encoded] }));
     } catch {
       // A single bad image shouldn't break the upload — silently skip.
     }
   }
   function removePhoto(which: keyof InspectionPhotos, index: number) {
-    const next = { ...photos, [which]: photos[which].filter((_, i) => i !== index) };
-    setPhotos(next);
-    updateReturn(returnId, { inspectionPhotos: next });
+    setPhotos(prev => ({ ...prev, [which]: prev[which].filter((_, i) => i !== index) }));
   }
+  // Persist photos to the session whenever they change (after render, so it
+  // doesn't update SessionProvider mid-render).
+  useEffect(() => {
+    updateReturn(returnId, { inspectionPhotos: photos });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photos]);
 
   // Fill the real AGM Checkout PDF with the current (possibly partial) data and
   // open it in an inline preview overlay.
