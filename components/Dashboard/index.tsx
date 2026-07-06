@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
+import { useTheme } from '@/context/ThemeContext';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { InspectionBadge } from '@/components/shared/InspectionBadge';
 import { UtilityTag } from '@/components/shared/UtilityTag';
@@ -10,6 +11,7 @@ import { TenantReturn } from '@/types';
 
 export function Dashboard() {
   const { session, clearSession } = useSession();
+  const { theme, toggle } = useTheme();
   const router = useRouter();
 
   if (!session) {
@@ -19,92 +21,143 @@ export function Dashboard() {
 
   const total = session.returns.length;
   const complete = session.returns.filter(r => r.processingStatus === 'complete').length;
+  const pending = total - complete;
 
   function handleRowClick(r: TenantReturn) {
     router.push(`/return/${r.id}`);
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#1c1c1e]">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <div className="bg-white dark:bg-[#2c2c2e] border-b border-[#e5e5ea] dark:border-[#38383a] px-6 py-4">
+        <div className="w-full flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{session.propertyName || 'Security Deposit Returns'}</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h1 className="text-xl font-semibold text-[#1c1c1e] dark:text-white">
+              {session.propertyName || 'Security Deposit Returns'}
+            </h1>
+            <p className="text-sm text-[#8e8e93] mt-0.5">
               {complete} of {total} complete · Uploaded {session.uploadDate}
             </p>
           </div>
-          <button
-            onClick={() => { clearSession(); router.push('/'); }}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
-          >
-            Start new upload
-          </button>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-2">
-        <div className="max-w-6xl mx-auto">
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 rounded-full transition-all"
-              style={{ width: total > 0 ? `${(complete / total) * 100}%` : '0%' }}
-            />
+          <div className="flex items-center gap-3">
+            {/* Dark mode toggle */}
+            <button
+              onClick={toggle}
+              className="w-9 h-9 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] flex items-center justify-center text-base hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <button
+              onClick={() => { clearSession(); router.push('/'); }}
+              className="text-sm text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white transition-colors"
+            >
+              Start new upload
+            </button>
           </div>
         </div>
+
+        {/* Progress bar */}
+        <div className="mt-3 h-1.5 bg-[#e5e5ea] dark:bg-[#38383a] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-green-500 rounded-full transition-all duration-500"
+            style={{ width: total > 0 ? `${(complete / total) * 100}%` : '0%' }}
+          />
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="max-w-6xl mx-auto px-6 py-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Tenant</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Unit</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Move-Out</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Deposit</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Utility</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Inspection</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {session.returns.map((r, i) => (
-                <tr
-                  key={r.id}
-                  className={`border-b border-gray-50 hover:bg-blue-50 cursor-pointer transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}
-                  onClick={() => handleRowClick(r)}
-                >
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-gray-900">{r.tenantData.tenantName}</span>
-                    {r.tenantData.coTenant && (
-                      <span className="text-gray-400 ml-1">+ {r.tenantData.coTenant}</span>
-                    )}
+      {/* Content */}
+      <div className="w-full px-6 py-6 space-y-1">
+        {/* Section header — Obsidian style */}
+        <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider px-1 mb-2">
+          Move-Outs · {pending} pending
+        </p>
+
+        {/* Grouped list card */}
+        <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl overflow-hidden border border-[#e5e5ea] dark:border-[#38383a]">
+          {/* Table header */}
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_40px] gap-0 px-4 py-2.5 bg-[#f8f8f8] dark:bg-[#3a3a3c] border-b border-[#e5e5ea] dark:border-[#38383a]">
+            {['Tenant / Unit', 'Move-Out', 'Due Date', 'Days Left', 'Deposit', 'Utility', 'Inspection', ''].map((h, i) => (
+              <span key={i} className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">{h}</span>
+            ))}
+          </div>
+
+          {/* Rows */}
+          {session.returns.map((r, i) => {
+            const moveOut = r.tenantData.moveOutDate ? new Date(r.tenantData.moveOutDate) : null;
+            const deadline = moveOut ? new Date(moveOut.getTime() + 21 * 24 * 60 * 60 * 1000) : null;
+            const daysLeft = deadline ? Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+            const urgency = daysLeft !== null ? (daysLeft <= 3 ? 'text-red-600 dark:text-red-400' : daysLeft <= 7 ? 'text-orange-500 dark:text-orange-400' : 'text-[#8e8e93]') : 'text-[#8e8e93]';
+
+            return (
+              <div
+                key={r.id}
+                onClick={() => handleRowClick(r)}
+                className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_40px] gap-0 px-4 py-3.5 cursor-pointer hover:bg-[#f2f2f7] dark:hover:bg-[#3a3a3c] transition-colors ${
+                  i < session.returns.length - 1 ? 'border-b border-[#e5e5ea] dark:border-[#38383a]' : ''
+                }`}
+              >
+                {/* Tenant */}
+                <div className="flex flex-col justify-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-[#1c1c1e] dark:text-white">{r.tenantData.tenantName}</span>
                     {r.tenantData.leaseBreak && (
-                      <span className="ml-2 text-xs text-orange-600 font-medium bg-orange-50 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 px-1.5 py-0.5 rounded-full">
                         Lease Break
                       </span>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{r.tenantData.unit}</td>
-                  <td className="px-4 py-3 text-gray-700">{r.tenantData.moveOutDate}</td>
-                  <td className="px-4 py-3 text-gray-700">{formatCurrency(r.depositData.securityDeposit)}</td>
-                  <td className="px-4 py-3"><UtilityTag type={r.utilityData.utilityType} /></td>
-                  <td className="px-4 py-3"><InspectionBadge status={r.tenantData.inspectionStatus} /></td>
-                  <td className="px-4 py-3"><StatusBadge status={r.processingStatus} /></td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="text-blue-600 text-xs font-medium">
-                      {r.processingStatus === 'complete' ? 'View →' : 'Open →'}
+                  </div>
+                  <span className="text-xs text-[#8e8e93] mt-0.5">Unit {r.tenantData.unit} · {formatCurrency(r.depositData.securityDeposit)} deposit</span>
+                </div>
+
+                {/* Move-Out */}
+                <div className="flex items-center">
+                  <span className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">{r.tenantData.moveOutDate}</span>
+                </div>
+
+                {/* Due Date */}
+                <div className="flex items-center">
+                  <span className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">
+                    {deadline ? deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                  </span>
+                </div>
+
+                {/* Days Left */}
+                <div className="flex items-center">
+                  {daysLeft !== null ? (
+                    <span className={`text-sm font-medium px-2 py-0.5 rounded-full text-xs ${
+                      daysLeft <= 3 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                      daysLeft <= 7 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
+                      'bg-[#f2f2f7] dark:bg-[#3a3a3c] text-[#8e8e93]'
+                    }`}>
+                      {daysLeft}d left
                     </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  ) : <span className="text-[#8e8e93]">—</span>}
+                </div>
+
+                {/* Deposit */}
+                <div className="flex items-center">
+                  <span className="text-sm font-medium text-[#1c1c1e] dark:text-[#ebebf5]">{formatCurrency(r.depositData.securityDeposit)}</span>
+                </div>
+
+                {/* Utility */}
+                <div className="flex items-center">
+                  <UtilityTag type={r.utilityData.utilityType} />
+                </div>
+
+                {/* Inspection */}
+                <div className="flex items-center">
+                  <InspectionBadge status={r.tenantData.inspectionStatus} />
+                </div>
+
+                {/* Chevron */}
+                <div className="flex items-center justify-end">
+                  <StatusBadge status={r.processingStatus} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

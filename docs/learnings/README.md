@@ -9,7 +9,7 @@ _(none yet)_
 _(none yet)_
 
 ## infra
-_(none yet)_
+- [2026-07-06] gotcha — app/page.tsx was overwritten by the sim demo PR to redirect to /sim. The real upload page and all downstream screens were unreachable from the root URL. (7a4a4e6)
 
 ## misc
 _(none yet)_

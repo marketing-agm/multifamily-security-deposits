@@ -3,20 +3,18 @@ import {
   TenantData,
   DepositData,
   UtilityData,
-  LedgerData,
   TenantReturn,
   UtilityType,
-  FlatFeeBillingMethod,
   ManualCharges,
 } from '@/types';
 import { computeCalculatedCharges } from './calculations';
+import { lookupProperty } from './propertyConfig';
 
 type Row = Record<string, unknown>;
 
 function parseDate(value: unknown): string {
   if (!value) return '';
   if (typeof value === 'number') {
-    // Excel serial date
     const jsDate = XLSX.SSF.parse_date_code(value);
     const month = String(jsDate.m).padStart(2, '0');
     const day = String(jsDate.d).padStart(2, '0');
@@ -82,119 +80,103 @@ export function parseAppFolioExport(buffer: ArrayBuffer): ParseResult {
   const sheetNames = workbook.SheetNames;
 
   if (sheetNames.length < 2) {
-    errors.push({ message: 'Upload must contain at least 2 sheets (Tenant & Lease, Deposits & Fees). Check your AppFolio export.' });
+    errors.push({
+      message: 'Upload must contain at least 2 sheets (Tenant Ledger, Tenant Transactions). Check your AppFolio export.',
+    });
     return { returns: [], errors, propertyName: '' };
   }
 
-  const sheets = sheetNames.map(name => ({
-    name,
-    rows: XLSX.utils.sheet_to_json<Row>(workbook.Sheets[name], { defval: '' }),
-  }));
+  const ledgerRows = XLSX.utils.sheet_to_json<Row>(workbook.Sheets[sheetNames[0]], { defval: '' });
+  const transactionRows = XLSX.utils.sheet_to_json<Row>(workbook.Sheets[sheetNames[1]], { defval: '' });
 
-  // Sheet 0 — Tenant & Lease
-  const tenantRows = sheets[0].rows;
-  // Sheet 1 — Deposits & Fees
-  const depositRows = sheets[1]?.rows ?? [];
-  // Sheet 2 — Utility
-  const utilityRows = sheets[2]?.rows ?? [];
-  // Sheet 3 — Ledger
-  const ledgerRows = sheets[3]?.rows ?? [];
+  // Index transactions by unit for joining
+  const txByUnit = new Map<string, Row>();
+  for (const row of transactionRows) {
+    const unit = str(pick(row, 'Unit', 'unit'));
+    if (unit) txByUnit.set(unit.toLowerCase(), row);
+  }
 
-  // Index by unit number for joining
-  const byUnit = <T extends Row>(rows: T[]): Map<string, T> => {
-    const map = new Map<string, T>();
-    for (const row of rows) {
-      const unit = str(pick(row, 'Unit', 'Unit Number', 'unit', 'unit_number'));
-      if (unit) map.set(unit.toLowerCase(), row);
-    }
-    return map;
-  };
-
-  const depositMap = byUnit(depositRows);
-  const utilityMap = byUnit(utilityRows);
-  const ledgerMap = byUnit(ledgerRows);
-
-  // Detect property name from first row or sheet metadata
-  const propertyName = str(pick(tenantRows[0] ?? {}, 'Property', 'Property Name', 'property', 'property_name'));
+  // Detect property name and config from first row
+  const firstPropertyValue = str(pick(ledgerRows[0] ?? {}, 'Property', 'property'));
+  const propertyConfig = lookupProperty(firstPropertyValue);
+  const propertyName = propertyConfig
+    ? `${propertyConfig.code} - ${propertyConfig.name}`
+    : firstPropertyValue;
 
   const returns: TenantReturn[] = [];
 
-  for (let i = 0; i < tenantRows.length; i++) {
-    const row = tenantRows[i];
-    const unit = str(pick(row, 'Unit', 'Unit Number', 'unit', 'unit_number'));
-    const unitKey = unit.toLowerCase();
-    const dep: Row = depositMap.get(unitKey) ?? {};
-    const util: Row = utilityMap.get(unitKey) ?? {};
-    const led: Row = ledgerMap.get(unitKey) ?? {};
+  for (let i = 0; i < ledgerRows.length; i++) {
+    const row = ledgerRows[i];
+    const unit = str(pick(row, 'Unit', 'unit'));
+    const tenantName = str(pick(row, 'Tenant', 'tenant'));
 
-    const tenantName = str(pick(row, 'Tenant Name', 'Tenant', 'tenant_name', 'tenant'));
-    if (!tenantName && !unit) continue; // skip completely empty rows
+    if (!tenantName && !unit) continue;
 
     if (!tenantName) {
-      errors.push({ message: `Row ${i + 2} in ${sheets[0].name}: Missing tenant name.`, row: i + 2, sheet: sheets[0].name });
+      errors.push({ message: `Row ${i + 2}: Missing tenant name.`, row: i + 2, sheet: sheetNames[0] });
     }
     if (!unit) {
-      errors.push({ message: `Row ${i + 2} in ${sheets[0].name}: Missing unit number.`, row: i + 2, sheet: sheets[0].name });
+      errors.push({ message: `Row ${i + 2}: Missing unit number.`, row: i + 2, sheet: sheetNames[0] });
     }
 
-    const leaseBreakRaw = str(pick(row, 'Lease Break', 'lease_break'));
-    const leaseBreak = ['yes', 'true', '1', 'y'].includes(leaseBreakRaw.toLowerCase());
+    const tx: Row = txByUnit.get(unit.toLowerCase()) ?? {};
 
-    const utilTypeRaw = str(pick(util, 'Utility Type', 'utility_type', 'Utility'));
-    const utilityType: UtilityType = utilTypeRaw.toUpperCase().includes('RUBS') ? 'RUBS' : 'flat_fee';
+    // Lease break: check Tags and Move Out Reason
+    const tags = str(pick(row, 'Tags', 'tags')).toLowerCase();
+    const moveOutReason = str(pick(row, 'Move Out Reason', 'move_out_reason')).toLowerCase();
+    const leaseBreak = tags.includes('lease break') || moveOutReason.includes('lease break');
 
-    const billingRaw = str(pick(util, 'Billing Method', 'billing_method', 'Flat Fee Billing Method'));
-    const flatFeeBillingMethod: FlatFeeBillingMethod = billingRaw.toLowerCase().includes('includ')
-      ? 'included_in_rent'
-      : 'billed_at_moveout';
-
-    // Inspection status is always set manually by the manager in the UI (per-unit checkbox).
-    const inspectionStatus = 'missing' as const;
+    // Prefer "Move in Date" over "Lease from" for moveInDate
+    const moveInDate =
+      parseDate(pick(row, 'Move in Date', 'Move In Date')) ||
+      parseDate(pick(row, 'Lease from', 'Lease From'));
 
     const tenantData: TenantData = {
       tenantName,
-      coTenant: str(pick(row, 'Co-Tenant', 'Co Tenant', 'co_tenant')),
+      coTenant: str(pick(row, 'Additional Tenants', 'additional_tenants')),
       unit,
-      monthlyRent: num(pick(row, 'Monthly Rent', 'Rent', 'monthly_rent')),
-      moveInDate: parseDate(pick(row, 'Move-In Date', 'Move In Date', 'move_in_date')),
-      moveOutDate: parseDate(pick(row, 'Move-Out Date', 'Move Out Date', 'move_out_date')),
-      paidThroughDate: parseDate(pick(row, 'Paid Through', 'Paid Through Date', 'paid_through')),
-      noticeDate: parseDate(pick(row, 'Notice Date', 'notice_date')),
-      leaseEndDate: parseDate(pick(row, 'Lease End Date', 'Lease End', 'lease_end_date')),
+      monthlyRent: num(pick(row, 'Rent', 'rent')),
+      moveInDate,
+      moveOutDate: parseDate(pick(row, 'Move Out Date', 'move_out_date')),
+      paidThroughDate: '', // not in export — staff fills manually
+      noticeDate: parseDate(pick(row, 'Notice Given Date', 'notice_given_date')),
+      leaseEndDate: parseDate(pick(row, 'Lease To', 'Lease to', 'lease_to')),
       leaseBreak,
-      newTenantMoveInDate: parseDate(pick(row, 'New Tenant Move-In', 'New Tenant Move In Date', 'new_tenant_move_in')) || null,
+      newTenantMoveInDate: null,
       forwardingAddress: {
-        street: str(pick(row, 'Forwarding Address', 'Forwarding Street', 'forwarding_address')),
-        city: str(pick(row, 'Forwarding City', 'forwarding_city')),
-        state: str(pick(row, 'Forwarding State', 'forwarding_state')),
-        zip: str(pick(row, 'Forwarding Zip', 'Forwarding ZIP', 'forwarding_zip')),
+        street: str(pick(row, 'Tenant Address', 'tenant_address')),
+        city: '',
+        state: '',
+        zip: '',
       },
-      inspectionStatus,
+      inspectionStatus: 'missing',
     };
 
     const depositData: DepositData = {
-      securityDeposit: num(pick(dep, 'Security Deposit', 'security_deposit')),
-      petDeposit: num(pick(dep, 'Pet Deposit', 'pet_deposit')),
-      keyDeposit: num(pick(dep, 'Key Deposit', 'key_deposit')),
-      garageOpenerDeposit: num(pick(dep, 'Garage Opener Deposit', 'garage_opener_deposit')),
-      nrcCleaningFee: num(pick(dep, 'NRC Cleaning Fee', 'nrc_cleaning_fee', 'NRC Cleaning')),
-      nrcPetFee: num(pick(dep, 'NRC Pet Fee', 'nrc_pet_fee', 'NRC Pet')),
+      securityDeposit: num(pick(row, 'Deposit', 'deposit')),
+      petDeposit: 0,
+      keyDeposit: 0,
+      garageOpenerDeposit: 0,
+      // NRC fees seeded from property config; default to 0 if no match
+      nrcCleaningFee: propertyConfig?.nrcCleaningFee ?? 0,
+      nrcPetFee: propertyConfig?.nrcPetFee ?? 0,
     };
 
+    const utilityType: UtilityType = propertyConfig?.utilityType ?? 'flat_fee';
     const utilityData: UtilityData = {
       utilityType,
-      flatFeeRate: num(pick(util, 'Flat Fee Rate', 'flat_fee_rate', 'Flat Fee')),
-      flatFeeBillingMethod,
-      rubsBuildingTotal: num(pick(util, 'RUBS Building Total', 'rubs_building_total')),
-      rubsUnitRatio: num(pick(util, 'RUBS Unit Ratio', 'rubs_unit_ratio')),
+      flatFeeRate: propertyConfig?.flatFeeRate ?? 0,
+      flatFeeBillingMethod: 'billed_at_moveout',
+      rubsBuildingTotal: 0,
+      rubsUnitRatio: 0, // entered per-tenant manually in ReturnForm
     };
 
     const ledgerData = {
-      outstandingBalances: num(pick(led, 'Outstanding Balance', 'outstanding_balance', 'Balance')),
-      lateFees: num(pick(led, 'Late Fees', 'late_fees')),
-      credits: num(pick(led, 'Credits', 'credits')),
-      partialPayments: num(pick(led, 'Partial Payments', 'partial_payments')),
-      priorCharges: num(pick(led, 'Prior Charges', 'prior_charges')),
+      outstandingBalances: num(pick(tx, 'Ending Balance', 'ending_balance')),
+      lateFees: num(pick(tx, 'Late Charges', 'late_charges')),
+      credits: num(pick(tx, 'Other Credits', 'other_credits')),
+      partialPayments: num(pick(tx, 'Cash Payments', 'cash_payments')),
+      priorCharges: num(pick(tx, 'Other Charges', 'other_charges')),
     };
 
     const partial = {
@@ -211,7 +193,6 @@ export function parseAppFolioExport(buffer: ArrayBuffer): ParseResult {
     };
 
     const calculatedCharges = computeCalculatedCharges(partial);
-
     returns.push({ ...partial, calculatedCharges });
   }
 
