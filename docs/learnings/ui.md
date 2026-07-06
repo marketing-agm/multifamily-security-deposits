@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: b1hp4c8bt :: Don't call another component's setState inside a setState updater -->
+### 2026-07-06 · ui · gotcha · Don't call another component's setState inside a setState updater
+- **Ref:** b1hp4c8bt
+- **Symptom:** React warning: 'Cannot update a component (SessionProvider) while rendering a different component (ReturnForm)' when uploading photos.
+- **Root cause:** The updater function passed to a useState setter runs during React's render phase; calling another component's setter there is a setState-in-render.
+- **Fix:** Compute the next value from current state in the event handler, then call setPhotos(next) and updateReturn(...) side by side — not inside the updater.
+- **Lesson:** State-updater callbacks must be pure. Persist/side-effects (like updating a parent/provider store) belong in the handler body or an effect, never inside setX(prev => ...).
+
+
 <!-- log-id: 98eb57f :: Vivid status colors fail WCAG as text — need separate -fg tokens -->
 ### 2026-07-06 · ui · gotcha · Vivid status colors fail WCAG as text — need separate -fg tokens
 - **Ref:** 98eb57f
