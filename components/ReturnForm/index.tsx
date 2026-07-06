@@ -150,21 +150,20 @@ export function ReturnForm({ returnId }: Props) {
     if (!files || files.length === 0) return;
     try {
       const encoded = await Promise.all(Array.from(files).map(compressImageFile));
-      setPhotos(prev => {
-        const next = { ...prev, [which]: [...prev[which], ...encoded] };
-        updateReturn(returnId, { inspectionPhotos: next });
-        return next;
-      });
+      // Compute next from the current value, then set state and persist OUTSIDE
+      // the updater — calling updateReturn inside setPhotos(prev => ...) would
+      // update SessionProvider mid-render (React warns about that).
+      const next = { ...photos, [which]: [...photos[which], ...encoded] };
+      setPhotos(next);
+      updateReturn(returnId, { inspectionPhotos: next });
     } catch {
       // A single bad image shouldn't break the upload — silently skip.
     }
   }
   function removePhoto(which: keyof InspectionPhotos, index: number) {
-    setPhotos(prev => {
-      const next = { ...prev, [which]: prev[which].filter((_, i) => i !== index) };
-      updateReturn(returnId, { inspectionPhotos: next });
-      return next;
-    });
+    const next = { ...photos, [which]: photos[which].filter((_, i) => i !== index) };
+    setPhotos(next);
+    updateReturn(returnId, { inspectionPhotos: next });
   }
 
   function nextSection() {
