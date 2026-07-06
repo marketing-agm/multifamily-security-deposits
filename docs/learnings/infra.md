@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: affedc5 :: Password-gating a next-on-pages app with a Cloudflare Secret -->
+### 2026-07-06 · infra · gotcha · Password-gating a next-on-pages app with a Cloudflare Secret
+- **Ref:** affedc5
+- **Symptom:** Needed a login prompt on the site; a NEXT_PUBLIC_ var won't work — it ships to the client and anyone can read it in the bundle.
+- **Root cause:** Secrets are only secret if checked on the server. On Cloudflare Pages (@cloudflare/next-on-pages) the secret lives on the edge request context, not process.env in the browser.
+- **Fix:** Read SITE_PASSWORD via getRequestContext().env (fallback process.env). /api/login (edge) compares and sets an httpOnly+Secure cookie = SHA-256(secret). middleware.ts validates that cookie against the recomputed hash and redirects to /login otherwise. Matcher excludes /login, /api/login, _next static. Secret set via Dashboard (Type: Secret) or `wrangler pages secret put`; local dev via .dev.vars / .env.local (gitignored).
+- **Lesson:** Gate with middleware + a server-verified cookie; never a NEXT_PUBLIC var. Cookie value = hash of the secret so it validates without storing plaintext and can't be forged. Fail OPEN when the secret is unset so a missing secret can't brick the site.
+
+
 <!-- log-id: 02d9381 :: Turbopack dev serves stale CSS after globals.css token edits -->
 ### 2026-07-06 · infra · gotcha · Turbopack dev serves stale CSS after globals.css token edits
 - **Ref:** 02d9381
