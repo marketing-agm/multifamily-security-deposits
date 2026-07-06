@@ -78,8 +78,8 @@ export function Dashboard() {
         {/* Grouped list card */}
         <div className="bg-surface rounded-lg overflow-hidden border border-separator shadow-card">
           {/* Table header */}
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_40px] gap-0 px-4 py-2.5 bg-surface-2 border-b border-separator">
-            {['Tenant / Unit', 'Move-Out', 'Due Date', 'Days Left', 'Deposit', 'Utility', 'Inspection', ''].map((h, i) => (
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_112px] gap-0 px-4 py-2.5 bg-surface-2 border-b border-separator">
+            {['Tenant / Unit', 'Move-Out', 'Due Date', 'Days Left', 'Deposit', 'Utility', 'Inspection', 'Status'].map((h, i) => (
               <span key={i} className="text-caption font-semibold text-secondary uppercase tracking-wider">{h}</span>
             ))}
           </div>
@@ -92,7 +92,7 @@ export function Dashboard() {
               <div
                 key={r.id}
                 onClick={() => handleRowClick(r)}
-                className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_40px] gap-0 px-4 py-3.5 cursor-pointer hover:bg-fill transition-colors ${
+                className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_112px] gap-0 px-4 py-3.5 cursor-pointer hover:bg-fill transition-colors ${
                   i < session.returns.length - 1 ? 'border-b border-separator' : ''
                 }`}
               >
@@ -149,8 +149,8 @@ export function Dashboard() {
                   <InspectionBadge status={r.tenantData.inspectionStatus} />
                 </div>
 
-                {/* Chevron */}
-                <div className="flex items-center justify-end">
+                {/* Status */}
+                <div className="flex items-center">
                   <StatusBadge status={r.processingStatus} />
                 </div>
               </div>

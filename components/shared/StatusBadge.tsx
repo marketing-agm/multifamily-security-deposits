@@ -15,7 +15,7 @@ const STATUS_LABELS: Record<ProcessingStatus, string> = {
 
 export function StatusBadge({ status }: { status: ProcessingStatus }) {
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[status]}`}>
+    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${STATUS_STYLES[status]}`}>
       {STATUS_LABELS[status]}
     </span>
   );

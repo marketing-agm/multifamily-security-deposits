@@ -34,6 +34,11 @@ export function ReturnForm({ returnId }: Props) {
 
   const [section, setSection] = useState(0);
   const [showDataPanel, setShowDataPanel] = useState(false);
+  // Highest section index the user has reached — drives the green "done" checks
+  // in the sidebar. Using the furthest-reached (not just `< section`) means the
+  // checkmarks persist even when you click back to an earlier section.
+  const [maxReached, setMaxReached] = useState(0);
+  useEffect(() => { setMaxReached(m => Math.max(m, section)); }, [section]);
 
   const tenantReturn = session?.returns.find(r => r.id === returnId);
 
@@ -224,29 +229,35 @@ export function ReturnForm({ returnId }: Props) {
           </div>
 
           <nav className="flex-1 px-2 pb-4 space-y-0.5">
-            {SECTIONS.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => { saveProgress(); setSection(i); }}
-                className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
-                  i === section
-                    ? 'bg-accent/10 text-accent'
-                    : 'hover:bg-fill text-app-text'
-                }`}
-              >
-                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
-                  i === section
-                    ? 'bg-accent text-on-accent'
-                    : 'bg-separator text-secondary'
-                }`}>
-                  {i + 1}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium leading-tight">{s.title}</p>
-                  <p className="text-xs text-secondary mt-0.5 leading-tight">{s.subtitle}</p>
-                </div>
-              </button>
-            ))}
+            {SECTIONS.map((s, i) => {
+              const isActive = i === section;
+              const isDone = !isActive && i <= maxReached;   // reached, not current → complete
+              return (
+                <button
+                  key={i}
+                  onClick={() => { saveProgress(); setSection(i); }}
+                  className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                    isActive
+                      ? 'bg-accent/10 text-accent'
+                      : 'hover:bg-fill text-app-text'
+                  }`}
+                >
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
+                    isActive
+                      ? 'bg-accent text-on-accent'
+                      : isDone
+                      ? 'bg-success/15 text-success-fg'
+                      : 'bg-separator text-secondary'
+                  }`}>
+                    {isDone ? '✓' : i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium leading-tight">{s.title}</p>
+                    <p className="text-xs text-secondary mt-0.5 leading-tight">{s.subtitle}</p>
+                  </div>
+                </button>
+              );
+            })}
           </nav>
         </aside>
 
@@ -485,6 +496,9 @@ function NumberField({
   variant?: InputVariant;
   prefix?: string;
 }) {
+  // Flag still-blank ($0) fields in orange so a Property Manager can see at a
+  // glance what hasn't been filled in / auto-populated yet.
+  const isEmpty = !value;
   return (
     <label className="block space-y-1">
       <span className="text-xs font-medium text-secondary">{label}</span>
@@ -496,8 +510,15 @@ function NumberField({
           step={0.01}
           value={value}
           onChange={e => onChange(parseFloat(e.target.value) || 0)}
-          className={`w-full border rounded-xl ${prefix ? 'pl-7' : 'px-3'} pr-3 py-2 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent transition-colors ${INPUT_STYLE[variant]}`}
+          className={`w-full border rounded-xl ${prefix ? 'pl-7' : 'px-3'} ${isEmpty ? 'pr-16' : 'pr-3'} py-2 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent transition-colors ${
+            isEmpty ? 'bg-warning/5 border-warning' : NEUTRAL_INPUT
+          }`}
         />
+        {isEmpty && (
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-warning-fg bg-warning/15 px-1.5 py-0.5 rounded-full pointer-events-none">
+            empty
+          </span>
+        )}
       </div>
     </label>
   );

@@ -142,6 +142,14 @@ export default function UploadPage() {
               <li>Ensure the file contains all 4 required sheets: Tenant &amp; Lease, Deposits &amp; Fees, Utility, Ledger</li>
               <li>Upload the file above — all move-outs will populate automatically</li>
             </ol>
+            <div className="border-t border-separator pt-3">
+              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Inspection photos</p>
+              <p className="text-sm text-app-text">
+                In each return&apos;s <span className="font-medium">Move-In / Out Photos</span> section you can
+                upload the move-in and move-out inspection photos so they&apos;re visible right in the form.
+                A signed move-in inspection is required to defend deductions under Washington RCW&nbsp;59.18.280.
+              </p>
+            </div>
           </div>
         </div>
       </main>
