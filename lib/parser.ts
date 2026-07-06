@@ -28,6 +28,44 @@ function parseDate(value: unknown): string {
   return '';
 }
 
+// Split a one-line address like "1812 S State St, Seattle, WA 98144" (or without
+// the comma before the city) into { street, city, state, zip }. AppFolio exports
+// the whole address in one column; the AGM form needs the parts separated.
+// Heuristic + editable in the form, so an odd address just needs a manual tweak.
+export function parseAddress(full: string): { street: string; city: string; state: string; zip: string } {
+  const s = (full || '').trim();
+  if (!s) return { street: '', city: '', state: '', zip: '' };
+
+  let rest = s;
+  let state = '';
+  let zip = '';
+  // Pull a trailing "ST 98144" or "ST 98144-1234" off the end.
+  const m = rest.match(/^(.*?)[,\s]+([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)\s*$/);
+  if (m) {
+    rest = m[1].trim().replace(/,\s*$/, '');
+    state = m[2].toUpperCase();
+    zip = m[3];
+  }
+
+  let street = rest;
+  let city = '';
+  if (rest.includes(',')) {
+    // "street, city" (city is the last comma-separated chunk).
+    const parts = rest.split(',').map(p => p.trim()).filter(Boolean);
+    city = parts.pop() ?? '';
+    street = parts.join(', ');
+  } else if (state) {
+    // No comma but we found a state, so the last word is likely the city
+    // (e.g. "1812 S State St Seattle" → street "1812 S State St", city "Seattle").
+    const toks = rest.split(/\s+/);
+    if (toks.length > 1) {
+      city = toks.pop() as string;
+      street = toks.join(' ');
+    }
+  }
+  return { street, city, state, zip };
+}
+
 function num(value: unknown): number {
   if (typeof value === 'number') return value;
   if (typeof value === 'string') {
@@ -179,9 +217,9 @@ export function parseAppFolioExport(buffer: ArrayBuffer): ParseResult {
   // Detect property name and config from first data row.
   const firstPropertyValue = str(pick(ledgerRows[0] ?? {}, 'Property', 'property'));
   const propertyConfig = lookupProperty(firstPropertyValue);
-  const propertyName = propertyConfig
-    ? `${propertyConfig.code} - ${propertyConfig.name}`
-    : firstPropertyValue;
+  // Show the clean property name (e.g. "Niwa"), not "CODE - NAME" or the raw
+  // upload label. Falls back to the raw Property column when no config matches.
+  const propertyName = propertyConfig ? propertyConfig.name : firstPropertyValue;
 
   const returns: TenantReturn[] = [];
 
@@ -224,12 +262,7 @@ export function parseAppFolioExport(buffer: ArrayBuffer): ParseResult {
       leaseEndDate: parseDate(pick(row, 'Lease To', 'Lease to', 'lease_to')),
       leaseBreak,
       newTenantMoveInDate: null,
-      forwardingAddress: {
-        street: str(pick(row, 'Tenant Address', 'tenant_address')),
-        city: '',
-        state: '',
-        zip: '',
-      },
+      forwardingAddress: parseAddress(str(pick(row, 'Tenant Address', 'tenant_address'))),
       inspectionStatus: 'missing',
     };
 
