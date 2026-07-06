@@ -145,22 +145,22 @@ export function ReturnForm({ returnId }: Props) {
     : '';
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#1c1c1e] flex flex-col">
+    <div className="min-h-screen bg-bg flex flex-col">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-[#2c2c2e] border-b border-[#e5e5ea] dark:border-[#38383a] px-6 py-3">
+      <div className="bg-surface border-b border-separator px-6 py-3">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-sm text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white transition-colors shrink-0"
+            className="text-sm text-secondary hover:text-app-text transition-colors shrink-0"
           >
             ← Dashboard
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-semibold text-[#1c1c1e] dark:text-white truncate">
+            <h1 className="text-base font-semibold text-app-text truncate">
               {tenantData.tenantName} — Unit {tenantData.unit}
             </h1>
-            <p className="text-xs text-[#8e8e93] mt-0.5">
+            <p className="text-xs text-secondary mt-0.5">
               {session?.propertyName}
               {moveOutDisplay ? ` · Move-out ${moveOutDisplay}` : ''}
               {' · '}
@@ -177,19 +177,19 @@ export function ReturnForm({ returnId }: Props) {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={goToReview}
-              className="text-sm text-[#8e8e93] dark:text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white border border-[#e5e5ea] dark:border-[#48484a] px-3 py-1.5 rounded-lg transition-colors"
+              className="text-sm text-secondary hover:text-app-text border border-separator px-3 py-1.5 rounded-lg transition-colors"
             >
               View full form
             </button>
             <button
               onClick={goToReview}
-              className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-1.5 rounded-lg transition-colors"
+              className="text-sm bg-accent hover:bg-accent-hover text-on-accent font-medium px-4 py-1.5 rounded-lg transition-colors"
             >
               Review &amp; Submit →
             </button>
             <button
               onClick={toggle}
-              className="w-8 h-8 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] flex items-center justify-center text-sm hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] transition-colors"
+              className="w-8 h-8 rounded-full bg-fill flex items-center justify-center text-sm hover:bg-fill transition-colors"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? '☀️' : '🌙'}
@@ -202,11 +202,11 @@ export function ReturnForm({ returnId }: Props) {
       <div className="flex flex-1 overflow-hidden">
 
         {/* Section sidebar */}
-        <aside className="w-60 shrink-0 bg-white dark:bg-[#2c2c2e] border-r border-[#e5e5ea] dark:border-[#38383a] flex flex-col overflow-y-auto">
+        <aside className="w-60 shrink-0 bg-surface border-r border-separator flex flex-col overflow-y-auto">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-[#1c1c1e] dark:text-white">Form sections</p>
-              <p className="text-xs text-[#8e8e93]">Click a section to focus it</p>
+              <p className="text-xs font-semibold text-app-text">Form sections</p>
+              <p className="text-xs text-secondary">Click a section to focus it</p>
             </div>
             {/* ⓘ button — opens Data & Calculations panel */}
             <button
@@ -214,7 +214,7 @@ export function ReturnForm({ returnId }: Props) {
               className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
                 showDataPanel
                   ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
-                  : 'bg-[#f2f2f7] dark:bg-[#3a3a3c] text-[#8e8e93] hover:bg-[#e5e5ea] dark:hover:bg-[#48484a]'
+                  : 'bg-fill text-secondary hover:bg-fill'
               }`}
               aria-label="Show data & calculations"
               title="Data & Calculations"
@@ -231,19 +231,19 @@ export function ReturnForm({ returnId }: Props) {
                 className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
                   i === section
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                    : 'hover:bg-[#f2f2f7] dark:hover:bg-[#3a3a3c] text-[#1c1c1e] dark:text-[#ebebf5]'
+                    : 'hover:bg-fill text-app-text'
                 }`}
               >
                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
                   i === section
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-[#e5e5ea] dark:bg-[#48484a] text-[#8e8e93]'
+                    ? 'bg-accent text-on-accent'
+                    : 'bg-separator text-secondary'
                 }`}>
                   {i + 1}
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-medium leading-tight">{s.title}</p>
-                  <p className="text-xs text-[#8e8e93] mt-0.5 leading-tight">{s.subtitle}</p>
+                  <p className="text-xs text-secondary mt-0.5 leading-tight">{s.subtitle}</p>
                 </div>
               </button>
             ))}
@@ -323,7 +323,7 @@ export function ReturnForm({ returnId }: Props) {
           )}
 
           {/* Color legend */}
-          <div className="flex flex-wrap gap-4 pt-2 border-t border-[#e5e5ea] dark:border-[#38383a]">
+          <div className="flex flex-wrap gap-4 pt-2 border-t border-separator">
             <LegendItem color="bg-green-400" label="From AppFolio (editable)" />
             <LegendItem color="bg-blue-400" label="Calculated (override OK)" />
             <LegendItem color="bg-yellow-400" label="Manual entry" />
@@ -334,15 +334,15 @@ export function ReturnForm({ returnId }: Props) {
             <button
               onClick={prevSection}
               disabled={section === 0}
-              className="text-sm font-medium text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="text-sm font-medium text-secondary hover:text-app-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               ← Previous
             </button>
-            <span className="text-xs text-[#8e8e93]">Section {section + 1} of {SECTIONS.length}</span>
+            <span className="text-xs text-secondary">Section {section + 1} of {SECTIONS.length}</span>
             {section === SECTIONS.length - 1 ? (
               <button
                 onClick={goToReview}
-                className="text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors"
+                className="text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent px-4 py-2 rounded-xl transition-colors"
               >
                 Review &amp; Submit →
               </button>
@@ -367,15 +367,15 @@ export function ReturnForm({ returnId }: Props) {
             onClick={() => setShowDataPanel(false)}
           />
           {/* Panel */}
-          <div className="fixed inset-y-0 right-0 z-50 w-96 bg-white dark:bg-[#2c2c2e] shadow-2xl overflow-y-auto flex flex-col">
-            <div className="px-5 py-4 border-b border-[#e5e5ea] dark:border-[#38383a] flex items-center justify-between sticky top-0 bg-white dark:bg-[#2c2c2e]">
+          <div className="fixed inset-y-0 right-0 z-50 w-96 bg-surface shadow-2xl overflow-y-auto flex flex-col">
+            <div className="px-5 py-4 border-b border-separator flex items-center justify-between sticky top-0 bg-surface">
               <div>
-                <p className="text-sm font-semibold text-[#1c1c1e] dark:text-white">Data &amp; Calculations</p>
-                <p className="text-xs text-[#8e8e93]">All values driving this return</p>
+                <p className="text-sm font-semibold text-app-text">Data &amp; Calculations</p>
+                <p className="text-xs text-secondary">All values driving this return</p>
               </div>
               <button
                 onClick={() => setShowDataPanel(false)}
-                className="w-7 h-7 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] text-[#8e8e93] flex items-center justify-center hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] text-sm transition-colors"
+                className="w-7 h-7 rounded-full bg-fill text-secondary flex items-center justify-center hover:bg-fill text-sm transition-colors"
               >
                 ✕
               </button>
@@ -430,7 +430,7 @@ export function ReturnForm({ returnId }: Props) {
 
               <DataPanelSection title="Balance">
                 <div className={`flex justify-between py-2 text-sm font-bold ${
-                  balance === 0 ? 'text-[#8e8e93]'
+                  balance === 0 ? 'text-secondary'
                   : balance > 0 ? 'text-green-600 dark:text-green-400'
                   : 'text-red-600 dark:text-red-400'
                 }`}>
@@ -450,7 +450,7 @@ export function ReturnForm({ returnId }: Props) {
 
 function LegendItem({ color, label }: { color: string; label: string }) {
   return (
-    <span className="flex items-center gap-1.5 text-xs text-[#8e8e93]">
+    <span className="flex items-center gap-1.5 text-xs text-secondary">
       <span className={`inline-block w-2 h-2 rounded-full ${color}`} />
       {label}
     </span>
@@ -477,13 +477,13 @@ function EditField({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-medium text-[#8e8e93]">{label}</span>
+      <span className="text-xs font-medium text-secondary">{label}</span>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full border rounded-xl px-3 py-2 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${INPUT_STYLE[variant]}`}
+        className={`w-full border rounded-xl px-3 py-2 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent transition-colors ${INPUT_STYLE[variant]}`}
       />
     </label>
   );
@@ -500,16 +500,16 @@ function NumberField({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-medium text-[#8e8e93]">{label}</span>
+      <span className="text-xs font-medium text-secondary">{label}</span>
       <div className="relative">
-        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e93] text-sm">{prefix}</span>}
+        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">{prefix}</span>}
         <input
           type="number"
           min={0}
           step={0.01}
           value={value}
           onChange={e => onChange(parseFloat(e.target.value) || 0)}
-          className={`w-full border rounded-xl ${prefix ? 'pl-7' : 'px-3'} pr-3 py-2 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${INPUT_STYLE[variant]}`}
+          className={`w-full border rounded-xl ${prefix ? 'pl-7' : 'px-3'} pr-3 py-2 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent transition-colors ${INPUT_STYLE[variant]}`}
         />
       </div>
     </label>
@@ -518,8 +518,8 @@ function NumberField({
 
 function SectionCard({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-4">
-      {title && <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">{title}</p>}
+    <div className="bg-surface rounded-2xl border border-separator p-5 space-y-4">
+      {title && <p className="text-xs font-semibold text-secondary uppercase tracking-wider">{title}</p>}
       {children}
     </div>
   );
@@ -527,9 +527,9 @@ function SectionCard({ title, children }: { title?: string; children: React.Reac
 
 function ReadOnlyRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between py-1.5 border-b border-[#f2f2f7] dark:border-[#38383a]">
-      <span className="text-sm text-[#8e8e93]">{label}</span>
-      <span className="text-sm font-medium text-[#1c1c1e] dark:text-[#ebebf5]">{value || '—'}</span>
+    <div className="flex justify-between py-1.5 border-b border-separator">
+      <span className="text-sm text-secondary">{label}</span>
+      <span className="text-sm font-medium text-app-text">{value || '—'}</span>
     </div>
   );
 }
@@ -539,16 +539,16 @@ function ReadOnlyRow({ label, value }: { label: string; value: string }) {
 function DataPanelSection({ title, children }: { title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="rounded-xl border border-[#e5e5ea] dark:border-[#38383a] overflow-hidden">
+    <div className="rounded-xl border border-separator overflow-hidden">
       <button
         onClick={() => setOpen(p => !p)}
-        className="w-full flex items-center justify-between px-4 py-2.5 bg-[#f9f9fb] dark:bg-[#3a3a3c] hover:bg-[#f2f2f7] dark:hover:bg-[#48484a] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-2.5 bg-surface-2 hover:bg-fill transition-colors"
       >
         {/* Use dangerouslySetInnerHTML-safe approach: render as text, not HTML */}
-        <span className="text-xs font-semibold text-[#1c1c1e] dark:text-white"
+        <span className="text-xs font-semibold text-app-text"
           // title contains &amp; entities which React renders correctly as text
         >{title.replace(/&amp;/g, '&')}</span>
-        <span className="text-xs text-[#8e8e93]">{open ? '−' : '+'}</span>
+        <span className="text-xs text-secondary">{open ? '−' : '+'}</span>
       </button>
       {open && <div className="px-4 py-2 space-y-0">{children}</div>}
     </div>
@@ -562,11 +562,11 @@ function DataRow({ label, value, bold, highlight }: {
     ? 'text-green-600 dark:text-green-400 font-medium'
     : highlight === 'red'
     ? 'text-red-600 dark:text-red-400 font-medium'
-    : bold ? 'font-semibold text-[#1c1c1e] dark:text-white'
-    : 'text-[#1c1c1e] dark:text-[#ebebf5]';
+    : bold ? 'font-semibold text-app-text'
+    : 'text-app-text';
   return (
-    <div className="flex justify-between py-1.5 border-b border-[#f2f2f7] dark:border-[#38383a] last:border-0">
-      <span className={`text-xs ${bold ? 'font-semibold text-[#1c1c1e] dark:text-white' : 'text-[#8e8e93]'}`}>{label}</span>
+    <div className="flex justify-between py-1.5 border-b border-separator last:border-0">
+      <span className={`text-xs ${bold ? 'font-semibold text-app-text' : 'text-secondary'}`}>{label}</span>
       <span className={`text-xs ${valueClass}`}>{value || '—'}</span>
     </div>
   );
@@ -592,7 +592,7 @@ function SectionPropertyTenant({
         </div>
         <EditField label="Unit #" value={tenantData.unit} onChange={v => onUpdateTenant('unit', v)} />
       </div>
-      <p className="text-xs font-medium text-[#8e8e93] mt-2">Forwarding address (where to mail the check)</p>
+      <p className="text-xs font-medium text-secondary mt-2">Forwarding address (where to mail the check)</p>
       <EditField label="Street" value={tenantData.forwardingAddress.street} onChange={v => onUpdateAddress('street', v)} placeholder="123 Main St" />
       <div className="grid grid-cols-3 gap-2">
         <div className="col-span-1">
@@ -633,7 +633,7 @@ function SectionLeaseDates({
             onChange={e => onUpdate('leaseBreak', e.target.checked)}
             className="w-4 h-4 rounded border-gray-300 accent-blue-600"
           />
-          <span className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">Lease break (early termination)</span>
+          <span className="text-sm text-app-text">Lease break (early termination)</span>
         </label>
         {tenantData.leaseBreak && (
           <EditField
@@ -647,7 +647,7 @@ function SectionLeaseDates({
       </SectionCard>
       {/* NRC fees live in this section per the AGM Checkout PDF layout */}
       <SectionCard title="NRC Fees">
-        <p className="text-sm text-[#8e8e93]">
+        <p className="text-sm text-secondary">
           Non-refundable charges collected at move-in. The NRC cleaning fee offsets the
           tenant&apos;s share of general cleaning costs.
         </p>
@@ -675,7 +675,7 @@ function SectionNRCFees({
 }) {
   return (
     <SectionCard title="NRC Fees">
-      <p className="text-sm text-[#8e8e93]">
+      <p className="text-sm text-secondary">
         Non-refundable charges (NRC) offset cleaning costs — the tenant's share of general cleaning
         is reduced by the NRC cleaning fee already collected.
       </p>
@@ -700,7 +700,7 @@ function SectionInspection({
 }) {
   return (
     <SectionCard title="Move-In / Out Photos">
-      <p className="text-sm text-[#8e8e93]">
+      <p className="text-sm text-secondary">
         A signed move-in inspection report is required to legally defend deductions in small claims court under California Civil Code §1950.5.
       </p>
       <label className="flex items-start gap-3 cursor-pointer select-none">
@@ -711,7 +711,7 @@ function SectionInspection({
           className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-blue-600"
         />
         <div>
-          <span className="text-sm font-medium text-[#1c1c1e] dark:text-[#ebebf5]">Signed move-in inspection is on file</span>
+          <span className="text-sm font-medium text-app-text">Signed move-in inspection is on file</span>
           {!inspectionSigned && (
             <p className="text-xs text-red-600 dark:text-red-400 mt-1">
               ⚠ Without a signed inspection, any repair or cleaning deductions may be challenged.
@@ -736,7 +736,7 @@ function SectionRentDue({
 }) {
   return (
     <SectionCard title="Rent Due">
-      <p className="text-sm text-[#8e8e93]">
+      <p className="text-sm text-secondary">
         Calculated automatically from move-out date vs paid-through date and monthly rent. Set "Paid rent through" in Lease &amp; Dates to compute this.
       </p>
       {!tenantData.paidThroughDate && (
@@ -774,8 +774,8 @@ function SectionUtility({
       </div>
 
       {utilityData.utilityType === 'flat_fee' && (
-        <div className="space-y-3 border-t border-[#e5e5ea] dark:border-[#38383a] pt-4">
-          <p className="text-sm text-[#8e8e93]">
+        <div className="space-y-3 border-t border-separator pt-4">
+          <p className="text-sm text-secondary">
             Monthly flat fee billed at move-out. Pre-filled from property config — edit if this unit differs.
           </p>
           <div className="w-48">
@@ -786,14 +786,14 @@ function SectionUtility({
               Calculated utility charge: {formatCurrency(utilityCharge)}
             </p>
           ) : (
-            <p className="text-sm text-[#8e8e93]">Utility included in rent — no charge at move-out.</p>
+            <p className="text-sm text-secondary">Utility included in rent — no charge at move-out.</p>
           )}
         </div>
       )}
 
       {utilityData.utilityType === 'RUBS' && (
-        <div className="space-y-3 border-t border-[#e5e5ea] dark:border-[#38383a] pt-4">
-          <p className="text-sm text-[#8e8e93]">
+        <div className="space-y-3 border-t border-separator pt-4">
+          <p className="text-sm text-secondary">
             RUBS: tenant pays their proportional share of the final water bill. Charge = Building Total × Unit Ratio.
           </p>
           <div className="grid grid-cols-2 gap-3">
@@ -817,7 +817,7 @@ function SectionLegalCosts({
 }) {
   return (
     <SectionCard title="Legal / Court Costs">
-      <p className="text-sm text-[#8e8e93]">
+      <p className="text-sm text-secondary">
         Attorney fees, filing fees, or other court costs owed by the tenant. Leave at $0 if none.
       </p>
       <div className="w-48">
@@ -837,16 +837,16 @@ function ChargeRow({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="flex-1 text-sm text-[#1c1c1e] dark:text-[#ebebf5]">{label}</span>
+      <span className="flex-1 text-sm text-app-text">{label}</span>
       <div className="relative w-32">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e93] text-sm">$</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">$</span>
         <input
           type="number"
           min={0}
           step={0.01}
           value={value}
           onChange={e => onChange(chargeKey, parseFloat(e.target.value) || 0)}
-          className="w-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl pl-7 pr-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+          className="w-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right"
         />
       </div>
     </div>
@@ -865,7 +865,7 @@ function SectionTotalCharges({
 }) {
   return (
     <SectionCard title="Total Charges">
-      <p className="text-xs text-[#8e8e93]">
+      <p className="text-xs text-secondary">
         Enter the total vendor cost for each item. NRC offset is applied automatically to cleaning.
       </p>
       <div className="space-y-2">
@@ -888,14 +888,14 @@ function SectionTotalCharges({
             value={manualCharges.other1Label}
             onChange={e => onChange('other1Label', e.target.value)}
             placeholder="Other label"
-            className="flex-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl px-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl px-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <div className="relative w-32">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e93] text-sm">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">$</span>
             <input
               type="number" min={0} step={0.01} value={manualCharges.other1}
               onChange={e => onChange('other1', parseFloat(e.target.value) || 0)}
-              className="w-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl pl-7 pr-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+              className="w-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right"
             />
           </div>
         </div>
@@ -906,14 +906,14 @@ function SectionTotalCharges({
             value={manualCharges.other2Label}
             onChange={e => onChange('other2Label', e.target.value)}
             placeholder="Other label"
-            className="flex-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl px-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl px-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <div className="relative w-32">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e93] text-sm">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">$</span>
             <input
               type="number" min={0} step={0.01} value={manualCharges.other2}
               onChange={e => onChange('other2', parseFloat(e.target.value) || 0)}
-              className="w-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl pl-7 pr-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+              className="w-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right"
             />
           </div>
         </div>
@@ -921,17 +921,17 @@ function SectionTotalCharges({
 
       {/* Calculated rows */}
       {(calculatedCharges.rentDue > 0 || calculatedCharges.utilityCharge > 0) && (
-        <div className="border-t border-[#e5e5ea] dark:border-[#38383a] pt-3 space-y-2">
-          <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">Calculated charges</p>
+        <div className="border-t border-separator pt-3 space-y-2">
+          <p className="text-xs font-semibold text-secondary uppercase tracking-wider">Calculated charges</p>
           {calculatedCharges.rentDue > 0 && (
             <div className="flex justify-between">
-              <span className="text-sm text-[#8e8e93]">Rent due {calculatedCharges.rentDueDateRange ? `(${calculatedCharges.rentDueDateRange})` : ''}</span>
+              <span className="text-sm text-secondary">Rent due {calculatedCharges.rentDueDateRange ? `(${calculatedCharges.rentDueDateRange})` : ''}</span>
               <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{formatCurrency(calculatedCharges.rentDue)}</span>
             </div>
           )}
           {calculatedCharges.utilityCharge > 0 && (
             <div className="flex justify-between">
-              <span className="text-sm text-[#8e8e93]">Utility charge</span>
+              <span className="text-sm text-secondary">Utility charge</span>
               <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{formatCurrency(calculatedCharges.utilityCharge)}</span>
             </div>
           )}
@@ -939,9 +939,9 @@ function SectionTotalCharges({
       )}
 
       {/* Total */}
-      <div className="border-t border-[#e5e5ea] dark:border-[#38383a] pt-3 flex justify-between">
-        <span className="text-sm font-bold text-[#1c1c1e] dark:text-white">Total charges</span>
-        <span className="text-sm font-bold text-[#1c1c1e] dark:text-white">{formatCurrency(totalCharges)}</span>
+      <div className="border-t border-separator pt-3 flex justify-between">
+        <span className="text-sm font-bold text-app-text">Total charges</span>
+        <span className="text-sm font-bold text-app-text">{formatCurrency(totalCharges)}</span>
       </div>
     </SectionCard>
   );
@@ -962,24 +962,24 @@ function SectionRefundsCredits({
         {depositData.petDeposit > 0 && <ReadOnlyRow label="Pet deposit" value={formatCurrency(depositData.petDeposit)} />}
         {depositData.keyDeposit > 0 && <ReadOnlyRow label="Key deposit" value={formatCurrency(depositData.keyDeposit)} />}
         {depositData.garageOpenerDeposit > 0 && <ReadOnlyRow label="Garage opener deposit" value={formatCurrency(depositData.garageOpenerDeposit)} />}
-        <div className="flex justify-between py-2 border-t border-[#e5e5ea] dark:border-[#38383a]">
-          <span className="text-sm font-semibold text-[#1c1c1e] dark:text-white">Total credits</span>
-          <span className="text-sm font-semibold text-[#1c1c1e] dark:text-white">{formatCurrency(totalCredits)}</span>
+        <div className="flex justify-between py-2 border-t border-separator">
+          <span className="text-sm font-semibold text-app-text">Total credits</span>
+          <span className="text-sm font-semibold text-app-text">{formatCurrency(totalCredits)}</span>
         </div>
       </div>
 
-      <div className="border-t border-[#e5e5ea] dark:border-[#38383a] pt-3 space-y-1.5">
-        <div className="flex justify-between text-sm text-[#8e8e93]">
+      <div className="border-t border-separator pt-3 space-y-1.5">
+        <div className="flex justify-between text-sm text-secondary">
           <span>Total charges</span>
           <span>{formatCurrency(totalCharges)}</span>
         </div>
-        <div className="flex justify-between text-sm text-[#8e8e93]">
+        <div className="flex justify-between text-sm text-secondary">
           <span>Total credits</span>
           <span>{formatCurrency(totalCredits)}</span>
         </div>
         <div className={`flex justify-between py-2 px-3 rounded-xl text-sm font-bold ${
           balance === 0
-            ? 'bg-[#f2f2f7] dark:bg-[#3a3a3c] text-[#8e8e93]'
+            ? 'bg-fill text-secondary'
             : balance > 0
             ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
             : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'

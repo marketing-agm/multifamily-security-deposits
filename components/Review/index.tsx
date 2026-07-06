@@ -114,7 +114,7 @@ export function ReviewScreen({ returnId }: Props) {
   // Deadline banner color: red < 3 days, yellow 3–7, green > 7.
   const deadlineBannerClass =
     daysUntilDeadline === null
-      ? 'bg-[#f2f2f7] dark:bg-[#3a3a3c] border-[#e5e5ea] dark:border-[#48484a] text-[#8e8e93]'
+      ? 'bg-fill border-separator text-secondary'
       : daysUntilDeadline <= 3
       ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
       : daysUntilDeadline <= 7
@@ -122,29 +122,29 @@ export function ReviewScreen({ returnId }: Props) {
       : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-400';
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#1c1c1e] flex flex-col">
+    <div className="min-h-screen bg-bg flex flex-col">
 
       {/* ── Header ─────────────────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-[#2c2c2e] border-b border-[#e5e5ea] dark:border-[#38383a] px-6 py-3">
+      <div className="bg-surface border-b border-separator px-6 py-3">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push(`/return/${returnId}`)}
-            className="text-sm text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white transition-colors shrink-0"
+            className="text-sm text-secondary hover:text-app-text transition-colors shrink-0"
           >
             ← Edit form
           </button>
-          <span className="text-[#e5e5ea] dark:text-[#38383a] select-none">|</span>
+          <span className="text-separator select-none">|</span>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-semibold text-[#1c1c1e] dark:text-white truncate">
+            <h1 className="text-base font-semibold text-app-text truncate">
               Review &amp; Download — {tenantData.tenantName} · Unit {tenantData.unit}
             </h1>
-            <p className="text-xs text-[#8e8e93] mt-0.5">
+            <p className="text-xs text-secondary mt-0.5">
               All sections complete · Ready for compliance check
             </p>
           </div>
           <button
             onClick={toggle}
-            className="w-8 h-8 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] flex items-center justify-center text-sm hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] transition-colors shrink-0"
+            className="w-8 h-8 rounded-full bg-fill flex items-center justify-center text-sm hover:bg-fill transition-colors shrink-0"
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? '☀️' : '🌙'}
@@ -188,28 +188,28 @@ export function ReviewScreen({ returnId }: Props) {
         {/* ── FROM / MAIL TO address blocks ──────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-4">
           {/* FROM */}
-          <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5">
-            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-3">From</p>
-            <p className="text-sm font-semibold text-[#1c1c1e] dark:text-white">AGM Real Estate Group</p>
+          <div className="bg-surface rounded-2xl border border-separator p-5">
+            <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-3">From</p>
+            <p className="text-sm font-semibold text-app-text">AGM Real Estate Group</p>
             {session.propertyName && (
-              <p className="text-sm text-[#1c1c1e] dark:text-[#ebebf5] mt-0.5">{session.propertyName}</p>
+              <p className="text-sm text-app-text mt-0.5">{session.propertyName}</p>
             )}
             {propertyAddress && (
-              <p className="text-sm text-[#8e8e93] mt-0.5">{propertyAddress}</p>
+              <p className="text-sm text-secondary mt-0.5">{propertyAddress}</p>
             )}
           </div>
 
           {/* MAIL TO */}
-          <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5">
-            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-3">Mail To</p>
-            <p className="text-sm font-semibold text-[#1c1c1e] dark:text-white">{tenantData.tenantName}</p>
+          <div className="bg-surface rounded-2xl border border-separator p-5">
+            <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-3">Mail To</p>
+            <p className="text-sm font-semibold text-app-text">{tenantData.tenantName}</p>
             {tenantData.coTenant && (
-              <p className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">{tenantData.coTenant}</p>
+              <p className="text-sm text-app-text">{tenantData.coTenant}</p>
             )}
             {street ? (
               <>
-                <p className="text-sm text-[#8e8e93] mt-0.5">{street}</p>
-                {forwardingLine2 && <p className="text-sm text-[#8e8e93]">{forwardingLine2}</p>}
+                <p className="text-sm text-secondary mt-0.5">{street}</p>
+                {forwardingLine2 && <p className="text-sm text-secondary">{forwardingLine2}</p>}
               </>
             ) : (
               <p className="text-sm text-red-500 dark:text-red-400 mt-0.5 italic">
@@ -220,8 +220,8 @@ export function ReviewScreen({ returnId }: Props) {
         </div>
 
         {/* ── PDF card ───────────────────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5">
-          <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-4">AGM Checkout Report PDF</p>
+        <div className="bg-surface rounded-2xl border border-separator p-5">
+          <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-4">AGM Checkout Report PDF</p>
 
           <div className="flex items-start gap-4">
             {/* PDF icon */}
@@ -232,9 +232,9 @@ export function ReviewScreen({ returnId }: Props) {
 
             {/* Filename + status */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#1c1c1e] dark:text-white truncate">{pdfFilename}</p>
+              <p className="text-sm font-medium text-app-text truncate">{pdfFilename}</p>
               {generating && (
-                <p className="text-xs text-[#8e8e93] mt-1">Generating…</p>
+                <p className="text-xs text-secondary mt-1">Generating…</p>
               )}
               {pdfReady && fieldsPopulated !== null && (
                 <p className="text-xs text-green-600 dark:text-green-400 mt-1">
@@ -242,7 +242,7 @@ export function ReviewScreen({ returnId }: Props) {
                 </p>
               )}
               {pdfReady && !generating && (
-                <p className="text-xs text-[#8e8e93] mt-0.5">Ready to download</p>
+                <p className="text-xs text-secondary mt-0.5">Ready to download</p>
               )}
               {/* Balance warning in PDF card */}
               {balance < 0 && (
@@ -257,14 +257,14 @@ export function ReviewScreen({ returnId }: Props) {
               <button
                 onClick={handlePreview}
                 disabled={!pdfReady}
-                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:text-[#8e8e93] disabled:no-underline disabled:cursor-not-allowed transition-colors"
+                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:text-secondary disabled:no-underline disabled:cursor-not-allowed transition-colors"
               >
                 Preview form
               </button>
               <button
                 onClick={handleDownload}
                 disabled={!pdfReady || !complianceChecked}
-                className="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg disabled:bg-[#e5e5ea] dark:disabled:bg-[#3a3a3c] disabled:text-[#8e8e93] disabled:cursor-not-allowed transition-colors"
+                className="text-xs font-semibold bg-accent hover:bg-accent-hover text-on-accent px-3 py-1.5 rounded-lg disabled:bg-fill disabled:text-secondary disabled:cursor-not-allowed transition-colors"
               >
                 ↓ Download
               </button>
@@ -275,7 +275,7 @@ export function ReviewScreen({ returnId }: Props) {
         {/* ── Balance summary ─────────────────────────────────────────────────── */}
         <div className={`rounded-2xl border p-5 ${
           balance === 0
-            ? 'bg-[#f2f2f7] dark:bg-[#3a3a3c] border-[#e5e5ea] dark:border-[#48484a]'
+            ? 'bg-fill border-separator'
             : balance > 0
             ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
             : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
@@ -283,18 +283,18 @@ export function ReviewScreen({ returnId }: Props) {
           <div className="flex justify-between items-center">
             <div>
               <p className={`text-sm font-semibold ${
-                balance === 0 ? 'text-[#8e8e93]'
+                balance === 0 ? 'text-secondary'
                 : balance > 0 ? 'text-green-800 dark:text-green-400'
                 : 'text-red-800 dark:text-red-400'
               }`}>
                 {balance === 0 ? 'No balance due' : balance > 0 ? 'Return to tenant' : 'Balance owing landlord'}
               </p>
-              <p className="text-xs text-[#8e8e93] mt-0.5">
+              <p className="text-xs text-secondary mt-0.5">
                 {formatCurrency(totalCredits)} deposits − {formatCurrency(totalCharges)} charges
               </p>
             </div>
             <span className={`text-2xl font-bold tabular-nums ${
-              balance === 0 ? 'text-[#8e8e93]'
+              balance === 0 ? 'text-secondary'
               : balance > 0 ? 'text-green-800 dark:text-green-400'
               : 'text-red-800 dark:text-red-400'
             }`}>
@@ -304,8 +304,8 @@ export function ReviewScreen({ returnId }: Props) {
         </div>
 
         {/* ── Compliance checkbox ─────────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5">
-          <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-3">Compliance Check</p>
+        <div className="bg-surface rounded-2xl border border-separator p-5">
+          <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-3">Compliance Check</p>
           <label className="flex items-start gap-3 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -313,7 +313,7 @@ export function ReviewScreen({ returnId }: Props) {
               onChange={e => setComplianceChecked(e.target.checked)}
               className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-blue-600"
             />
-            <span className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">
+            <span className="text-sm text-app-text">
               I confirm all charges reflect company-approved rates and this return complies with
               California Civil Code §1950.5 — it will be postmarked within 21 days of move-out.
             </span>
@@ -324,7 +324,7 @@ export function ReviewScreen({ returnId }: Props) {
         <button
           onClick={handleDownload}
           disabled={!pdfReady || !complianceChecked}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-[#e5e5ea] dark:disabled:bg-[#3a3a3c] disabled:text-[#8e8e93] disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl transition-colors text-sm"
+          className="w-full bg-accent hover:bg-accent-hover disabled:bg-fill disabled:text-secondary disabled:cursor-not-allowed text-on-accent font-semibold py-3.5 rounded-2xl transition-colors text-sm"
         >
           {generating
             ? 'Generating PDF…'
@@ -337,7 +337,7 @@ export function ReviewScreen({ returnId }: Props) {
 
         <button
           onClick={() => router.push('/dashboard')}
-          className="w-full border border-[#e5e5ea] dark:border-[#48484a] text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white font-medium py-2.5 rounded-2xl hover:bg-[#f2f2f7] dark:hover:bg-[#3a3a3c] transition-colors text-sm"
+          className="w-full border border-separator text-secondary hover:text-app-text font-medium py-2.5 rounded-2xl hover:bg-fill transition-colors text-sm"
         >
           ← Back to Dashboard
         </button>
