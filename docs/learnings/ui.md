@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: 3ea2e35 :: Flash of light mode on dark reload — <html> missing suppressHydrationWarning -->
+### 2026-07-06 · ui · bug · Flash of light mode on dark reload — <html> missing suppressHydrationWarning
+- **Ref:** 3ea2e35
+- **Symptom:** On a reload with theme=dark stored, the page briefly (or persistently in some renders) showed light mode; dev console logged an <html> className hydration mismatch (server 'h-full antialiased' vs client '...dark').
+- **Root cause:** layout.tsx <html> lacked suppressHydrationWarning. React saw the imperatively-added .dark class as a server/client mismatch and reconciled it away.
+- **Fix:** Add suppressHydrationWarning to the <html> element in app/layout.tsx.
+- **Lesson:** Any element mutated by a pre-hydration inline script (theme class, lang, etc.) must carry suppressHydrationWarning, or React will strip the change on hydration. Verify with a seeded dark reload: body bg should be #1c1c1e with zero hydration console errors.
+
+
 <!-- log-id: 2333f85 :: Dark mode via Tailwind v4 @theme inline + CSS-var flip (no dark: duplication) -->
 ### 2026-07-06 · ui · gotcha · Dark mode via Tailwind v4 @theme inline + CSS-var flip (no dark: duplication)
 - **Ref:** 2333f85
