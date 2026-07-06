@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: photos-race :: Simultaneous uploads clobber state when handler reads closure, not prev -->
+### 2026-07-06 · ui · bug · Simultaneous uploads clobber state when handler reads closure, not prev
+- **Ref:** photos-race
+- **Symptom:** Uploading a move-in and a move-out photo back-to-back left only the last one; the other silently vanished.
+- **Root cause:** addPhotos computed `{...photos, [k]:...}` from the closure captured at call time; both calls fired before a re-render, so both saw the initial empty value.
+- **Fix:** Use functional setState (setPhotos(prev => ({...prev,[k]:[...prev[k],...]}))) so each update builds on the latest state; persist via an effect on the value.
+- **Lesson:** Any state update derived from previous state — especially in async handlers that can overlap — must use the functional updater form, not a value read from the render closure.
+
+
 <!-- log-id: b1hp4c8bt :: Don't call another component's setState inside a setState updater -->
 ### 2026-07-06 · ui · gotcha · Don't call another component's setState inside a setState updater
 - **Ref:** b1hp4c8bt
