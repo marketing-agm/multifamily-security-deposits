@@ -322,13 +322,6 @@ export function ReturnForm({ returnId }: Props) {
             />
           )}
 
-          {/* Color legend */}
-          <div className="flex flex-wrap gap-4 pt-2 border-t border-separator">
-            <LegendItem color="bg-green-400" label="From AppFolio (editable)" />
-            <LegendItem color="bg-blue-400" label="Calculated (override OK)" />
-            <LegendItem color="bg-yellow-400" label="Manual entry" />
-          </div>
-
           {/* Bottom navigation */}
           <div className="flex items-center justify-between pt-2">
             <button
@@ -349,7 +342,7 @@ export function ReturnForm({ returnId }: Props) {
             ) : (
               <button
                 onClick={nextSection}
-                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline transition-colors"
+                className="text-sm font-medium text-app-text hover:underline transition-colors"
               >
                 Next →
               </button>
@@ -448,21 +441,15 @@ export function ReturnForm({ returnId }: Props) {
 
 // ── Shared primitives ──────────────────────────────────────────────────────────
 
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5 text-xs text-secondary">
-      <span className={`inline-block w-2 h-2 rounded-full ${color}`} />
-      {label}
-    </span>
-  );
-}
-
-// Input styled to signal data origin: green = AppFolio, yellow = manual, blue = calculated.
+// Every field uses the SAME neutral, editable style now — no color-coding by
+// data source. (The `variant` prop is kept on the field components so existing
+// call sites don't break, but it no longer changes the appearance.)
 type InputVariant = 'appfolio' | 'manual' | 'calculated';
+const NEUTRAL_INPUT = 'bg-surface border-tertiary';
 const INPUT_STYLE: Record<InputVariant, string> = {
-  appfolio:   'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',
-  manual:     'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700',
-  calculated: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700',
+  appfolio:   NEUTRAL_INPUT,
+  manual:     NEUTRAL_INPUT,
+  calculated: NEUTRAL_INPUT,
 };
 
 function EditField({
@@ -782,7 +769,7 @@ function SectionUtility({
             <NumberField label="Flat fee rate ($/month)" value={utilityRate} onChange={onRateChange} />
           </div>
           {utilityCharge > 0 ? (
-            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+            <p className="text-sm font-medium text-app-text">
               Calculated utility charge: {formatCurrency(utilityCharge)}
             </p>
           ) : (
@@ -800,7 +787,7 @@ function SectionUtility({
             <NumberField label="Building total ($)" value={rubsInput.buildingTotal} onChange={v => onRubsChange({ ...rubsInput, buildingTotal: v })} variant="manual" />
             <NumberField label="Unit ratio (e.g. 0.08)" value={rubsInput.unitRatio} onChange={v => onRubsChange({ ...rubsInput, unitRatio: v })} variant="manual" prefix="" />
           </div>
-          <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+          <p className="text-sm font-medium text-app-text">
             Calculated tenant share: {formatCurrency(utilityCharge)}
           </p>
         </div>
@@ -926,13 +913,13 @@ function SectionTotalCharges({
           {calculatedCharges.rentDue > 0 && (
             <div className="flex justify-between">
               <span className="text-sm text-secondary">Rent due {calculatedCharges.rentDueDateRange ? `(${calculatedCharges.rentDueDateRange})` : ''}</span>
-              <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{formatCurrency(calculatedCharges.rentDue)}</span>
+              <span className="text-sm text-app-text font-medium">{formatCurrency(calculatedCharges.rentDue)}</span>
             </div>
           )}
           {calculatedCharges.utilityCharge > 0 && (
             <div className="flex justify-between">
               <span className="text-sm text-secondary">Utility charge</span>
-              <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{formatCurrency(calculatedCharges.utilityCharge)}</span>
+              <span className="text-sm text-app-text font-medium">{formatCurrency(calculatedCharges.utilityCharge)}</span>
             </div>
           )}
         </div>
