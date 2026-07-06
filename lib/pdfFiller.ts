@@ -1,5 +1,5 @@
 import { PDFDocument, PDFCheckBox, PDFTextField } from 'pdf-lib';
-import { TenantReturn } from '@/types';
+import { TenantReturn, PropertyConfig } from '@/types';
 import { FIELD_MAP } from './fieldMap';
 import { calcNRCOffset, calcTotalCharges, calcTotalCredits, calcBalance, formatCurrency } from './calculations';
 
@@ -39,7 +39,8 @@ function amt(n: number): string {
 export async function fillAGMCheckoutPDF(
   templateBytes: ArrayBuffer,
   tr: TenantReturn,
-  propertyName: string
+  propertyName: string,
+  propertyConfig?: PropertyConfig | null,
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(templateBytes);
   const form = pdfDoc.getForm();
@@ -54,6 +55,12 @@ export async function fillAGMCheckoutPDF(
   // ── Header ────────────────────────────────────────────────────────────────
   setText(form, FIELD_MAP.propertyName, propertyName);
   setText(form, FIELD_MAP.unit, t.unit);
+  if (propertyConfig?.siteManagerName) {
+    setText(form, FIELD_MAP.siteManagerName, propertyConfig.siteManagerName);
+  }
+  if (propertyConfig?.propertyManagerName) {
+    setText(form, FIELD_MAP.propertyManagerName, propertyConfig.propertyManagerName);
+  }
 
   // Mailing TO: block
   setText(form, FIELD_MAP.tenantName, t.tenantName);

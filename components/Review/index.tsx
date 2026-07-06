@@ -40,7 +40,7 @@ export function ReviewScreen({ returnId }: Props) {
       const templateRes = await fetch('/AGM_template.pdf');
       if (!templateRes.ok) throw new Error('PDF template not found. Please add AGM_template.pdf to /public.');
       const templateBytes = await templateRes.arrayBuffer();
-      const filled = await fillAGMCheckoutPDF(templateBytes, tenantReturn!, session!.propertyName);
+      const filled = await fillAGMCheckoutPDF(templateBytes, tenantReturn!, session!.propertyName, session!.propertyConfig);
       setPdfBytes(filled);
       setPdfReady(true);
       updateReturn(returnId, { processingStatus: 'complete', complianceChecked: true, pdfGenerated: true });
