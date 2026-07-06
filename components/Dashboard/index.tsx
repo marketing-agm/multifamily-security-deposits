@@ -28,30 +28,30 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#1c1c1e]">
+    <div className="min-h-screen bg-bg">
       {/* Header */}
-      <div className="bg-white dark:bg-[#2c2c2e] border-b border-[#e5e5ea] dark:border-[#38383a] px-6 py-4">
+      <div className="bg-surface border-b border-separator px-6 py-4">
         <div className="w-full flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-[#1c1c1e] dark:text-white">
+            <h1 className="text-title2 text-app-text">
               {session.propertyName || 'Security Deposit Returns'}
             </h1>
-            <p className="text-sm text-[#8e8e93] mt-0.5">
+            <p className="text-subhead text-secondary mt-0.5">
               {complete} of {total} complete · Uploaded {session.uploadDate}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Dark mode toggle */}
+            {/* Dark mode toggle — 44px min tap target per HIG */}
             <button
               onClick={toggle}
-              className="w-9 h-9 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] flex items-center justify-center text-base hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] transition-colors"
+              className="w-11 h-11 rounded-full bg-fill flex items-center justify-center text-base hover:brightness-95 dark:hover:brightness-110 transition-colors"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
             <button
               onClick={() => { clearSession(); router.push('/'); }}
-              className="text-sm text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white transition-colors"
+              className="text-subhead text-secondary hover:text-app-text transition-colors"
             >
               Start new upload
             </button>
@@ -59,9 +59,9 @@ export function Dashboard() {
         </div>
 
         {/* Progress bar */}
-        <div className="mt-3 h-1.5 bg-[#e5e5ea] dark:bg-[#38383a] rounded-full overflow-hidden">
+        <div className="mt-3 h-1.5 bg-separator rounded-full overflow-hidden">
           <div
-            className="h-full bg-green-500 rounded-full transition-all duration-500"
+            className="h-full bg-success rounded-full transition-all duration-500"
             style={{ width: total > 0 ? `${(complete / total) * 100}%` : '0%' }}
           />
         </div>
@@ -70,16 +70,16 @@ export function Dashboard() {
       {/* Content */}
       <div className="w-full px-6 py-6 space-y-1">
         {/* Section header — Obsidian style */}
-        <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider px-1 mb-2">
+        <p className="text-caption font-semibold text-secondary uppercase tracking-wider px-1 mb-2">
           Move-Outs · {pending} pending
         </p>
 
         {/* Grouped list card */}
-        <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl overflow-hidden border border-[#e5e5ea] dark:border-[#38383a]">
+        <div className="bg-surface rounded-lg overflow-hidden border border-separator shadow-card">
           {/* Table header */}
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_40px] gap-0 px-4 py-2.5 bg-[#f8f8f8] dark:bg-[#3a3a3c] border-b border-[#e5e5ea] dark:border-[#38383a]">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_40px] gap-0 px-4 py-2.5 bg-surface-2 border-b border-separator">
             {['Tenant / Unit', 'Move-Out', 'Due Date', 'Days Left', 'Deposit', 'Utility', 'Inspection', ''].map((h, i) => (
-              <span key={i} className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">{h}</span>
+              <span key={i} className="text-caption font-semibold text-secondary uppercase tracking-wider">{h}</span>
             ))}
           </div>
 
@@ -88,37 +88,35 @@ export function Dashboard() {
             const moveOut = r.tenantData.moveOutDate ? new Date(r.tenantData.moveOutDate) : null;
             const deadline = moveOut ? new Date(moveOut.getTime() + 21 * 24 * 60 * 60 * 1000) : null;
             const daysLeft = deadline ? Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
-            const urgency = daysLeft !== null ? (daysLeft <= 3 ? 'text-red-600 dark:text-red-400' : daysLeft <= 7 ? 'text-orange-500 dark:text-orange-400' : 'text-[#8e8e93]') : 'text-[#8e8e93]';
-
             return (
               <div
                 key={r.id}
                 onClick={() => handleRowClick(r)}
-                className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_40px] gap-0 px-4 py-3.5 cursor-pointer hover:bg-[#f2f2f7] dark:hover:bg-[#3a3a3c] transition-colors ${
-                  i < session.returns.length - 1 ? 'border-b border-[#e5e5ea] dark:border-[#38383a]' : ''
+                className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_40px] gap-0 px-4 py-3.5 cursor-pointer hover:bg-fill transition-colors ${
+                  i < session.returns.length - 1 ? 'border-b border-separator' : ''
                 }`}
               >
                 {/* Tenant */}
                 <div className="flex flex-col justify-center">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-[#1c1c1e] dark:text-white">{r.tenantData.tenantName}</span>
+                    <span className="text-subhead font-medium text-app-text">{r.tenantData.tenantName}</span>
                     {r.tenantData.leaseBreak && (
-                      <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 px-1.5 py-0.5 rounded-full">
+                      <span className="text-[10px] font-semibold text-warning bg-warning/12 px-1.5 py-0.5 rounded-full">
                         Lease Break
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-[#8e8e93] mt-0.5">Unit {r.tenantData.unit} · {formatCurrency(r.depositData.securityDeposit)} deposit</span>
+                  <span className="text-caption text-secondary mt-0.5">Unit {r.tenantData.unit} · {formatCurrency(r.depositData.securityDeposit)} deposit</span>
                 </div>
 
                 {/* Move-Out */}
                 <div className="flex items-center">
-                  <span className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">{r.tenantData.moveOutDate}</span>
+                  <span className="text-subhead text-app-text">{r.tenantData.moveOutDate}</span>
                 </div>
 
                 {/* Due Date */}
                 <div className="flex items-center">
-                  <span className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">
+                  <span className="text-subhead text-app-text">
                     {deadline ? deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                   </span>
                 </div>
@@ -126,19 +124,19 @@ export function Dashboard() {
                 {/* Days Left */}
                 <div className="flex items-center">
                   {daysLeft !== null ? (
-                    <span className={`text-sm font-medium px-2 py-0.5 rounded-full text-xs ${
-                      daysLeft <= 3 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-                      daysLeft <= 7 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
-                      'bg-[#f2f2f7] dark:bg-[#3a3a3c] text-[#8e8e93]'
+                    <span className={`font-medium px-2 py-0.5 rounded-full text-caption ${
+                      daysLeft <= 3 ? 'bg-danger/15 text-danger' :
+                      daysLeft <= 7 ? 'bg-warning/15 text-warning' :
+                      'bg-fill text-secondary'
                     }`}>
                       {daysLeft}d left
                     </span>
-                  ) : <span className="text-[#8e8e93]">—</span>}
+                  ) : <span className="text-secondary">—</span>}
                 </div>
 
                 {/* Deposit */}
                 <div className="flex items-center">
-                  <span className="text-sm font-medium text-[#1c1c1e] dark:text-[#ebebf5]">{formatCurrency(r.depositData.securityDeposit)}</span>
+                  <span className="text-subhead font-medium text-app-text">{formatCurrency(r.depositData.securityDeposit)}</span>
                 </div>
 
                 {/* Utility */}
