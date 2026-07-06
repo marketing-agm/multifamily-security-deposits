@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
 import { useTheme } from '@/context/ThemeContext';
-import { ManualCharges, TenantReturn, RUBSManualInput, TenantData, DepositData } from '@/types';
+import { ManualCharges, TenantReturn, RUBSManualInput, TenantData, DepositData, InspectionPhotos } from '@/types';
+import { compressImageFile } from '@/lib/imageCompress';
 import {
   computeCalculatedCharges, calcNRCOffset, calcTotalCharges,
   calcTotalCredits, calcBalance, formatCurrency,
@@ -71,6 +72,11 @@ export function ReturnForm({ returnId }: Props) {
   );
   const [utilityRate, setUtilityRate] = useState(tenantReturn?.utilityData.flatFeeRate ?? 0);
 
+  // Move-in / move-out inspection photos (compressed data URLs).
+  const [photos, setPhotos] = useState<InspectionPhotos>(
+    tenantReturn?.inspectionPhotos ?? { moveIn: [], moveOut: [] }
+  );
+
   useEffect(() => {
     if (!session) router.replace('/');
   }, [session, router]);
@@ -119,6 +125,7 @@ export function ReturnForm({ returnId }: Props) {
       rubsManualInput: rubsInput,
       calculatedCharges,
       utilityData: liveUtilityData,
+      inspectionPhotos: photos,
       processingStatus: section < 7 ? 'in_progress' : tenantReturn!.processingStatus,
     });
   }
@@ -131,9 +138,33 @@ export function ReturnForm({ returnId }: Props) {
       rubsManualInput: rubsInput,
       calculatedCharges,
       utilityData: liveUtilityData,
+      inspectionPhotos: photos,
       processingStatus: 'in_progress',
     });
     router.push(`/review/${returnId}`);
+  }
+
+  // Compress and add uploaded photos, persisting immediately so they survive
+  // navigation even before the next saveProgress().
+  async function addPhotos(which: keyof InspectionPhotos, files: FileList | null) {
+    if (!files || files.length === 0) return;
+    try {
+      const encoded = await Promise.all(Array.from(files).map(compressImageFile));
+      setPhotos(prev => {
+        const next = { ...prev, [which]: [...prev[which], ...encoded] };
+        updateReturn(returnId, { inspectionPhotos: next });
+        return next;
+      });
+    } catch {
+      // A single bad image shouldn't break the upload — silently skip.
+    }
+  }
+  function removePhoto(which: keyof InspectionPhotos, index: number) {
+    setPhotos(prev => {
+      const next = { ...prev, [which]: prev[which].filter((_, i) => i !== index) };
+      updateReturn(returnId, { inspectionPhotos: next });
+      return next;
+    });
   }
 
   function nextSection() {
@@ -293,6 +324,11 @@ export function ReturnForm({ returnId }: Props) {
             <SectionInspection
               inspectionSigned={tenantData.inspectionStatus === 'signed'}
               onToggle={v => updateTenant('inspectionStatus', v ? 'signed' : 'missing')}
+              photos={photos}
+              onAddPhotos={addPhotos}
+              onRemovePhoto={removePhoto}
+              moveInDate={tenantData.moveInDate}
+              moveOutDate={tenantData.moveOutDate}
             />
           )}
           {section === 4 && (
@@ -701,10 +737,15 @@ function SectionNRCFees({
 }
 
 function SectionInspection({
-  inspectionSigned, onToggle,
+  inspectionSigned, onToggle, photos, onAddPhotos, onRemovePhoto, moveInDate, moveOutDate,
 }: {
   inspectionSigned: boolean;
   onToggle: (v: boolean) => void;
+  photos: InspectionPhotos;
+  onAddPhotos: (which: keyof InspectionPhotos, files: FileList | null) => void;
+  onRemovePhoto: (which: keyof InspectionPhotos, index: number) => void;
+  moveInDate: string;
+  moveOutDate: string;
 }) {
   return (
     <SectionCard title="Move-In / Out Photos">
@@ -732,7 +773,78 @@ function SectionInspection({
           )}
         </div>
       </label>
+
+      {/* Photo upload — move-in and move-out side by side. */}
+      <div className="grid grid-cols-2 gap-4 border-t border-separator pt-4">
+        <PhotoUpload
+          title="Move-in photos"
+          date={moveInDate}
+          images={photos.moveIn}
+          onAdd={files => onAddPhotos('moveIn', files)}
+          onRemove={i => onRemovePhoto('moveIn', i)}
+        />
+        <PhotoUpload
+          title="Move-out photos"
+          date={moveOutDate}
+          images={photos.moveOut}
+          onAdd={files => onAddPhotos('moveOut', files)}
+          onRemove={i => onRemovePhoto('moveOut', i)}
+        />
+      </div>
     </SectionCard>
+  );
+}
+
+// One upload column (move-in or move-out): drop/click to add, thumbnail grid.
+function PhotoUpload({
+  title, date, images, onAdd, onRemove,
+}: {
+  title: string;
+  date: string;
+  images: string[];
+  onAdd: (files: FileList | null) => void;
+  onRemove: (index: number) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between">
+        <span className="text-xs font-semibold text-app-text">{title}</span>
+        {date && <span className="text-xs text-secondary">{date}</span>}
+      </div>
+
+      {/* Click-to-upload zone */}
+      <label className="flex flex-col items-center justify-center gap-1 border border-dashed border-tertiary rounded-xl py-6 cursor-pointer hover:bg-fill transition-colors">
+        <span className="text-xl">📷</span>
+        <span className="text-xs text-secondary">Click to upload</span>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={e => { onAdd(e.target.files); e.currentTarget.value = ''; }}
+        />
+      </label>
+
+      {images.length > 0 ? (
+        <div className="grid grid-cols-3 gap-2">
+          {images.map((src, i) => (
+            <div key={i} className="relative group aspect-square">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt={`${title} ${i + 1}`} className="w-full h-full object-cover rounded-lg border border-separator" />
+              <button
+                onClick={() => onRemove(i)}
+                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-danger text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Remove photo"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-secondary text-center">No photos yet</p>
+      )}
+    </div>
   );
 }
 

@@ -76,6 +76,13 @@ export interface RUBSManualInput {
   unitRatio: number;
 }
 
+// Inspection photos uploaded by the property manager, stored as (compressed)
+// data URLs so they persist in the localStorage session and render in the form.
+export interface InspectionPhotos {
+  moveIn: string[];
+  moveOut: string[];
+}
+
 export interface TenantReturn {
   id: string;
   tenantData: TenantData;
@@ -88,6 +95,7 @@ export interface TenantReturn {
   processingStatus: ProcessingStatus;
   complianceChecked: boolean;
   pdfGenerated: boolean;
+  inspectionPhotos?: InspectionPhotos;
 }
 
 export interface PropertyConfig {
