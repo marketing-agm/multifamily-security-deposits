@@ -1,7 +1,14 @@
 import { PDFDocument, PDFCheckBox, PDFTextField } from 'pdf-lib';
 import { TenantReturn, PropertyConfig } from '@/types';
 import { FIELD_MAP } from './fieldMap';
-import { calcNRCOffset, calcTotalCharges, calcTotalCredits, calcBalance, formatCurrency } from './calculations';
+import { calcNRCOffset, calcTotalCharges, calcTotalCredits, calcBalance } from './calculations';
+
+// Money for the PDF: 2 decimals, thousands separators, and NO "$" — the AGM
+// template already prints a "$" in each currency cell, so adding one here would
+// render "$$0.00". Always shows two decimals (0 → "0.00").
+function money(n: number): string {
+  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+}
 
 function setText(form: ReturnType<PDFDocument['getForm']>, fieldName: string, value: string): void {
   try {
@@ -31,9 +38,9 @@ function dateParts(iso: string | null): { month: string; day: string; year: stri
   return { month: String(parseInt(m, 10)), day: String(parseInt(d, 10)), year: y };
 }
 
-// Currency without the dollar sign, for cells that don't need the symbol.
+// Currency cell value — always two decimals, no "$" (see money() above).
 function amt(n: number): string {
-  return n === 0 ? '' : formatCurrency(n);
+  return money(n);
 }
 
 export async function fillAGMCheckoutPDF(
@@ -82,9 +89,9 @@ export async function fillAGMCheckoutPDF(
   setCheck(form, FIELD_MAP.leaseBreakNo,       !t.leaseBreak);
   setText(form, FIELD_MAP.newTenantMoveInDate, t.newTenantMoveInDate ?? '');
 
-  setText(form, FIELD_MAP.monthlyRent,   formatCurrency(t.monthlyRent));
-  setText(form, FIELD_MAP.nrcCleaningFee, dep.nrcCleaningFee > 0 ? formatCurrency(dep.nrcCleaningFee) : '');
-  setText(form, FIELD_MAP.nrcPetFee,      dep.nrcPetFee > 0 ? formatCurrency(dep.nrcPetFee) : '');
+  setText(form, FIELD_MAP.monthlyRent,   money(t.monthlyRent));
+  setText(form, FIELD_MAP.nrcCleaningFee, dep.nrcCleaningFee > 0 ? money(dep.nrcCleaningFee) : '');
+  setText(form, FIELD_MAP.nrcPetFee,      dep.nrcPetFee > 0 ? money(dep.nrcPetFee) : '');
 
   // ── Charges Table ─────────────────────────────────────────────────────────
   setText(form, FIELD_MAP.generalCleaningTotal,   amt(mc.generalCleaning));
@@ -143,19 +150,26 @@ export async function fillAGMCheckoutPDF(
   setText(form, FIELD_MAP.legalCourtCostsTenant,  amt(mc.legalCourtCosts));
 
   // Totals
-  setText(form, FIELD_MAP.totalCostsChargesTotal,   formatCurrency(totalCharges));
-  setText(form, FIELD_MAP.totalCostsChargesTenant,  formatCurrency(totalCharges));
+  setText(form, FIELD_MAP.totalCostsChargesTotal,   money(totalCharges));
+  setText(form, FIELD_MAP.totalCostsChargesTenant,  money(totalCharges));
 
   // ── Credits ───────────────────────────────────────────────────────────────
-  setText(form, FIELD_MAP.securityDepositPaid, formatCurrency(dep.securityDeposit));
-  setText(form, FIELD_MAP.otherDepositsPaid,   otherDeposits > 0 ? formatCurrency(otherDeposits) : '');
-  setText(form, FIELD_MAP.totalCredits,         formatCurrency(totalCredits));
+  setText(form, FIELD_MAP.securityDepositPaid, money(dep.securityDeposit));
+  setText(form, FIELD_MAP.otherDepositsPaid,   otherDeposits > 0 ? money(otherDeposits) : '');
+  setText(form, FIELD_MAP.totalCredits,         money(totalCredits));
 
   // ── Balance ───────────────────────────────────────────────────────────────
   setCheck(form, FIELD_MAP.balanceZero,          balance === 0);
   setCheck(form, FIELD_MAP.balanceDueToTenant,   balance > 0);
   setCheck(form, FIELD_MAP.balanceOwingLandlord, balance < 0);
-  setText(form, FIELD_MAP.balanceAmount, formatCurrency(Math.abs(balance)));
+  setText(form, FIELD_MAP.balanceAmount, money(Math.abs(balance)));
+
+  // ── Auto-filled date ──────────────────────────────────────────────────────
+  // Stamp "Date Mailed to Tenant" with today's date (staff can still edit the PDF).
+  const today = new Date();
+  setText(form, FIELD_MAP.dateMailedToTenantMonth, String(today.getMonth() + 1));
+  setText(form, FIELD_MAP.dateMailedToTenantDay,   String(today.getDate()));
+  setText(form, FIELD_MAP.dateMailedToTenantYear,  String(today.getFullYear()));
 
   // Count how many fields ended up with a non-empty / checked value.
   const fields = form.getFields();

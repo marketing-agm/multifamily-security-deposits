@@ -7,6 +7,10 @@ import { useTheme } from '@/context/ThemeContext';
 import { calcTotalCharges, calcTotalCredits, calcBalance, formatCurrency } from '@/lib/calculations';
 import { fillAGMCheckoutPDF } from '@/lib/pdfFiller';
 import { FIELD_MAP } from '@/lib/fieldMap';
+import { computeDeadline, daysUntilDeadline as daysUntil, DEADLINE_LAW_REF, DEPOSIT_RETURN_DAYS } from '@/lib/deadline';
+
+// AGM's mailing address for the FROM block on the checkout report.
+const AGM_ADDRESS = '12330 Northup Way, Bellevue, WA 98005';
 
 // Total fields in the PDF template — used for the "X/Y fields populated" badge.
 const TOTAL_FIELDS = Object.keys(FIELD_MAP).length;
@@ -72,17 +76,9 @@ export function ReviewScreen({ returnId }: Props) {
   const totalCredits = calcTotalCredits(tenantReturn);
   const balance = calcBalance(tenantReturn);
 
-  // California Civil Code §1950.5 — 21-day deadline from move-out date.
-  const deadlineDate = tenantData.moveOutDate
-    ? (() => {
-        const d = new Date(tenantData.moveOutDate + 'T00:00:00');
-        d.setDate(d.getDate() + 21);
-        return d;
-      })()
-    : null;
-  const daysUntilDeadline = deadlineDate
-    ? Math.ceil((deadlineDate.getTime() - Date.now()) / 86_400_000)
-    : null;
+  // Washington RCW 59.18.280 — 30-day deadline from move-out date.
+  const deadlineDate = computeDeadline(tenantData.moveOutDate);
+  const daysUntilDeadline = daysUntil(deadlineDate);
 
   // Property address for the FROM block.
   const propertyAddress = session.propertyConfig?.address ?? '';
@@ -154,34 +150,36 @@ export function ReviewScreen({ returnId }: Props) {
 
       <div className="flex-1 px-6 py-6 max-w-3xl mx-auto w-full space-y-5">
 
-        {/* ── California §1950.5 deadline banner ─────────────────────────────── */}
+        {/* ── Washington RCW 59.18.280 deadline banner ───────────────────────── */}
+        {/* Days-left is the focal point (big number block on the right), per spec. */}
         <div className={`rounded-2xl border px-5 py-4 ${deadlineBannerClass}`}>
-          <div className="flex items-start gap-3">
-            <span className="text-lg shrink-0">⚖️</span>
-            <div>
-              <p className="text-sm font-semibold">
-                California Civil Code §1950.5 — 21-Day Deadline
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-wider">
+                {DEADLINE_LAW_REF} — {DEPOSIT_RETURN_DAYS}-Day Deadline
               </p>
               {deadlineDate ? (
-                <p className="text-sm mt-0.5">
+                <p className="text-sm mt-1">
                   Deposit return must be postmarked by{' '}
                   <strong>
                     {deadlineDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                   </strong>
-                  {daysUntilDeadline !== null && (
-                    <> —{' '}
-                      {daysUntilDeadline > 0
-                        ? `${daysUntilDeadline} day${daysUntilDeadline === 1 ? '' : 's'} remaining`
-                        : daysUntilDeadline === 0
-                        ? 'due today'
-                        : `${Math.abs(daysUntilDeadline)} day${Math.abs(daysUntilDeadline) === 1 ? '' : 's'} overdue`}
-                    </>
-                  )}
+                  . Mail the itemized statement and any refund check to the forwarding address below.
                 </p>
               ) : (
-                <p className="text-sm mt-0.5">Enter a move-out date to see the deadline.</p>
+                <p className="text-sm mt-1">Enter a move-out date to see the deadline.</p>
               )}
             </div>
+            {daysUntilDeadline !== null && (
+              <div className="shrink-0 text-center rounded-xl border border-current/25 px-4 py-2 min-w-[92px]">
+                <div className="text-3xl font-bold leading-none tabular-nums">
+                  {Math.abs(daysUntilDeadline)}
+                </div>
+                <div className="text-[11px] font-medium uppercase tracking-wide mt-1">
+                  {daysUntilDeadline > 0 ? 'days left' : daysUntilDeadline === 0 ? 'due today' : 'days overdue'}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -191,8 +189,9 @@ export function ReviewScreen({ returnId }: Props) {
           <div className="bg-surface rounded-2xl border border-separator p-5">
             <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-3">From</p>
             <p className="text-sm font-semibold text-app-text">AGM Real Estate Group</p>
+            <p className="text-sm text-secondary mt-0.5">{AGM_ADDRESS}</p>
             {session.propertyName && (
-              <p className="text-sm text-app-text mt-0.5">{session.propertyName}</p>
+              <p className="text-sm text-app-text mt-1">{session.propertyName}</p>
             )}
             {propertyAddress && (
               <p className="text-sm text-secondary mt-0.5">{propertyAddress}</p>
@@ -315,7 +314,7 @@ export function ReviewScreen({ returnId }: Props) {
             />
             <span className="text-sm text-app-text">
               I confirm all charges reflect company-approved rates and this return complies with
-              California Civil Code §1950.5 — it will be postmarked within 21 days of move-out.
+              {' '}{DEADLINE_LAW_REF} — it will be postmarked within {DEPOSIT_RETURN_DAYS} days of move-out.
             </span>
           </label>
         </div>

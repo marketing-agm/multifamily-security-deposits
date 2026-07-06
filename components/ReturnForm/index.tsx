@@ -688,7 +688,7 @@ function SectionInspection({
   return (
     <SectionCard title="Move-In / Out Photos">
       <p className="text-sm text-secondary">
-        A signed move-in inspection report is required to legally defend deductions in small claims court under California Civil Code §1950.5.
+        A signed move-in inspection report is required to legally defend deductions in small claims court under Washington RCW 59.18.280.
       </p>
       <label className="flex items-start gap-3 cursor-pointer select-none">
         <input

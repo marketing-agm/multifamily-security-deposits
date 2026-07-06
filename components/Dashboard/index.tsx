@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { InspectionBadge } from '@/components/shared/InspectionBadge';
 import { UtilityTag } from '@/components/shared/UtilityTag';
 import { formatCurrency } from '@/lib/calculations';
+import { computeDeadline, daysUntilDeadline } from '@/lib/deadline';
 import { TenantReturn } from '@/types';
 
 export function Dashboard() {
@@ -85,9 +86,8 @@ export function Dashboard() {
 
           {/* Rows */}
           {session.returns.map((r, i) => {
-            const moveOut = r.tenantData.moveOutDate ? new Date(r.tenantData.moveOutDate) : null;
-            const deadline = moveOut ? new Date(moveOut.getTime() + 21 * 24 * 60 * 60 * 1000) : null;
-            const daysLeft = deadline ? Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+            const deadline = computeDeadline(r.tenantData.moveOutDate);
+            const daysLeft = daysUntilDeadline(deadline);
             return (
               <div
                 key={r.id}
