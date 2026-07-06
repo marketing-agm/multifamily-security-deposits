@@ -9,6 +9,7 @@ Cross-session record of fixes and gotchas. **Before fixing in an area, grep its 
 - [2026-07-06] bug — Dashboard showed 0 tenants after uploading a real AppFolio Excel export because the parser misread the file structure. (2618a8f)
 
 ## infra
+- [2026-07-06] gotcha — next dev (Turbopack) kept serving pre-edit globals.css, so new design tokens / dark-mode vars were missing at runtime despite a passing build. (02d9381)
 - [2026-07-06] gotcha — The pr-screenshot-verify CHROME_CANDIDATES list was missing the Linux Chromium path used in remote Claude Code containers. (53a077a)
 - [2026-07-06] gotcha — app/page.tsx was overwritten by the sim demo PR to redirect to /sim. The real upload page and all downstream screens were unreachable from the root URL. (7a4a4e6)
 
