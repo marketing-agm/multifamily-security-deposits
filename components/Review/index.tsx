@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
 import { useTheme } from '@/context/ThemeContext';
-import { calcNRCOffset, calcTotalCharges, calcTotalCredits, calcBalance, formatCurrency } from '@/lib/calculations';
+import { calcTotalCharges, calcTotalCredits, calcBalance, formatCurrency } from '@/lib/calculations';
 import { fillAGMCheckoutPDF } from '@/lib/pdfFiller';
-import { InspectionBadge } from '@/components/shared/InspectionBadge';
+import { FIELD_MAP } from '@/lib/fieldMap';
+
+// Total fields in the PDF template — used for the "X/Y fields populated" badge.
+const TOTAL_FIELDS = Object.keys(FIELD_MAP).length;
 
 interface Props {
   returnId: string;
@@ -16,40 +19,80 @@ export function ReviewScreen({ returnId }: Props) {
   const { session, updateReturn } = useSession();
   const { theme, toggle } = useTheme();
   const router = useRouter();
+
   const [complianceChecked, setComplianceChecked] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [pdfReady, setPdfReady] = useState(false);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
+  // How many PDF fields were populated (returned by fillAGMCheckoutPDF)
+  const [fieldsPopulated, setFieldsPopulated] = useState<number | null>(null);
+  const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
 
   const tenantReturn = session?.returns.find(r => r.id === returnId);
-  if (!tenantReturn || !session) {
-    if (typeof window !== 'undefined') router.replace('/');
-    return null;
-  }
 
+  useEffect(() => {
+    if (!session) router.replace('/');
+  }, [session, router]);
+
+  // Auto-generate the PDF when the page mounts so it's ready to preview/download.
+  useEffect(() => {
+    if (!tenantReturn || !session || pdfReady) return;
+    let cancelled = false;
+    setGenerating(true);
+    (async () => {
+      try {
+        const templateRes = await fetch('/AGM_template.pdf');
+        if (!templateRes.ok) throw new Error('PDF template not found.');
+        const templateBytes = await templateRes.arrayBuffer();
+        const { filled, populated } = await fillAGMCheckoutPDF(
+          templateBytes, tenantReturn, session.propertyName, session.propertyConfig,
+        );
+        if (!cancelled) {
+          setPdfBytes(filled);
+          setFieldsPopulated(populated ?? null);
+          // Create a blob URL so Preview can open it in a new tab.
+          const blob = new Blob([filled.buffer as ArrayBuffer], { type: 'application/pdf' });
+          setPdfObjectUrl(URL.createObjectURL(blob));
+          setPdfReady(true);
+        }
+      } catch (_err) {
+        // Silent — the error surfaces when the user tries to download.
+      } finally {
+        if (!cancelled) setGenerating(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returnId]);
+
+  if (!tenantReturn || !session) return null;
+
+  const { tenantData, depositData } = tenantReturn;
   const totalCharges = calcTotalCharges(tenantReturn);
   const totalCredits = calcTotalCredits(tenantReturn);
   const balance = calcBalance(tenantReturn);
-  const cleaningTenant = calcNRCOffset(tenantReturn.manualCharges.generalCleaning, tenantReturn.depositData.nrcCleaningFee);
-  const { tenantData, depositData, manualCharges, calculatedCharges } = tenantReturn;
 
-  async function handleCompliance() {
-    if (!complianceChecked) return;
-    setGenerating(true);
-    try {
-      const templateRes = await fetch('/AGM_template.pdf');
-      if (!templateRes.ok) throw new Error('PDF template not found. Please add AGM_template.pdf to /public.');
-      const templateBytes = await templateRes.arrayBuffer();
-      const filled = await fillAGMCheckoutPDF(templateBytes, tenantReturn!, session!.propertyName, session!.propertyConfig);
-      setPdfBytes(filled);
-      setPdfReady(true);
-      updateReturn(returnId, { processingStatus: 'complete', complianceChecked: true, pdfGenerated: true });
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'PDF generation failed.');
-    } finally {
-      setGenerating(false);
-    }
-  }
+  // California Civil Code §1950.5 — 21-day deadline from move-out date.
+  const deadlineDate = tenantData.moveOutDate
+    ? (() => {
+        const d = new Date(tenantData.moveOutDate + 'T00:00:00');
+        d.setDate(d.getDate() + 21);
+        return d;
+      })()
+    : null;
+  const daysUntilDeadline = deadlineDate
+    ? Math.ceil((deadlineDate.getTime() - Date.now()) / 86_400_000)
+    : null;
+
+  // Property address for the FROM block.
+  const propertyAddress = session.propertyConfig?.address ?? '';
+
+  // Forwarding address for the MAIL TO block.
+  const { street, city, state, zip } = tenantData.forwardingAddress;
+  const forwardingLine2 = [city, state, zip].filter(Boolean).join(', ');
+
+  // PDF filename.
+  const pdfFilename = `AGM_Checkout_${tenantData.unit}_${tenantData.tenantName.replace(/\s+/g, '_')}.pdf`;
 
   function handleDownload() {
     if (!pdfBytes) return;
@@ -57,206 +100,248 @@ export function ReviewScreen({ returnId }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `AGM_Checkout_${tenantData.unit}_${tenantData.tenantName.replace(/\s+/g, '_')}.pdf`;
+    a.download = pdfFilename;
     a.click();
     URL.revokeObjectURL(url);
+    updateReturn(returnId, { processingStatus: 'complete', complianceChecked: true, pdfGenerated: true });
   }
 
-  function LineItem({ label, total, tenant }: { label: string; total: number; tenant: number }) {
-    if (total === 0 && tenant === 0) return null;
-    return (
-      <tr className="border-b border-[#f2f2f7] dark:border-[#38383a]">
-        <td className="py-1.5 text-sm text-[#8e8e93]">{label}</td>
-        <td className="py-1.5 text-sm text-[#1c1c1e] dark:text-[#ebebf5] text-right">{formatCurrency(total)}</td>
-        <td className="py-1.5 text-sm font-medium text-[#1c1c1e] dark:text-white text-right">{formatCurrency(tenant)}</td>
-      </tr>
-    );
+  function handlePreview() {
+    if (!pdfObjectUrl) return;
+    window.open(pdfObjectUrl, '_blank');
   }
+
+  // Deadline banner color: red < 3 days, yellow 3–7, green > 7.
+  const deadlineBannerClass =
+    daysUntilDeadline === null
+      ? 'bg-[#f2f2f7] dark:bg-[#3a3a3c] border-[#e5e5ea] dark:border-[#48484a] text-[#8e8e93]'
+      : daysUntilDeadline <= 3
+      ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+      : daysUntilDeadline <= 7
+      ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300'
+      : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-400';
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#1c1c1e]">
-      {/* Header */}
-      <div className="bg-white dark:bg-[#2c2c2e] border-b border-[#e5e5ea] dark:border-[#38383a] px-6 py-4">
-        <div className="w-full flex items-center gap-4">
+    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#1c1c1e] flex flex-col">
+
+      {/* ── Header ─────────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-[#2c2c2e] border-b border-[#e5e5ea] dark:border-[#38383a] px-6 py-3">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => router.push(`/return/${returnId}`)}
-            className="text-sm text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white transition-colors"
+            className="text-sm text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white transition-colors shrink-0"
           >
-            ← Return Form
+            ← Edit form
           </button>
-          <h1 className="text-lg font-semibold text-[#1c1c1e] dark:text-white">
-            Review & Submit — {tenantData.tenantName} · Unit {tenantData.unit}
-          </h1>
-          <div className="ml-auto flex items-center gap-3">
-            <InspectionBadge status={tenantData.inspectionStatus} />
-            {/* Dark mode toggle */}
-            <button
-              onClick={toggle}
-              className="w-9 h-9 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] flex items-center justify-center text-base hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full px-6 py-6 grid grid-cols-2 gap-6">
-        {/* Left — full breakdown */}
-        <div className="space-y-4">
-          {tenantData.inspectionStatus === 'missing' && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-sm text-red-700 dark:text-red-400">
-              <strong>Small Claims Risk:</strong> Signed move-in inspection is not on file for this unit. Deductions may be challenged.
-            </div>
-          )}
-
-          {/* Tenant / Lease summary */}
-          <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-1">
-            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-2">Tenant & Lease</p>
-            <Row label="Tenant" value={tenantData.tenantName} />
-            {tenantData.coTenant && <Row label="Co-Tenant" value={tenantData.coTenant} />}
-            <Row label="Unit" value={tenantData.unit} />
-            <Row label="Forwarding Address" value={[tenantData.forwardingAddress.street, tenantData.forwardingAddress.city, tenantData.forwardingAddress.state, tenantData.forwardingAddress.zip].filter(Boolean).join(', ')} />
-            <Row label="Move-In" value={tenantData.moveInDate} />
-            <Row label="Move-Out" value={tenantData.moveOutDate} />
-            <Row label="Paid Through" value={tenantData.paidThroughDate} />
-            <Row label="Monthly Rent" value={formatCurrency(tenantData.monthlyRent)} />
-            <Row label="Lease Break" value={tenantData.leaseBreak ? 'Yes' : 'No'} />
-            {tenantData.leaseBreak && <Row label="New Tenant Move-In" value={tenantData.newTenantMoveInDate ?? 'None'} />}
-          </div>
-
-          {/* Charges table */}
-          <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5">
-            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-3">Turnover Expenses</p>
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#e5e5ea] dark:border-[#38383a]">
-                  <th className="text-left py-1.5 text-xs text-[#8e8e93] font-medium">Item</th>
-                  <th className="text-right py-1.5 text-xs text-[#8e8e93] font-medium">Total Cost</th>
-                  <th className="text-right py-1.5 text-xs text-[#8e8e93] font-medium">Tenant Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                <LineItem label="General Cleaning" total={manualCharges.generalCleaning} tenant={cleaningTenant} />
-                <LineItem label="Blind / Drape Cleaning" total={manualCharges.blindDrapeCleaning} tenant={manualCharges.blindDrapeCleaning} />
-                <LineItem label="Window Covering Replacement" total={manualCharges.windowCoveringReplacement} tenant={manualCharges.windowCoveringReplacement} />
-                <LineItem label="Carpet Shampooing" total={manualCharges.carpetShampooing} tenant={manualCharges.carpetShampooing} />
-                <LineItem label="Flooring Restoration" total={manualCharges.flooringRestoration} tenant={manualCharges.flooringRestoration} />
-                <LineItem label="Painting" total={manualCharges.painting} tenant={manualCharges.painting} />
-                {manualCharges.other1 > 0 && <LineItem label={manualCharges.other1Label} total={manualCharges.other1} tenant={manualCharges.other1} />}
-                {manualCharges.other2 > 0 && <LineItem label={manualCharges.other2Label} total={manualCharges.other2} tenant={manualCharges.other2} />}
-                {calculatedCharges.rentDue > 0 && (
-                  <tr className="border-b border-[#f2f2f7] dark:border-[#38383a]">
-                    <td className="py-1.5 text-sm text-[#8e8e93]">
-                      Rent Due<br />
-                      <span className="text-xs text-[#8e8e93]/70">{calculatedCharges.rentDueDateRange}</span>
-                    </td>
-                    <td className="py-1.5 text-sm text-[#1c1c1e] dark:text-[#ebebf5] text-right">{formatCurrency(calculatedCharges.rentDue)}</td>
-                    <td className="py-1.5 text-sm font-medium text-[#1c1c1e] dark:text-white text-right">{formatCurrency(calculatedCharges.rentDue)}</td>
-                  </tr>
-                )}
-                {calculatedCharges.utilityCharge > 0 && <LineItem label="Utility Charge" total={calculatedCharges.utilityCharge} tenant={calculatedCharges.utilityCharge} />}
-                {manualCharges.legalCourtCosts > 0 && <LineItem label="Legal / Court Costs" total={manualCharges.legalCourtCosts} tenant={manualCharges.legalCourtCosts} />}
-                <tr className="border-t border-[#e5e5ea] dark:border-[#48484a]">
-                  <td className="py-2 text-sm font-bold text-[#1c1c1e] dark:text-white">Totals</td>
-                  <td className="py-2 text-sm font-bold text-[#1c1c1e] dark:text-white text-right">{formatCurrency(totalCharges)}</td>
-                  <td className="py-2 text-sm font-bold text-[#1c1c1e] dark:text-white text-right">{formatCurrency(totalCharges)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Deposits / Credits */}
-          <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-1">
-            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-2">Refunds / Credits</p>
-            <Row label="Security Deposit Paid" value={formatCurrency(depositData.securityDeposit)} />
-            {depositData.petDeposit > 0 && <Row label="Pet Deposit" value={formatCurrency(depositData.petDeposit)} />}
-            {depositData.keyDeposit > 0 && <Row label="Key Deposit" value={formatCurrency(depositData.keyDeposit)} />}
-            {depositData.garageOpenerDeposit > 0 && <Row label="Garage Opener Deposit" value={formatCurrency(depositData.garageOpenerDeposit)} />}
-            <div className="border-t border-[#e5e5ea] dark:border-[#38383a] pt-2 mt-1">
-              <Row label="Total Credits" value={formatCurrency(totalCredits)} bold />
-            </div>
-          </div>
-
-          {/* Balance */}
-          <div className={`rounded-2xl border p-5 ${
-            balance >= 0
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-          }`}>
-            <div className="flex justify-between items-center">
-              <span className={`font-semibold ${balance >= 0 ? 'text-green-800 dark:text-green-400' : 'text-red-800 dark:text-red-400'}`}>
-                {balance === 0 ? '$0 Balance Due' : balance > 0 ? 'Return to Tenant' : 'Balance Owing Landlord'}
-              </span>
-              <span className={`text-xl font-bold ${balance >= 0 ? 'text-green-800 dark:text-green-400' : 'text-red-800 dark:text-red-400'}`}>
-                {formatCurrency(Math.abs(balance))}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right — compliance + PDF */}
-        <div className="space-y-4 self-start sticky top-6">
-          <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-4">
-            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">Forwarding Address Confirmation</p>
-            <p className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">
-              {[tenantData.forwardingAddress.street, tenantData.forwardingAddress.city, tenantData.forwardingAddress.state, tenantData.forwardingAddress.zip].filter(Boolean).join(', ') || 'No forwarding address on file'}
+          <span className="text-[#e5e5ea] dark:text-[#38383a] select-none">|</span>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-semibold text-[#1c1c1e] dark:text-white truncate">
+              Review &amp; Download — {tenantData.tenantName} · Unit {tenantData.unit}
+            </h1>
+            <p className="text-xs text-[#8e8e93] mt-0.5">
+              All sections complete · Ready for compliance check
             </p>
           </div>
-
-          <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-4">
-            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">Compliance Check</p>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={complianceChecked}
-                onChange={e => setComplianceChecked(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-blue-600"
-              />
-              <span className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">
-                I confirm all charges reflect company-approved rates and this return is accurate and complete.
-              </span>
-            </label>
-          </div>
-
-          {!pdfReady ? (
-            <button
-              onClick={handleCompliance}
-              disabled={!complianceChecked || generating}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-[#e5e5ea] dark:disabled:bg-[#3a3a3c] disabled:text-[#8e8e93] disabled:cursor-not-allowed text-white font-semibold py-3 rounded-2xl transition-colors"
-            >
-              {generating ? 'Generating PDF...' : 'Finalize & Generate PDF'}
-            </button>
-          ) : (
-            <div className="space-y-3">
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4 text-sm text-green-800 dark:text-green-400 text-center font-medium">
-                PDF Generated Successfully
-              </div>
-              <button
-                onClick={handleDownload}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-2xl transition-colors"
-              >
-                Download PDF
-              </button>
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="w-full border border-[#e5e5ea] dark:border-[#48484a] text-[#1c1c1e] dark:text-[#ebebf5] font-medium py-2.5 rounded-2xl hover:bg-[#f2f2f7] dark:hover:bg-[#3a3a3c] transition-colors"
-              >
-                Back to Dashboard
-              </button>
-            </div>
-          )}
+          <button
+            onClick={toggle}
+            className="w-8 h-8 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] flex items-center justify-center text-sm hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] transition-colors shrink-0"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
         </div>
       </div>
-    </div>
-  );
-}
 
-function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
-  return (
-    <div className="flex justify-between py-1 border-b border-[#f2f2f7] dark:border-[#38383a]">
-      <span className={`text-sm ${bold ? 'font-semibold text-[#1c1c1e] dark:text-white' : 'text-[#8e8e93]'}`}>{label}</span>
-      <span className={`text-sm ${bold ? 'font-semibold text-[#1c1c1e] dark:text-white' : 'text-[#1c1c1e] dark:text-[#ebebf5]'}`}>{value || '—'}</span>
+      <div className="flex-1 px-6 py-6 max-w-3xl mx-auto w-full space-y-5">
+
+        {/* ── California §1950.5 deadline banner ─────────────────────────────── */}
+        <div className={`rounded-2xl border px-5 py-4 ${deadlineBannerClass}`}>
+          <div className="flex items-start gap-3">
+            <span className="text-lg shrink-0">⚖️</span>
+            <div>
+              <p className="text-sm font-semibold">
+                California Civil Code §1950.5 — 21-Day Deadline
+              </p>
+              {deadlineDate ? (
+                <p className="text-sm mt-0.5">
+                  Deposit return must be postmarked by{' '}
+                  <strong>
+                    {deadlineDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </strong>
+                  {daysUntilDeadline !== null && (
+                    <> —{' '}
+                      {daysUntilDeadline > 0
+                        ? `${daysUntilDeadline} day${daysUntilDeadline === 1 ? '' : 's'} remaining`
+                        : daysUntilDeadline === 0
+                        ? 'due today'
+                        : `${Math.abs(daysUntilDeadline)} day${Math.abs(daysUntilDeadline) === 1 ? '' : 's'} overdue`}
+                    </>
+                  )}
+                </p>
+              ) : (
+                <p className="text-sm mt-0.5">Enter a move-out date to see the deadline.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── FROM / MAIL TO address blocks ──────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* FROM */}
+          <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5">
+            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-3">From</p>
+            <p className="text-sm font-semibold text-[#1c1c1e] dark:text-white">AGM Real Estate Group</p>
+            {session.propertyName && (
+              <p className="text-sm text-[#1c1c1e] dark:text-[#ebebf5] mt-0.5">{session.propertyName}</p>
+            )}
+            {propertyAddress && (
+              <p className="text-sm text-[#8e8e93] mt-0.5">{propertyAddress}</p>
+            )}
+          </div>
+
+          {/* MAIL TO */}
+          <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5">
+            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-3">Mail To</p>
+            <p className="text-sm font-semibold text-[#1c1c1e] dark:text-white">{tenantData.tenantName}</p>
+            {tenantData.coTenant && (
+              <p className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">{tenantData.coTenant}</p>
+            )}
+            {street ? (
+              <>
+                <p className="text-sm text-[#8e8e93] mt-0.5">{street}</p>
+                {forwardingLine2 && <p className="text-sm text-[#8e8e93]">{forwardingLine2}</p>}
+              </>
+            ) : (
+              <p className="text-sm text-red-500 dark:text-red-400 mt-0.5 italic">
+                No forwarding address — go back to add one.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* ── PDF card ───────────────────────────────────────────────────────── */}
+        <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5">
+          <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-4">AGM Checkout Report PDF</p>
+
+          <div className="flex items-start gap-4">
+            {/* PDF icon */}
+            <div className="w-12 h-14 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex flex-col items-center justify-center shrink-0 gap-0.5">
+              <span className="text-lg">📄</span>
+              <span className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">PDF</span>
+            </div>
+
+            {/* Filename + status */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[#1c1c1e] dark:text-white truncate">{pdfFilename}</p>
+              {generating && (
+                <p className="text-xs text-[#8e8e93] mt-1">Generating…</p>
+              )}
+              {pdfReady && fieldsPopulated !== null && (
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  ✓ {fieldsPopulated}/{TOTAL_FIELDS} fields populated
+                </p>
+              )}
+              {pdfReady && !generating && (
+                <p className="text-xs text-[#8e8e93] mt-0.5">Ready to download</p>
+              )}
+              {/* Balance warning in PDF card */}
+              {balance < 0 && (
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                  ⚠ Balance owing landlord — confirm charges before sending
+                </p>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col gap-2 shrink-0">
+              <button
+                onClick={handlePreview}
+                disabled={!pdfReady}
+                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:text-[#8e8e93] disabled:no-underline disabled:cursor-not-allowed transition-colors"
+              >
+                Preview form
+              </button>
+              <button
+                onClick={handleDownload}
+                disabled={!pdfReady || !complianceChecked}
+                className="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg disabled:bg-[#e5e5ea] dark:disabled:bg-[#3a3a3c] disabled:text-[#8e8e93] disabled:cursor-not-allowed transition-colors"
+              >
+                ↓ Download
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Balance summary ─────────────────────────────────────────────────── */}
+        <div className={`rounded-2xl border p-5 ${
+          balance === 0
+            ? 'bg-[#f2f2f7] dark:bg-[#3a3a3c] border-[#e5e5ea] dark:border-[#48484a]'
+            : balance > 0
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+            : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+        }`}>
+          <div className="flex justify-between items-center">
+            <div>
+              <p className={`text-sm font-semibold ${
+                balance === 0 ? 'text-[#8e8e93]'
+                : balance > 0 ? 'text-green-800 dark:text-green-400'
+                : 'text-red-800 dark:text-red-400'
+              }`}>
+                {balance === 0 ? 'No balance due' : balance > 0 ? 'Return to tenant' : 'Balance owing landlord'}
+              </p>
+              <p className="text-xs text-[#8e8e93] mt-0.5">
+                {formatCurrency(totalCredits)} deposits − {formatCurrency(totalCharges)} charges
+              </p>
+            </div>
+            <span className={`text-2xl font-bold tabular-nums ${
+              balance === 0 ? 'text-[#8e8e93]'
+              : balance > 0 ? 'text-green-800 dark:text-green-400'
+              : 'text-red-800 dark:text-red-400'
+            }`}>
+              {formatCurrency(Math.abs(balance))}
+            </span>
+          </div>
+        </div>
+
+        {/* ── Compliance checkbox ─────────────────────────────────────────────── */}
+        <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5">
+          <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-3">Compliance Check</p>
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={complianceChecked}
+              onChange={e => setComplianceChecked(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-blue-600"
+            />
+            <span className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">
+              I confirm all charges reflect company-approved rates and this return complies with
+              California Civil Code §1950.5 — it will be postmarked within 21 days of move-out.
+            </span>
+          </label>
+        </div>
+
+        {/* ── Final download button ───────────────────────────────────────────── */}
+        <button
+          onClick={handleDownload}
+          disabled={!pdfReady || !complianceChecked}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-[#e5e5ea] dark:disabled:bg-[#3a3a3c] disabled:text-[#8e8e93] disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl transition-colors text-sm"
+        >
+          {generating
+            ? 'Generating PDF…'
+            : !pdfReady
+            ? 'Preparing PDF…'
+            : !complianceChecked
+            ? 'Check compliance box to download'
+            : '↓ Download AGM Checkout Report'}
+        </button>
+
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="w-full border border-[#e5e5ea] dark:border-[#48484a] text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white font-medium py-2.5 rounded-2xl hover:bg-[#f2f2f7] dark:hover:bg-[#3a3a3c] transition-colors text-sm"
+        >
+          ← Back to Dashboard
+        </button>
+      </div>
     </div>
   );
 }

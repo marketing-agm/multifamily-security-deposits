@@ -4,24 +4,55 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
 import { useTheme } from '@/context/ThemeContext';
-import { ManualCharges, TenantReturn, RUBSManualInput } from '@/types';
-import { computeCalculatedCharges, calcNRCOffset, calcTotalCharges, calcTotalCredits, calcBalance, formatCurrency } from '@/lib/calculations';
+import { ManualCharges, TenantReturn, RUBSManualInput, TenantData, DepositData } from '@/types';
+import {
+  computeCalculatedCharges, calcNRCOffset, calcTotalCharges,
+  calcTotalCredits, calcBalance, formatCurrency,
+} from '@/lib/calculations';
 import { InspectionBadge } from '@/components/shared/InspectionBadge';
 import { UtilityTag } from '@/components/shared/UtilityTag';
 
-const STEPS = ['Tenant', 'Lease', 'Utility', 'Charges', 'Review', 'Submit'];
+// The 9 sections mirror the AGM Checkout Report PDF sections.
+const SECTIONS = [
+  { title: 'Property & Tenant',    subtitle: 'Name, unit, forwarding address' },
+  { title: 'Lease & Dates',        subtitle: 'Rent, NRC, move-in / move-out' },
+  { title: 'NRC Fees',             subtitle: 'Non-refundable cleaning & pet' },
+  { title: 'Move-In / Out Photos', subtitle: 'Inspection — drives repair charges' },
+  { title: 'Rent Due',             subtitle: 'Pro-rated / lease break' },
+  { title: 'Utility Charges',      subtitle: 'RUBS or flat fee' },
+  { title: 'Legal / Court Costs',  subtitle: 'Court fees, attorney costs' },
+  { title: 'Total Charges',        subtitle: 'All deductions' },
+  { title: 'Refunds & Credits',    subtitle: 'Deposits held — final balance' },
+];
 
-interface Props {
-  returnId: string;
-}
+interface Props { returnId: string; }
 
 export function ReturnForm({ returnId }: Props) {
   const { session, updateReturn } = useSession();
   const { theme, toggle } = useTheme();
   const router = useRouter();
-  const [step, setStep] = useState(0);
+
+  const [section, setSection] = useState(0);
+  const [showDataPanel, setShowDataPanel] = useState(false);
 
   const tenantReturn = session?.returns.find(r => r.id === returnId);
+
+  // ── Editable state ──────────────────────────────────────────────────────────
+
+  // Tenant + address fields — pre-filled from AppFolio, editable by staff.
+  const [tenantData, setTenantData] = useState<TenantData>(
+    tenantReturn?.tenantData ?? {
+      tenantName: '', coTenant: '', unit: '', monthlyRent: 0,
+      moveInDate: '', moveOutDate: '', paidThroughDate: '', noticeDate: '',
+      leaseEndDate: '', leaseBreak: false, newTenantMoveInDate: null,
+      forwardingAddress: { street: '', city: '', state: '', zip: '' },
+      inspectionStatus: 'missing',
+    }
+  );
+
+  // NRC fees — seeded from property config, editable per unit.
+  const [nrcCleaningFee, setNrcCleaningFee] = useState(tenantReturn?.depositData.nrcCleaningFee ?? 0);
+  const [nrcPetFee, setNrcPetFee] = useState(tenantReturn?.depositData.nrcPetFee ?? 0);
 
   const [manualCharges, setManualCharges] = useState<ManualCharges>(
     tenantReturn?.manualCharges ?? {
@@ -30,16 +61,10 @@ export function ReturnForm({ returnId }: Props) {
       other1Label: 'Other', other1: 0, other2Label: 'Other', other2: 0, legalCourtCosts: 0,
     }
   );
-  const [inspectionSigned, setInspectionSigned] = useState(
-    tenantReturn?.tenantData.inspectionStatus === 'signed'
-  );
   const [rubsInput, setRubsInput] = useState<RUBSManualInput>(
     tenantReturn?.rubsManualInput ?? { buildingTotal: 0, unitRatio: 0 }
   );
-  // Pre-filled from property config via parser; editable per tenant
-  const [utilityRate, setUtilityRate] = useState<number>(
-    tenantReturn?.utilityData.flatFeeRate ?? 0
-  );
+  const [utilityRate, setUtilityRate] = useState(tenantReturn?.utilityData.flatFeeRate ?? 0);
 
   useEffect(() => {
     if (!session) router.replace('/');
@@ -47,110 +72,223 @@ export function ReturnForm({ returnId }: Props) {
 
   if (!tenantReturn) return null;
 
-  const currentInspectionStatus: 'signed' | 'missing' = inspectionSigned ? 'signed' : 'missing';
+  // ── Live computed values ────────────────────────────────────────────────────
+
+  const liveDepositData: DepositData = { ...tenantReturn.depositData, nrcCleaningFee, nrcPetFee };
   const liveUtilityData = { ...tenantReturn.utilityData, flatFeeRate: utilityRate };
-  const withCharges = {
+  const withCharges: TenantReturn = {
     ...tenantReturn,
+    tenantData,
+    depositData: liveDepositData,
     manualCharges,
     rubsManualInput: rubsInput,
     utilityData: liveUtilityData,
-    tenantData: { ...tenantReturn.tenantData, inspectionStatus: currentInspectionStatus },
   };
   const calculatedCharges = computeCalculatedCharges(withCharges);
   const displayReturn: TenantReturn = { ...withCharges, calculatedCharges };
-
   const totalCharges = calcTotalCharges(displayReturn);
   const totalCredits = calcTotalCredits(displayReturn);
   const balance = calcBalance(displayReturn);
-  const cleaningTenant = calcNRCOffset(manualCharges.generalCleaning, tenantReturn.depositData.nrcCleaningFee);
+  const cleaningTenant = calcNRCOffset(manualCharges.generalCleaning, nrcCleaningFee);
 
-  function saveProgress(extraStatus?: TenantReturn['processingStatus']) {
-    updateReturn(returnId, {
-      manualCharges,
-      rubsManualInput: rubsInput,
-      calculatedCharges,
-      utilityData: liveUtilityData,
-      tenantData: { ...tenantReturn!.tenantData, inspectionStatus: currentInspectionStatus },
-      processingStatus: extraStatus ?? (step < 4 ? 'in_progress' : tenantReturn!.processingStatus),
-    });
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  function updateTenant<K extends keyof TenantData>(key: K, value: TenantData[K]) {
+    setTenantData(prev => ({ ...prev, [key]: value }));
   }
-
-  function saveAndContinue() {
-    saveProgress();
-    if (step < STEPS.length - 1) setStep(s => s + 1);
+  function updateAddress(field: keyof TenantData['forwardingAddress'], value: string) {
+    setTenantData(prev => ({
+      ...prev,
+      forwardingAddress: { ...prev.forwardingAddress, [field]: value },
+    }));
   }
-
-  function goToReview() {
-    saveProgress('in_progress');
-    router.push(`/review/${returnId}`);
-  }
-
   function updateCharge(key: keyof ManualCharges, value: number | string) {
     setManualCharges(prev => ({ ...prev, [key]: value }));
   }
 
-  const { tenantData, depositData } = tenantReturn;
+  function saveProgress() {
+    updateReturn(returnId, {
+      tenantData,
+      depositData: liveDepositData,
+      manualCharges,
+      rubsManualInput: rubsInput,
+      calculatedCharges,
+      utilityData: liveUtilityData,
+      processingStatus: section < 7 ? 'in_progress' : tenantReturn!.processingStatus,
+    });
+  }
+
+  function goToReview() {
+    updateReturn(returnId, {
+      tenantData,
+      depositData: liveDepositData,
+      manualCharges,
+      rubsManualInput: rubsInput,
+      calculatedCharges,
+      utilityData: liveUtilityData,
+      processingStatus: 'in_progress',
+    });
+    router.push(`/review/${returnId}`);
+  }
+
+  function nextSection() {
+    saveProgress();
+    if (section < SECTIONS.length - 1) setSection(s => s + 1);
+  }
+  function prevSection() {
+    saveProgress();
+    if (section > 0) setSection(s => s - 1);
+  }
+
+  const moveOutDisplay = tenantData.moveOutDate
+    ? new Date(tenantData.moveOutDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
+    : '';
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#1c1c1e]">
-      {/* Header */}
-      <div className="bg-white dark:bg-[#2c2c2e] border-b border-[#e5e5ea] dark:border-[#38383a] px-6 py-4">
-        <div className="w-full flex items-center gap-4">
+    <div className="min-h-screen bg-[#f2f2f7] dark:bg-[#1c1c1e] flex flex-col">
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-[#2c2c2e] border-b border-[#e5e5ea] dark:border-[#38383a] px-6 py-3">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-sm text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white transition-colors"
+            className="text-sm text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white transition-colors shrink-0"
           >
             ← Dashboard
           </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold text-[#1c1c1e] dark:text-white">
-              {tenantData.tenantName} · Unit {tenantData.unit}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-semibold text-[#1c1c1e] dark:text-white truncate">
+              {tenantData.tenantName} — Unit {tenantData.unit}
             </h1>
+            <p className="text-xs text-[#8e8e93] mt-0.5">
+              {session?.propertyName}
+              {moveOutDisplay ? ` · Move-out ${moveOutDisplay}` : ''}
+              {' · '}
+              <span className="inline-flex items-center gap-1">
+                <UtilityTag type={liveUtilityData.utilityType} />
+              </span>
+              {tenantData.leaseBreak && (
+                <span className="ml-1.5 px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-xs font-medium">
+                  Lease break
+                </span>
+              )}
+            </p>
           </div>
-          <InspectionBadge status={currentInspectionStatus} />
-          <UtilityTag type={liveUtilityData.utilityType} />
-          {/* Dark mode toggle */}
-          <button
-            onClick={toggle}
-            className="w-9 h-9 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] flex items-center justify-center text-base hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] transition-colors"
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-        </div>
-        {/* Step bar */}
-        <div className="w-full mt-3 flex gap-0">
-          {STEPS.map((label, i) => (
+          <div className="flex items-center gap-2 shrink-0">
             <button
-              key={label}
-              onClick={() => setStep(i)}
-              className={`flex-1 text-xs py-1.5 border-b-2 transition-colors font-medium ${
-                i === step
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : i < step
-                  ? 'border-green-400 text-green-600 dark:text-green-400'
-                  : 'border-[#e5e5ea] dark:border-[#38383a] text-[#8e8e93]'
-              }`}
+              onClick={goToReview}
+              className="text-sm text-[#8e8e93] dark:text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white border border-[#e5e5ea] dark:border-[#48484a] px-3 py-1.5 rounded-lg transition-colors"
             >
-              {i < step ? '✓ ' : ''}{label}
+              View full form
             </button>
-          ))}
+            <button
+              onClick={goToReview}
+              className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-1.5 rounded-lg transition-colors"
+            >
+              Review &amp; Submit →
+            </button>
+            <button
+              onClick={toggle}
+              className="w-8 h-8 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] flex items-center justify-center text-sm hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="w-full px-6 py-6 grid grid-cols-2 gap-6">
-        {/* Left panel — data entry */}
-        <div className="space-y-4">
-          {step === 0 && (
-            <StepTenant
-              t={tenantData}
-              inspectionSigned={inspectionSigned}
-              onInspectionChange={setInspectionSigned}
+      {/* ── Body: sidebar + content ─────────────────────────────────────────── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Section sidebar */}
+        <aside className="w-60 shrink-0 bg-white dark:bg-[#2c2c2e] border-r border-[#e5e5ea] dark:border-[#38383a] flex flex-col overflow-y-auto">
+          <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-[#1c1c1e] dark:text-white">Form sections</p>
+              <p className="text-xs text-[#8e8e93]">Click a section to focus it</p>
+            </div>
+            {/* ⓘ button — opens Data & Calculations panel */}
+            <button
+              onClick={() => setShowDataPanel(p => !p)}
+              className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
+                showDataPanel
+                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
+                  : 'bg-[#f2f2f7] dark:bg-[#3a3a3c] text-[#8e8e93] hover:bg-[#e5e5ea] dark:hover:bg-[#48484a]'
+              }`}
+              aria-label="Show data & calculations"
+              title="Data & Calculations"
+            >
+              ⓘ
+            </button>
+          </div>
+
+          <nav className="flex-1 px-2 pb-4 space-y-0.5">
+            {SECTIONS.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => { saveProgress(); setSection(i); }}
+                className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                  i === section
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    : 'hover:bg-[#f2f2f7] dark:hover:bg-[#3a3a3c] text-[#1c1c1e] dark:text-[#ebebf5]'
+                }`}
+              >
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
+                  i === section
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-[#e5e5ea] dark:bg-[#48484a] text-[#8e8e93]'
+                }`}>
+                  {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-tight">{s.title}</p>
+                  <p className="text-xs text-[#8e8e93] mt-0.5 leading-tight">{s.subtitle}</p>
+                </div>
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+
+          {section === 0 && (
+            <SectionPropertyTenant
+              tenantData={tenantData}
+              onUpdateTenant={updateTenant}
+              onUpdateAddress={updateAddress}
             />
           )}
-          {step === 1 && <StepLease t={tenantData} />}
-          {step === 2 && (
-            <StepUtility
+          {section === 1 && (
+            <SectionLeaseDates
+              tenantData={tenantData}
+              onUpdate={updateTenant}
+              nrcCleaningFee={nrcCleaningFee}
+              nrcPetFee={nrcPetFee}
+              onNrcCleaningChange={setNrcCleaningFee}
+              onNrcPetChange={setNrcPetFee}
+            />
+          )}
+          {section === 2 && (
+            <SectionNRCFees
+              nrcCleaningFee={nrcCleaningFee}
+              nrcPetFee={nrcPetFee}
+              onCleaningChange={setNrcCleaningFee}
+              onPetChange={setNrcPetFee}
+            />
+          )}
+          {section === 3 && (
+            <SectionInspection
+              inspectionSigned={tenantData.inspectionStatus === 'signed'}
+              onToggle={v => updateTenant('inspectionStatus', v ? 'signed' : 'missing')}
+            />
+          )}
+          {section === 4 && (
+            <SectionRentDue calculatedCharges={calculatedCharges} tenantData={tenantData} />
+          )}
+          {section === 5 && (
+            <SectionUtility
               utilityData={liveUtilityData}
               rubsInput={rubsInput}
               onRubsChange={setRubsInput}
@@ -159,101 +297,235 @@ export function ReturnForm({ returnId }: Props) {
               onRateChange={setUtilityRate}
             />
           )}
-          {step === 3 && (
-            <StepCharges
-              manualCharges={manualCharges}
-              onChange={updateCharge}
-              nrcCleaning={depositData.nrcCleaningFee}
-              cleaningTenant={cleaningTenant}
+          {section === 6 && (
+            <SectionLegalCosts
+              legalCourtCosts={manualCharges.legalCourtCosts}
+              onChange={v => updateCharge('legalCourtCosts', v)}
             />
           )}
-          {step === 4 && (
-            <StepReview
-              displayReturn={displayReturn}
+          {section === 7 && (
+            <SectionTotalCharges
+              manualCharges={manualCharges}
+              onChange={updateCharge}
+              nrcCleaningFee={nrcCleaningFee}
+              cleaningTenant={cleaningTenant}
+              calculatedCharges={calculatedCharges}
               totalCharges={totalCharges}
+            />
+          )}
+          {section === 8 && (
+            <SectionRefundsCredits
+              depositData={liveDepositData}
               totalCredits={totalCredits}
+              totalCharges={totalCharges}
               balance={balance}
             />
           )}
-          {step === 5 && (
-            <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-6 text-center space-y-4">
-              <p className="text-[#1c1c1e] dark:text-[#ebebf5]">All steps complete. Proceed to compliance review and PDF download.</p>
+
+          {/* Color legend */}
+          <div className="flex flex-wrap gap-4 pt-2 border-t border-[#e5e5ea] dark:border-[#38383a]">
+            <LegendItem color="bg-green-400" label="From AppFolio (editable)" />
+            <LegendItem color="bg-blue-400" label="Calculated (override OK)" />
+            <LegendItem color="bg-yellow-400" label="Manual entry" />
+          </div>
+
+          {/* Bottom navigation */}
+          <div className="flex items-center justify-between pt-2">
+            <button
+              onClick={prevSection}
+              disabled={section === 0}
+              className="text-sm font-medium text-[#8e8e93] hover:text-[#1c1c1e] dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              ← Previous
+            </button>
+            <span className="text-xs text-[#8e8e93]">Section {section + 1} of {SECTIONS.length}</span>
+            {section === SECTIONS.length - 1 ? (
               <button
                 onClick={goToReview}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                className="text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors"
               >
-                Go to Review & Submit →
+                Review &amp; Submit →
               </button>
-            </div>
-          )}
-
-          {step < 5 && (
-            <div className="flex gap-3">
-              {step > 0 && (
-                <button
-                  onClick={() => setStep(s => s - 1)}
-                  className="flex-1 border border-[#e5e5ea] dark:border-[#48484a] text-[#1c1c1e] dark:text-[#ebebf5] font-medium py-2.5 rounded-xl hover:bg-[#f2f2f7] dark:hover:bg-[#3a3a3c] transition-colors"
-                >
-                  Back
-                </button>
-              )}
+            ) : (
               <button
-                onClick={saveAndContinue}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                onClick={nextSection}
+                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline transition-colors"
               >
-                {step === 4 ? 'Go to Submit →' : 'Continue →'}
+                Next →
+              </button>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* ── Data & Calculations panel (slide-in overlay) ─────────────────────── */}
+      {showDataPanel && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/20 dark:bg-black/40"
+            onClick={() => setShowDataPanel(false)}
+          />
+          {/* Panel */}
+          <div className="fixed inset-y-0 right-0 z-50 w-96 bg-white dark:bg-[#2c2c2e] shadow-2xl overflow-y-auto flex flex-col">
+            <div className="px-5 py-4 border-b border-[#e5e5ea] dark:border-[#38383a] flex items-center justify-between sticky top-0 bg-white dark:bg-[#2c2c2e]">
+              <div>
+                <p className="text-sm font-semibold text-[#1c1c1e] dark:text-white">Data &amp; Calculations</p>
+                <p className="text-xs text-[#8e8e93]">All values driving this return</p>
+              </div>
+              <button
+                onClick={() => setShowDataPanel(false)}
+                className="w-7 h-7 rounded-full bg-[#f2f2f7] dark:bg-[#3a3a3c] text-[#8e8e93] flex items-center justify-center hover:bg-[#e5e5ea] dark:hover:bg-[#48484a] text-sm transition-colors"
+              >
+                ✕
               </button>
             </div>
-          )}
-        </div>
 
-        {/* Right panel — live form summary */}
-        <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-3 self-start sticky top-6">
-          <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider pb-2 border-b border-[#e5e5ea] dark:border-[#38383a]">
-            Live Preview
-          </p>
-          <SummaryRow label="Tenant" value={tenantData.tenantName} />
-          <SummaryRow label="Unit" value={tenantData.unit} />
-          <SummaryRow label="Move-Out" value={tenantData.moveOutDate} />
-          <SummaryRow label="Monthly Rent" value={formatCurrency(tenantData.monthlyRent)} />
-          <SummaryRow label="Security Deposit" value={formatCurrency(depositData.securityDeposit)} />
-          {depositData.petDeposit > 0 && <SummaryRow label="Pet Deposit" value={formatCurrency(depositData.petDeposit)} />}
-          {depositData.nrcCleaningFee > 0 && <SummaryRow label="NRC Cleaning" value={formatCurrency(depositData.nrcCleaningFee)} />}
-          <div className="border-t border-[#e5e5ea] dark:border-[#38383a] pt-2 space-y-1">
-            <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">Charges</p>
-            {manualCharges.generalCleaning > 0 && (
-              <SummaryRow label="Cleaning (tenant)" value={formatCurrency(cleaningTenant)} sub />
-            )}
-            {manualCharges.carpetShampooing > 0 && (
-              <SummaryRow label="Carpet" value={formatCurrency(manualCharges.carpetShampooing)} sub />
-            )}
-            {manualCharges.painting > 0 && (
-              <SummaryRow label="Painting" value={formatCurrency(manualCharges.painting)} sub />
-            )}
-            {calculatedCharges.rentDue > 0 && (
-              <SummaryRow label="Rent Due" value={formatCurrency(calculatedCharges.rentDue)} sub />
-            )}
-            {calculatedCharges.utilityCharge > 0 && (
-              <SummaryRow label="Utility" value={formatCurrency(calculatedCharges.utilityCharge)} sub />
-            )}
-          </div>
-          <div className="border-t border-[#e5e5ea] dark:border-[#38383a] pt-2 space-y-1">
-            <SummaryRow label="Total Charges" value={formatCurrency(totalCharges)} bold />
-            <SummaryRow label="Total Credits" value={formatCurrency(totalCredits)} bold />
-            <div className={`flex justify-between text-sm font-bold ${balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              <span>{balance >= 0 ? 'Return to Tenant' : 'Balance Owed'}</span>
-              <span>{formatCurrency(Math.abs(balance))}</span>
+            <div className="flex-1 p-4 space-y-3">
+              <DataPanelSection title="Tenant &amp; Property">
+                <DataRow label="Tenant" value={tenantData.tenantName} />
+                <DataRow label="Co-tenant" value={tenantData.coTenant || 'None'} />
+                <DataRow label="Unit" value={tenantData.unit} />
+                <DataRow label="Property" value={session?.propertyName ?? ''} />
+                <DataRow label="Forwarding address" value={
+                  [tenantData.forwardingAddress.street, tenantData.forwardingAddress.city,
+                   tenantData.forwardingAddress.state, tenantData.forwardingAddress.zip]
+                    .filter(Boolean).join(', ')
+                } />
+                <DataRow
+                  label="Inspection on file"
+                  value={tenantData.inspectionStatus === 'signed' ? '✓ Signed' : '✗ Missing'}
+                  highlight={tenantData.inspectionStatus === 'signed' ? 'green' : 'red'}
+                />
+              </DataPanelSection>
+
+              <DataPanelSection title="Deposits Held">
+                <DataRow label="Security deposit" value={formatCurrency(liveDepositData.securityDeposit)} />
+                {liveDepositData.petDeposit > 0 && <DataRow label="Pet deposit" value={formatCurrency(liveDepositData.petDeposit)} />}
+                {liveDepositData.keyDeposit > 0 && <DataRow label="Key deposit" value={formatCurrency(liveDepositData.keyDeposit)} />}
+                {liveDepositData.garageOpenerDeposit > 0 && <DataRow label="Garage opener" value={formatCurrency(liveDepositData.garageOpenerDeposit)} />}
+                <DataRow label="Total credits" value={formatCurrency(totalCredits)} bold />
+              </DataPanelSection>
+
+              <DataPanelSection title="Lease &amp; Dates">
+                <DataRow label="Move-in" value={tenantData.moveInDate} />
+                <DataRow label="Move-out" value={tenantData.moveOutDate} />
+                <DataRow label="Paid rent through" value={tenantData.paidThroughDate || '—'} />
+                <DataRow label="Notice date" value={tenantData.noticeDate || '—'} />
+                <DataRow label="Lease end date" value={tenantData.leaseEndDate || '—'} />
+                <DataRow label="Monthly rent" value={formatCurrency(tenantData.monthlyRent)} />
+                <DataRow label="Lease break?" value={tenantData.leaseBreak ? 'Yes' : 'No'} />
+                {tenantData.leaseBreak && <DataRow label="New tenant move-in" value={tenantData.newTenantMoveInDate ?? '—'} />}
+              </DataPanelSection>
+
+              <DataPanelSection title="Charges">
+                {manualCharges.generalCleaning > 0 && <DataRow label="General cleaning (tenant)" value={formatCurrency(cleaningTenant)} />}
+                {manualCharges.carpetShampooing > 0 && <DataRow label="Carpet shampooing" value={formatCurrency(manualCharges.carpetShampooing)} />}
+                {manualCharges.painting > 0 && <DataRow label="Painting" value={formatCurrency(manualCharges.painting)} />}
+                {manualCharges.legalCourtCosts > 0 && <DataRow label="Legal / court costs" value={formatCurrency(manualCharges.legalCourtCosts)} />}
+                {calculatedCharges.rentDue > 0 && <DataRow label="Rent due" value={formatCurrency(calculatedCharges.rentDue)} />}
+                {calculatedCharges.utilityCharge > 0 && <DataRow label="Utility charge" value={formatCurrency(calculatedCharges.utilityCharge)} />}
+                <DataRow label="Total charges" value={formatCurrency(totalCharges)} bold />
+              </DataPanelSection>
+
+              <DataPanelSection title="Balance">
+                <div className={`flex justify-between py-2 text-sm font-bold ${
+                  balance === 0 ? 'text-[#8e8e93]'
+                  : balance > 0 ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+                }`}>
+                  <span>{balance === 0 ? 'No balance' : balance > 0 ? 'Return to tenant' : 'Balance owing landlord'}</span>
+                  <span>{formatCurrency(Math.abs(balance))}</span>
+                </div>
+              </DataPanelSection>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
 
-// ── Shared sub-components ──────────────────────────────────────────────────
+// ── Shared primitives ──────────────────────────────────────────────────────────
 
-function Field({ label, value }: { label: string; value: string }) {
+function LegendItem({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-[#8e8e93]">
+      <span className={`inline-block w-2 h-2 rounded-full ${color}`} />
+      {label}
+    </span>
+  );
+}
+
+// Input styled to signal data origin: green = AppFolio, yellow = manual, blue = calculated.
+type InputVariant = 'appfolio' | 'manual' | 'calculated';
+const INPUT_STYLE: Record<InputVariant, string> = {
+  appfolio:   'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',
+  manual:     'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700',
+  calculated: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700',
+};
+
+function EditField({
+  label, value, onChange, variant = 'appfolio', type = 'text', placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  variant?: InputVariant;
+  type?: string;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block space-y-1">
+      <span className="text-xs font-medium text-[#8e8e93]">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`w-full border rounded-xl px-3 py-2 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${INPUT_STYLE[variant]}`}
+      />
+    </label>
+  );
+}
+
+function NumberField({
+  label, value, onChange, variant = 'appfolio', prefix = '$',
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  variant?: InputVariant;
+  prefix?: string;
+}) {
+  return (
+    <label className="block space-y-1">
+      <span className="text-xs font-medium text-[#8e8e93]">{label}</span>
+      <div className="relative">
+        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e93] text-sm">{prefix}</span>}
+        <input
+          type="number"
+          min={0}
+          step={0.01}
+          value={value}
+          onChange={e => onChange(parseFloat(e.target.value) || 0)}
+          className={`w-full border rounded-xl ${prefix ? 'pl-7' : 'px-3'} pr-3 py-2 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${INPUT_STYLE[variant]}`}
+        />
+      </div>
+    </label>
+  );
+}
+
+function SectionCard({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-4">
+      {title && <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">{title}</p>}
+      {children}
+    </div>
+  );
+}
+
+function ReadOnlyRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between py-1.5 border-b border-[#f2f2f7] dark:border-[#38383a]">
       <span className="text-sm text-[#8e8e93]">{label}</span>
@@ -262,72 +534,230 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SummaryRow({ label, value, bold, sub }: { label: string; value: string; bold?: boolean; sub?: boolean }) {
+// ── Data panel primitives ──────────────────────────────────────────────────────
+
+function DataPanelSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true);
   return (
-    <div className={`flex justify-between ${sub ? 'pl-3' : ''}`}>
-      <span className={`text-sm ${bold ? 'font-semibold text-[#1c1c1e] dark:text-white' : 'text-[#8e8e93]'}`}>{label}</span>
-      <span className={`text-sm ${bold ? 'font-semibold text-[#1c1c1e] dark:text-white' : 'text-[#1c1c1e] dark:text-[#ebebf5]'}`}>{value}</span>
+    <div className="rounded-xl border border-[#e5e5ea] dark:border-[#38383a] overflow-hidden">
+      <button
+        onClick={() => setOpen(p => !p)}
+        className="w-full flex items-center justify-between px-4 py-2.5 bg-[#f9f9fb] dark:bg-[#3a3a3c] hover:bg-[#f2f2f7] dark:hover:bg-[#48484a] transition-colors"
+      >
+        {/* Use dangerouslySetInnerHTML-safe approach: render as text, not HTML */}
+        <span className="text-xs font-semibold text-[#1c1c1e] dark:text-white"
+          // title contains &amp; entities which React renders correctly as text
+        >{title.replace(/&amp;/g, '&')}</span>
+        <span className="text-xs text-[#8e8e93]">{open ? '−' : '+'}</span>
+      </button>
+      {open && <div className="px-4 py-2 space-y-0">{children}</div>}
     </div>
   );
 }
 
-// ── Step sub-components ────────────────────────────────────────────────────
+function DataRow({ label, value, bold, highlight }: {
+  label: string; value: string; bold?: boolean; highlight?: 'green' | 'red';
+}) {
+  const valueClass = highlight === 'green'
+    ? 'text-green-600 dark:text-green-400 font-medium'
+    : highlight === 'red'
+    ? 'text-red-600 dark:text-red-400 font-medium'
+    : bold ? 'font-semibold text-[#1c1c1e] dark:text-white'
+    : 'text-[#1c1c1e] dark:text-[#ebebf5]';
+  return (
+    <div className="flex justify-between py-1.5 border-b border-[#f2f2f7] dark:border-[#38383a] last:border-0">
+      <span className={`text-xs ${bold ? 'font-semibold text-[#1c1c1e] dark:text-white' : 'text-[#8e8e93]'}`}>{label}</span>
+      <span className={`text-xs ${valueClass}`}>{value || '—'}</span>
+    </div>
+  );
+}
 
-function StepTenant({
-  t, inspectionSigned, onInspectionChange,
+// ── Section components ──────────────────────────────────────────────────────────
+
+function SectionPropertyTenant({
+  tenantData, onUpdateTenant, onUpdateAddress,
 }: {
-  t: TenantReturn['tenantData'];
-  inspectionSigned: boolean;
-  onInspectionChange: (v: boolean) => void;
+  tenantData: TenantData;
+  onUpdateTenant: <K extends keyof TenantData>(k: K, v: TenantData[K]) => void;
+  onUpdateAddress: (f: keyof TenantData['forwardingAddress'], v: string) => void;
 }) {
   return (
-    <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-1">
-      <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-3">Tenant Information</p>
-      <Field label="Tenant Name" value={t.tenantName} />
-      <Field label="Co-Tenant" value={t.coTenant} />
-      <Field label="Unit" value={t.unit} />
-      <Field label="Forwarding Street" value={t.forwardingAddress.street} />
-      <Field label="City / State / ZIP" value={[t.forwardingAddress.city, t.forwardingAddress.state, t.forwardingAddress.zip].filter(Boolean).join(', ')} />
+    <SectionCard title="Property &amp; Tenant">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="col-span-2">
+          <EditField label="Primary tenant" value={tenantData.tenantName} onChange={v => onUpdateTenant('tenantName', v)} />
+        </div>
+        <div className="col-span-2">
+          <EditField label="Co-tenant / co-signer" value={tenantData.coTenant} onChange={v => onUpdateTenant('coTenant', v)} placeholder="None" />
+        </div>
+        <EditField label="Unit #" value={tenantData.unit} onChange={v => onUpdateTenant('unit', v)} />
+      </div>
+      <p className="text-xs font-medium text-[#8e8e93] mt-2">Forwarding address (where to mail the check)</p>
+      <EditField label="Street" value={tenantData.forwardingAddress.street} onChange={v => onUpdateAddress('street', v)} placeholder="123 Main St" />
+      <div className="grid grid-cols-3 gap-2">
+        <div className="col-span-1">
+          <EditField label="City" value={tenantData.forwardingAddress.city} onChange={v => onUpdateAddress('city', v)} />
+        </div>
+        <EditField label="State" value={tenantData.forwardingAddress.state} onChange={v => onUpdateAddress('state', v)} placeholder="WA" />
+        <EditField label="ZIP" value={tenantData.forwardingAddress.zip} onChange={v => onUpdateAddress('zip', v)} placeholder="98101" />
+      </div>
+    </SectionCard>
+  );
+}
 
-      <div className="pt-3 border-t border-[#e5e5ea] dark:border-[#38383a] mt-2">
-        <label className="flex items-start gap-3 cursor-pointer select-none">
+function SectionLeaseDates({
+  tenantData, onUpdate, nrcCleaningFee, nrcPetFee, onNrcCleaningChange, onNrcPetChange,
+}: {
+  tenantData: TenantData;
+  onUpdate: <K extends keyof TenantData>(k: K, v: TenantData[K]) => void;
+  nrcCleaningFee: number;
+  nrcPetFee: number;
+  onNrcCleaningChange: (v: number) => void;
+  onNrcPetChange: (v: number) => void;
+}) {
+  return (
+    <>
+      <SectionCard title="Lease &amp; Dates">
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField label="Monthly rent" value={tenantData.monthlyRent} onChange={v => onUpdate('monthlyRent', v)} />
+          <EditField label="Move-in date" value={tenantData.moveInDate} onChange={v => onUpdate('moveInDate', v)} type="date" />
+          <EditField label="Move-out date" value={tenantData.moveOutDate} onChange={v => onUpdate('moveOutDate', v)} type="date" />
+          <EditField label="Paid rent through" value={tenantData.paidThroughDate} onChange={v => onUpdate('paidThroughDate', v)} type="date" variant="manual" />
+          <EditField label="Notice date" value={tenantData.noticeDate} onChange={v => onUpdate('noticeDate', v)} type="date" />
+          <EditField label="Lease end date" value={tenantData.leaseEndDate} onChange={v => onUpdate('leaseEndDate', v)} type="date" />
+        </div>
+        <label className="flex items-center gap-3 cursor-pointer select-none pt-2">
           <input
             type="checkbox"
-            checked={inspectionSigned}
-            onChange={e => onInspectionChange(e.target.checked)}
-            className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-blue-600"
+            checked={tenantData.leaseBreak}
+            onChange={e => onUpdate('leaseBreak', e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 accent-blue-600"
           />
-          <div>
-            <span className="text-sm font-medium text-[#1c1c1e] dark:text-[#ebebf5]">Signed move-in inspection is on file</span>
-            {!inspectionSigned && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
-                Without a signed inspection, deductions may be challenged in small claims court.
-              </p>
-            )}
-          </div>
+          <span className="text-sm text-[#1c1c1e] dark:text-[#ebebf5]">Lease break (early termination)</span>
         </label>
-      </div>
-    </div>
+        {tenantData.leaseBreak && (
+          <EditField
+            label="New tenant move-in date"
+            value={tenantData.newTenantMoveInDate ?? ''}
+            onChange={v => onUpdate('newTenantMoveInDate', v || null)}
+            type="date"
+            variant="manual"
+          />
+        )}
+      </SectionCard>
+      {/* NRC fees live in this section per the AGM Checkout PDF layout */}
+      <SectionCard title="NRC Fees">
+        <p className="text-sm text-[#8e8e93]">
+          Non-refundable charges collected at move-in. The NRC cleaning fee offsets the
+          tenant&apos;s share of general cleaning costs.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField label="NRC cleaning fee" value={nrcCleaningFee} onChange={onNrcCleaningChange} variant="appfolio" />
+          <NumberField label="NRC pet fee" value={nrcPetFee} onChange={onNrcPetChange} variant="appfolio" />
+        </div>
+        {(nrcCleaningFee > 0 || nrcPetFee > 0) && (
+          <p className="text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2">
+            Pre-filled from property config — edit here if this unit&apos;s amounts differ.
+          </p>
+        )}
+      </SectionCard>
+    </>
   );
 }
 
-function StepLease({ t }: { t: TenantReturn['tenantData'] }) {
+function SectionNRCFees({
+  nrcCleaningFee, nrcPetFee, onCleaningChange, onPetChange,
+}: {
+  nrcCleaningFee: number;
+  nrcPetFee: number;
+  onCleaningChange: (v: number) => void;
+  onPetChange: (v: number) => void;
+}) {
   return (
-    <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-1">
-      <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider mb-3">Lease Details</p>
-      <Field label="Monthly Rent" value={formatCurrency(t.monthlyRent)} />
-      <Field label="Move-In Date" value={t.moveInDate} />
-      <Field label="Move-Out Date" value={t.moveOutDate} />
-      <Field label="Paid Through" value={t.paidThroughDate} />
-      <Field label="Notice Date" value={t.noticeDate} />
-      <Field label="Lease End Date" value={t.leaseEndDate} />
-      <Field label="Lease Break" value={t.leaseBreak ? 'Yes' : 'No'} />
-      {t.leaseBreak && <Field label="New Tenant Move-In" value={t.newTenantMoveInDate ?? 'None confirmed'} />}
-    </div>
+    <SectionCard title="NRC Fees">
+      <p className="text-sm text-[#8e8e93]">
+        Non-refundable charges (NRC) offset cleaning costs — the tenant's share of general cleaning
+        is reduced by the NRC cleaning fee already collected.
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        <NumberField label="NRC cleaning fee" value={nrcCleaningFee} onChange={onCleaningChange} variant="appfolio" />
+        <NumberField label="NRC pet fee" value={nrcPetFee} onChange={onPetChange} variant="appfolio" />
+      </div>
+      {(nrcCleaningFee > 0 || nrcPetFee > 0) && (
+        <p className="text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2">
+          Pre-filled from property config. Edit here if this unit's NRC amounts differ.
+        </p>
+      )}
+    </SectionCard>
   );
 }
 
-function StepUtility({
+function SectionInspection({
+  inspectionSigned, onToggle,
+}: {
+  inspectionSigned: boolean;
+  onToggle: (v: boolean) => void;
+}) {
+  return (
+    <SectionCard title="Move-In / Out Photos">
+      <p className="text-sm text-[#8e8e93]">
+        A signed move-in inspection report is required to legally defend deductions in small claims court under California Civil Code §1950.5.
+      </p>
+      <label className="flex items-start gap-3 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={inspectionSigned}
+          onChange={e => onToggle(e.target.checked)}
+          className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-blue-600"
+        />
+        <div>
+          <span className="text-sm font-medium text-[#1c1c1e] dark:text-[#ebebf5]">Signed move-in inspection is on file</span>
+          {!inspectionSigned && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+              ⚠ Without a signed inspection, any repair or cleaning deductions may be challenged.
+            </p>
+          )}
+          {inspectionSigned && (
+            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+              ✓ Deductions are defensible in small claims court.
+            </p>
+          )}
+        </div>
+      </label>
+    </SectionCard>
+  );
+}
+
+function SectionRentDue({
+  calculatedCharges, tenantData,
+}: {
+  calculatedCharges: TenantReturn['calculatedCharges'];
+  tenantData: TenantData;
+}) {
+  return (
+    <SectionCard title="Rent Due">
+      <p className="text-sm text-[#8e8e93]">
+        Calculated automatically from move-out date vs paid-through date and monthly rent. Set "Paid rent through" in Lease &amp; Dates to compute this.
+      </p>
+      {!tenantData.paidThroughDate && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl px-4 py-3 text-sm text-yellow-700 dark:text-yellow-400">
+          ⚠ "Paid rent through" is blank — go to Lease &amp; Dates to fill it in.
+        </div>
+      )}
+      <div className="space-y-1">
+        <ReadOnlyRow label="Rent due date range" value={calculatedCharges.rentDueDateRange ?? '—'} />
+        <ReadOnlyRow label="Rent due amount" value={calculatedCharges.rentDue > 0 ? formatCurrency(calculatedCharges.rentDue) : '$0.00'} />
+        {tenantData.leaseBreak && (
+          <p className="text-xs text-orange-600 dark:text-orange-400 pt-1">
+            Lease break active — this tenant may owe additional lease-break fees (enter under Total Charges → Other).
+          </p>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
+function SectionUtility({
   utilityData, rubsInput, onRubsChange, utilityCharge, utilityRate, onRateChange,
 }: {
   utilityData: TenantReturn['utilityData'];
@@ -338,8 +768,7 @@ function StepUtility({
   onRateChange: (v: number) => void;
 }) {
   return (
-    <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-4">
-      <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">Utility</p>
+    <SectionCard title="Utility Charges">
       <div className="flex items-center gap-2">
         <UtilityTag type={utilityData.utilityType} />
       </div>
@@ -347,28 +776,17 @@ function StepUtility({
       {utilityData.utilityType === 'flat_fee' && (
         <div className="space-y-3 border-t border-[#e5e5ea] dark:border-[#38383a] pt-4">
           <p className="text-sm text-[#8e8e93]">
-            Monthly flat fee charged at move-out. Pre-filled from property config — edit if this unit differs.
+            Monthly flat fee billed at move-out. Pre-filled from property config — edit if this unit differs.
           </p>
-          <label className="block">
-            <span className="text-xs text-[#8e8e93] font-medium">Flat Fee Rate ($/month)</span>
-            <div className="relative mt-1 w-40">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e93] text-sm">$</span>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={utilityRate}
-                onChange={e => onRateChange(parseFloat(e.target.value) || 0)}
-                className="w-full bg-[#f2f2f7] dark:bg-[#3a3a3c] border border-[#e5e5ea] dark:border-[#48484a] rounded-xl pl-7 pr-3 py-2 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </label>
-          {utilityCharge === 0 ? (
-            <p className="text-sm text-[#8e8e93]">Utility included in rent — no charge at move-out.</p>
-          ) : (
+          <div className="w-48">
+            <NumberField label="Flat fee rate ($/month)" value={utilityRate} onChange={onRateChange} />
+          </div>
+          {utilityCharge > 0 ? (
             <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-              Calculated Utility Charge: {formatCurrency(utilityCharge)}
+              Calculated utility charge: {formatCurrency(utilityCharge)}
             </p>
+          ) : (
+            <p className="text-sm text-[#8e8e93]">Utility included in rent — no charge at move-out.</p>
           )}
         </div>
       )}
@@ -376,43 +794,40 @@ function StepUtility({
       {utilityData.utilityType === 'RUBS' && (
         <div className="space-y-3 border-t border-[#e5e5ea] dark:border-[#38383a] pt-4">
           <p className="text-sm text-[#8e8e93]">
-            Enter the final water bill from the city. RUBS charge = Building Total × Unit Ratio.
+            RUBS: tenant pays their proportional share of the final water bill. Charge = Building Total × Unit Ratio.
           </p>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-xs text-[#8e8e93] font-medium">Building Total ($)</span>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={rubsInput.buildingTotal}
-                onChange={e => onRubsChange({ ...rubsInput, buildingTotal: parseFloat(e.target.value) || 0 })}
-                className="mt-1 w-full bg-[#f2f2f7] dark:bg-[#3a3a3c] border border-[#e5e5ea] dark:border-[#48484a] rounded-xl px-3 py-2 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs text-[#8e8e93] font-medium">Unit Ratio (e.g. 0.08)</span>
-              <input
-                type="number"
-                min={0}
-                max={1}
-                step={0.0001}
-                value={rubsInput.unitRatio}
-                onChange={e => onRubsChange({ ...rubsInput, unitRatio: parseFloat(e.target.value) || 0 })}
-                className="mt-1 w-full bg-[#f2f2f7] dark:bg-[#3a3a3c] border border-[#e5e5ea] dark:border-[#48484a] rounded-xl px-3 py-2 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
+            <NumberField label="Building total ($)" value={rubsInput.buildingTotal} onChange={v => onRubsChange({ ...rubsInput, buildingTotal: v })} variant="manual" />
+            <NumberField label="Unit ratio (e.g. 0.08)" value={rubsInput.unitRatio} onChange={v => onRubsChange({ ...rubsInput, unitRatio: v })} variant="manual" prefix="" />
           </div>
           <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-            Calculated Tenant Share: {formatCurrency(utilityCharge)}
+            Calculated tenant share: {formatCurrency(utilityCharge)}
           </p>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
-function ChargeInput({
+function SectionLegalCosts({
+  legalCourtCosts, onChange,
+}: {
+  legalCourtCosts: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <SectionCard title="Legal / Court Costs">
+      <p className="text-sm text-[#8e8e93]">
+        Attorney fees, filing fees, or other court costs owed by the tenant. Leave at $0 if none.
+      </p>
+      <div className="w-48">
+        <NumberField label="Legal / court costs" value={legalCourtCosts} onChange={onChange} variant="manual" />
+      </div>
+    </SectionCard>
+  );
+}
+
+function ChargeRow({
   label, chargeKey, value, onChange,
 }: {
   label: string;
@@ -431,37 +846,41 @@ function ChargeInput({
           step={0.01}
           value={value}
           onChange={e => onChange(chargeKey, parseFloat(e.target.value) || 0)}
-          className="w-full bg-[#f2f2f7] dark:bg-[#3a3a3c] border border-[#e5e5ea] dark:border-[#48484a] rounded-xl pl-7 pr-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+          className="w-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl pl-7 pr-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
         />
       </div>
     </div>
   );
 }
 
-function StepCharges({
-  manualCharges, onChange, nrcCleaning, cleaningTenant,
+function SectionTotalCharges({
+  manualCharges, onChange, nrcCleaningFee, cleaningTenant, calculatedCharges, totalCharges,
 }: {
   manualCharges: ManualCharges;
   onChange: (key: keyof ManualCharges, v: number | string) => void;
-  nrcCleaning: number;
+  nrcCleaningFee: number;
   cleaningTenant: number;
+  calculatedCharges: TenantReturn['calculatedCharges'];
+  totalCharges: number;
 }) {
   return (
-    <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-3">
-      <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">Turnover Charges</p>
-      <p className="text-xs text-[#8e8e93]">Enter total cost for each item. NRC offset is applied automatically to cleaning.</p>
+    <SectionCard title="Total Charges">
+      <p className="text-xs text-[#8e8e93]">
+        Enter the total vendor cost for each item. NRC offset is applied automatically to cleaning.
+      </p>
       <div className="space-y-2">
-        <ChargeInput label="General Cleaning" chargeKey="generalCleaning" value={manualCharges.generalCleaning} onChange={onChange} />
-        {nrcCleaning > 0 && (
+        <ChargeRow label="General cleaning" chargeKey="generalCleaning" value={manualCharges.generalCleaning} onChange={onChange} />
+        {nrcCleaningFee > 0 && manualCharges.generalCleaning > 0 && (
           <p className="text-xs text-green-600 dark:text-green-400 pl-1">
-            NRC offset: {formatCurrency(nrcCleaning)} → Tenant pays {formatCurrency(cleaningTenant)}
+            NRC offset: {formatCurrency(nrcCleaningFee)} → Tenant pays {formatCurrency(cleaningTenant)}
           </p>
         )}
-        <ChargeInput label="Blind / Drape Cleaning" chargeKey="blindDrapeCleaning" value={manualCharges.blindDrapeCleaning} onChange={onChange} />
-        <ChargeInput label="Window Covering Replacement" chargeKey="windowCoveringReplacement" value={manualCharges.windowCoveringReplacement} onChange={onChange} />
-        <ChargeInput label="Carpet Shampooing" chargeKey="carpetShampooing" value={manualCharges.carpetShampooing} onChange={onChange} />
-        <ChargeInput label="Flooring Restoration" chargeKey="flooringRestoration" value={manualCharges.flooringRestoration} onChange={onChange} />
-        <ChargeInput label="Painting" chargeKey="painting" value={manualCharges.painting} onChange={onChange} />
+        <ChargeRow label="Blind / drape cleaning" chargeKey="blindDrapeCleaning" value={manualCharges.blindDrapeCleaning} onChange={onChange} />
+        <ChargeRow label="Window covering replacement" chargeKey="windowCoveringReplacement" value={manualCharges.windowCoveringReplacement} onChange={onChange} />
+        <ChargeRow label="Carpet shampooing" chargeKey="carpetShampooing" value={manualCharges.carpetShampooing} onChange={onChange} />
+        <ChargeRow label="Flooring restoration" chargeKey="flooringRestoration" value={manualCharges.flooringRestoration} onChange={onChange} />
+        <ChargeRow label="Painting" chargeKey="painting" value={manualCharges.painting} onChange={onChange} />
+
         {/* Other 1 — editable label + amount */}
         <div className="flex items-center gap-3">
           <input
@@ -469,73 +888,108 @@ function StepCharges({
             value={manualCharges.other1Label}
             onChange={e => onChange('other1Label', e.target.value)}
             placeholder="Other label"
-            className="flex-1 bg-[#f2f2f7] dark:bg-[#3a3a3c] border border-[#e5e5ea] dark:border-[#48484a] rounded-xl px-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl px-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <div className="relative w-32">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e93] text-sm">$</span>
             <input
               type="number" min={0} step={0.01} value={manualCharges.other1}
               onChange={e => onChange('other1', parseFloat(e.target.value) || 0)}
-              className="w-full bg-[#f2f2f7] dark:bg-[#3a3a3c] border border-[#e5e5ea] dark:border-[#48484a] rounded-xl pl-7 pr-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+              className="w-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl pl-7 pr-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
             />
           </div>
         </div>
-        {/* Other 2 — editable label + amount */}
+        {/* Other 2 */}
         <div className="flex items-center gap-3">
           <input
             type="text"
             value={manualCharges.other2Label}
             onChange={e => onChange('other2Label', e.target.value)}
             placeholder="Other label"
-            className="flex-1 bg-[#f2f2f7] dark:bg-[#3a3a3c] border border-[#e5e5ea] dark:border-[#48484a] rounded-xl px-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl px-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <div className="relative w-32">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e93] text-sm">$</span>
             <input
               type="number" min={0} step={0.01} value={manualCharges.other2}
               onChange={e => onChange('other2', parseFloat(e.target.value) || 0)}
-              className="w-full bg-[#f2f2f7] dark:bg-[#3a3a3c] border border-[#e5e5ea] dark:border-[#48484a] rounded-xl pl-7 pr-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+              className="w-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl pl-7 pr-3 py-1.5 text-sm text-[#1c1c1e] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
             />
           </div>
         </div>
-        <ChargeInput label="Legal / Court Costs" chargeKey="legalCourtCosts" value={manualCharges.legalCourtCosts} onChange={onChange} />
       </div>
-    </div>
+
+      {/* Calculated rows */}
+      {(calculatedCharges.rentDue > 0 || calculatedCharges.utilityCharge > 0) && (
+        <div className="border-t border-[#e5e5ea] dark:border-[#38383a] pt-3 space-y-2">
+          <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">Calculated charges</p>
+          {calculatedCharges.rentDue > 0 && (
+            <div className="flex justify-between">
+              <span className="text-sm text-[#8e8e93]">Rent due {calculatedCharges.rentDueDateRange ? `(${calculatedCharges.rentDueDateRange})` : ''}</span>
+              <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{formatCurrency(calculatedCharges.rentDue)}</span>
+            </div>
+          )}
+          {calculatedCharges.utilityCharge > 0 && (
+            <div className="flex justify-between">
+              <span className="text-sm text-[#8e8e93]">Utility charge</span>
+              <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{formatCurrency(calculatedCharges.utilityCharge)}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Total */}
+      <div className="border-t border-[#e5e5ea] dark:border-[#38383a] pt-3 flex justify-between">
+        <span className="text-sm font-bold text-[#1c1c1e] dark:text-white">Total charges</span>
+        <span className="text-sm font-bold text-[#1c1c1e] dark:text-white">{formatCurrency(totalCharges)}</span>
+      </div>
+    </SectionCard>
   );
 }
 
-function StepReview({
-  displayReturn, totalCharges, totalCredits, balance,
+function SectionRefundsCredits({
+  depositData, totalCredits, totalCharges, balance,
 }: {
-  displayReturn: TenantReturn;
-  totalCharges: number;
+  depositData: DepositData;
   totalCredits: number;
+  totalCharges: number;
   balance: number;
 }) {
   return (
-    <div className="bg-white dark:bg-[#2c2c2e] rounded-2xl border border-[#e5e5ea] dark:border-[#38383a] p-5 space-y-3">
-      <p className="text-xs font-semibold text-[#8e8e93] uppercase tracking-wider">Calculation Summary</p>
+    <SectionCard title="Refunds &amp; Credits">
       <div className="space-y-1">
-        <p className="text-xs text-[#8e8e93] font-semibold uppercase tracking-wide">Credits</p>
-        <SummaryRow label="Security Deposit" value={formatCurrency(displayReturn.depositData.securityDeposit)} />
-        {displayReturn.depositData.petDeposit > 0 && <SummaryRow label="Pet Deposit" value={formatCurrency(displayReturn.depositData.petDeposit)} />}
-        {displayReturn.depositData.keyDeposit > 0 && <SummaryRow label="Key Deposit" value={formatCurrency(displayReturn.depositData.keyDeposit)} />}
-        {displayReturn.depositData.garageOpenerDeposit > 0 && <SummaryRow label="Garage Deposit" value={formatCurrency(displayReturn.depositData.garageOpenerDeposit)} />}
-        <SummaryRow label="Total Credits" value={formatCurrency(totalCredits)} bold />
-      </div>
-      <div className="space-y-1 border-t border-[#e5e5ea] dark:border-[#38383a] pt-2">
-        <p className="text-xs text-[#8e8e93] font-semibold uppercase tracking-wide">Charges</p>
-        <SummaryRow label="Total Charges" value={formatCurrency(totalCharges)} bold />
-      </div>
-      <div className={`border-t border-[#e5e5ea] dark:border-[#38383a] pt-2 text-sm font-bold flex justify-between ${balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-        <span>{balance >= 0 ? 'Return to Tenant' : 'Balance Owed to Landlord'}</span>
-        <span>{formatCurrency(Math.abs(balance))}</span>
-      </div>
-      {displayReturn.tenantData.inspectionStatus === 'missing' && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400">
-          Warning: Signed move-in inspection is not on file. Deductions may be challenged in small claims court.
+        <ReadOnlyRow label="Security deposit paid" value={formatCurrency(depositData.securityDeposit)} />
+        {depositData.petDeposit > 0 && <ReadOnlyRow label="Pet deposit" value={formatCurrency(depositData.petDeposit)} />}
+        {depositData.keyDeposit > 0 && <ReadOnlyRow label="Key deposit" value={formatCurrency(depositData.keyDeposit)} />}
+        {depositData.garageOpenerDeposit > 0 && <ReadOnlyRow label="Garage opener deposit" value={formatCurrency(depositData.garageOpenerDeposit)} />}
+        <div className="flex justify-between py-2 border-t border-[#e5e5ea] dark:border-[#38383a]">
+          <span className="text-sm font-semibold text-[#1c1c1e] dark:text-white">Total credits</span>
+          <span className="text-sm font-semibold text-[#1c1c1e] dark:text-white">{formatCurrency(totalCredits)}</span>
         </div>
-      )}
-    </div>
+      </div>
+
+      <div className="border-t border-[#e5e5ea] dark:border-[#38383a] pt-3 space-y-1.5">
+        <div className="flex justify-between text-sm text-[#8e8e93]">
+          <span>Total charges</span>
+          <span>{formatCurrency(totalCharges)}</span>
+        </div>
+        <div className="flex justify-between text-sm text-[#8e8e93]">
+          <span>Total credits</span>
+          <span>{formatCurrency(totalCredits)}</span>
+        </div>
+        <div className={`flex justify-between py-2 px-3 rounded-xl text-sm font-bold ${
+          balance === 0
+            ? 'bg-[#f2f2f7] dark:bg-[#3a3a3c] text-[#8e8e93]'
+            : balance > 0
+            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+            : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+        }`}>
+          <span>
+            {balance === 0 ? '$0 Balance' : balance > 0 ? 'Return to Tenant' : 'Balance Owing Landlord'}
+          </span>
+          <span>{formatCurrency(Math.abs(balance))}</span>
+        </div>
+      </div>
+    </SectionCard>
   );
 }

@@ -41,7 +41,7 @@ export async function fillAGMCheckoutPDF(
   tr: TenantReturn,
   propertyName: string,
   propertyConfig?: PropertyConfig | null,
-): Promise<Uint8Array> {
+): Promise<{ filled: Uint8Array; populated: number }> {
   const pdfDoc = await PDFDocument.load(templateBytes);
   const form = pdfDoc.getForm();
 
@@ -157,7 +157,24 @@ export async function fillAGMCheckoutPDF(
   setCheck(form, FIELD_MAP.balanceOwingLandlord, balance < 0);
   setText(form, FIELD_MAP.balanceAmount, formatCurrency(Math.abs(balance)));
 
-  return pdfDoc.save();
+  // Count how many fields ended up with a non-empty / checked value.
+  const fields = form.getFields();
+  let populated = 0;
+  for (const f of fields) {
+    try {
+      const type = f.constructor.name;
+      if (type === 'PDFTextField') {
+        const v = (f as import('pdf-lib').PDFTextField).getText();
+        if (v && v.trim()) populated++;
+      } else if (type === 'PDFCheckBox') {
+        if ((f as import('pdf-lib').PDFCheckBox).isChecked()) populated++;
+      }
+    } catch {
+      // ignore fields we can't inspect
+    }
+  }
+
+  return { filled: await pdfDoc.save(), populated };
 }
 
 // Parse a display date like "3/15/2026" or "2026-03-15" back to ISO "YYYY-MM-DD"
