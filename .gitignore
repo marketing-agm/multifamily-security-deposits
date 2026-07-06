@@ -42,3 +42,6 @@ next-env.d.ts
 
 # pr-screenshot-verify output (kept out of the code diff)
 .pr-shots/
+
+# Claude Code git worktrees (local tooling only)
+.claude/worktrees/
