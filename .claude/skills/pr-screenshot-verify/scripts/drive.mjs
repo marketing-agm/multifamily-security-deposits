@@ -22,6 +22,7 @@ import path from "node:path";
 import http from "node:http";
 
 const CHROME_CANDIDATES = [
+  "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
