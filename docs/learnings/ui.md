@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: 98eb57f :: Vivid status colors fail WCAG as text — need separate -fg tokens -->
+### 2026-07-06 · ui · gotcha · Vivid status colors fail WCAG as text — need separate -fg tokens
+- **Ref:** 98eb57f
+- **Symptom:** iOS-style vivid status colors (danger #ff3b30 ~3.4:1, warning #ff9500 worse) read fine as dots/progress fills but are too low-contrast as small label text on white/light-tint backgrounds.
+- **Root cause:** One token was doing double duty (fill + text). Vivid tones are tuned for saturation, not text contrast.
+- **Fix:** Add darker foreground tokens (success-fg/warning-fg/danger-fg) for TEXT (~5-6:1 on white), keep the vivid tokens for FILLS (dots, progress, tint backgrounds). Convention: bg-{sem}/10-12 tint + text-{sem}-fg label. In dark mode the vivid tones already pass, so -fg == vivid there.
+- **Lesson:** When defining semantic status colors, split 'fill' from 'foreground/label' like iOS does. Never use a vivid brand/status color as small text on a light background without checking contrast (target 4.5:1).
+
+
 <!-- log-id: 3ea2e35 :: Flash of light mode on dark reload — <html> missing suppressHydrationWarning -->
 ### 2026-07-06 · ui · bug · Flash of light mode on dark reload — <html> missing suppressHydrationWarning
 - **Ref:** 3ea2e35

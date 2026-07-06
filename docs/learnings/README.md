@@ -3,6 +3,7 @@
 Cross-session record of fixes and gotchas. **Before fixing in an area, grep its file for prior lessons; after fixing, add an entry** via the `learnings-log` skill (`scripts/log.mjs`). Full entries live in the per-area files; one line per entry below, newest first.
 
 ## ui
+- [2026-07-06] gotcha — Using the same vivid semantic color for both fills and text (e.g. text-danger on a light tint) fails WCAG AA contrast for small text. (98eb57f)
 - [2026-07-06] bug — A pre-paint inline script adds the .dark class to <html>, but React stripped it on hydration because the JSX className didn't include it. (3ea2e35)
 - [2026-07-06] gotcha — Semantic design tokens in globals.css remove per-element dark:bg-[#hex] duplication and centralize the palette. (2333f85)
 
