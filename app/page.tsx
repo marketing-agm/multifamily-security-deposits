@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
 import { useTheme } from '@/context/ThemeContext';
 import { parseAppFolioExport, ParseError } from '@/lib/parser';
+import { lookupProperty } from '@/lib/propertyConfig';
 
 export default function UploadPage() {
   const { session, setSession } = useSession();
@@ -31,10 +32,12 @@ export default function UploadPage() {
         setErrors(result.errors);
         return;
       }
+      const resolvedName = result.propertyName || file.name.replace(/\.xlsx?$/, '');
       setSession({
-        propertyName: result.propertyName || file.name.replace(/\.xlsx?$/, ''),
+        propertyName: resolvedName,
         uploadDate: new Date().toLocaleDateString('en-US'),
         returns: result.returns,
+        propertyConfig: lookupProperty(resolvedName),
       });
       if (result.errors.length > 0) setErrors(result.errors);
       router.push('/dashboard');

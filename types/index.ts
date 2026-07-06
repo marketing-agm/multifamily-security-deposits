@@ -90,8 +90,22 @@ export interface TenantReturn {
   pdfGenerated: boolean;
 }
 
+export interface PropertyConfig {
+  code: string;
+  name: string;
+  address: string;
+  utilityType: UtilityType;
+  flatFeeRate: number;
+  rubsUnitRatio: number;
+  nrcCleaningFee: number;
+  nrcPetFee: number;
+  siteManagerName: string;
+  propertyManagerName: string;
+}
+
 export interface SessionState {
   propertyName: string;
   uploadDate: string;
   returns: TenantReturn[];
+  propertyConfig: PropertyConfig | null;
 }
