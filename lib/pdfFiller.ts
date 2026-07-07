@@ -172,16 +172,17 @@ export async function fillAGMCheckoutPDF(
   setText(form, FIELD_MAP.dateMailedToTenantYear,  String(today.getFullYear()));
 
   // Count how many fields ended up with a non-empty / checked value.
+  // Use `instanceof` (NOT f.constructor.name) — the production build minifies
+  // class names, so name checks silently return 0 filled fields in prod.
   const fields = form.getFields();
   let populated = 0;
   for (const f of fields) {
     try {
-      const type = f.constructor.name;
-      if (type === 'PDFTextField') {
-        const v = (f as import('pdf-lib').PDFTextField).getText();
+      if (f instanceof PDFTextField) {
+        const v = f.getText();
         if (v && v.trim()) populated++;
-      } else if (type === 'PDFCheckBox') {
-        if ((f as import('pdf-lib').PDFCheckBox).isChecked()) populated++;
+      } else if (f instanceof PDFCheckBox) {
+        if (f.isChecked()) populated++;
       }
     } catch {
       // ignore fields we can't inspect
