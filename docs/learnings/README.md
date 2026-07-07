@@ -14,6 +14,7 @@ Cross-session record of fixes and gotchas. **Before fixing in an area, grep its 
 - [2026-07-06] gotcha — Semantic design tokens in globals.css remove per-element dark:bg-[#hex] duplication and centralize the palette. (2333f85)
 
 ## lib
+- [2026-07-07] bug — The parser read the property from the first ledger row and applied its name + config to every tenant, so multi-property exports got wrong managers/NRC/utility. (multi-property)
 - [2026-07-06] bug — The AGM template pre-prints a $ in each currency cell, so writing formatCurrency() (which adds $) produced $$0.00. (98eb57f-pdf)
 - [2026-07-06] bug — Dashboard showed 0 tenants after uploading a real AppFolio Excel export because the parser misread the file structure. (2618a8f)
 

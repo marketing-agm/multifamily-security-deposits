@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: multi-property :: Parser assumed one property per upload; multi-property exports mis-tagged -->
+### 2026-07-07 · lib · bug · Parser assumed one property per upload; multi-property exports mis-tagged
+- **Ref:** multi-property
+- **Symptom:** In an export spanning multiple properties, all tenants showed the first property's name and their PDFs carried the wrong site/property manager names, NRC defaults, and utility type.
+- **Root cause:** lib/parser.ts resolved a single firstPropertyValue/propertyConfig before the row loop and reused it for all returns.
+- **Fix:** Resolve property PER row (lookupProperty on each row's Property cell), seed that return's NRC/utility from its own config, and store propertyName + propertyConfig on each TenantReturn. Consumers (Review, PDF, ReturnForm, Dashboard grouping) use the per-return property, falling back to the session for older/demo data.
+- **Lesson:** Don't derive a whole-file attribute from row 0 when the file can contain multiple values of it — resolve per row. AppFolio move-out exports can mix properties.
+
+
 <!-- log-id: 98eb57f-pdf :: Double dollar sign in filled AGM PDF ($0.00) -->
 ### 2026-07-06 · lib · bug · Double dollar sign in filled AGM PDF ($0.00)
 - **Ref:** 98eb57f-pdf
