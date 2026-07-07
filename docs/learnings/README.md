@@ -3,6 +3,7 @@
 Cross-session record of fixes and gotchas. **Before fixing in an area, grep its file for prior lessons; after fixing, add an entry** via the `learnings-log` skill (`scripts/log.mjs`). Full entries live in the per-area files; one line per entry below, newest first.
 
 ## ui
+- [2026-07-07] gotcha — Pattern for a branded login/splash: accent-gradient brand panel beside the sign-in card, collapsing to one column on mobile, theme-aware via tokens. (e45dbc5)
 - [2026-07-06] bug — Two near-simultaneous async uploads both computed next from the same stale `photos` closure, so the second write overwrote the first. (photos-race)
 - [2026-07-06] gotcha — Calling updateReturn (SessionProvider setState) inside setPhotos(prev => ...) triggers a cross-component state update during render. (b1hp4c8bt)
 - [2026-07-06] gotcha — Using the same vivid semantic color for both fills and text (e.g. text-danger on a light tint) fails WCAG AA contrast for small text. (98eb57f)

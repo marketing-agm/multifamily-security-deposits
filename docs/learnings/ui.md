@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: e45dbc5 :: Responsive two-panel auth splash on design tokens -->
+### 2026-07-07 · ui · gotcha · Responsive two-panel auth splash on design tokens
+- **Ref:** e45dbc5
+- **Symptom:** A bare centered password box felt unfinished for the first screen users see.
+- **Root cause:** N/A — design improvement, captured as a reusable layout pattern.
+- **Fix:** flex md:flex-row: left <aside> uses bg-gradient-to-br from-accent to-accent-hover + text-on-accent with blurred bg-white/10 glows for depth; right <main> centers the form. All colors from tokens so light/dark just work. Keep the login POST/cookie logic untouched.
+- **Lesson:** For auth/splash pages, drive the brand panel with the accent token gradient (theme-agnostic colored panel + on-accent text) and let the form side use surface/app-text tokens; stack to single column below md. Reuse this shape for any future gated entry screen.
+
+
 <!-- log-id: photos-race :: Simultaneous uploads clobber state when handler reads closure, not prev -->
 ### 2026-07-06 · ui · bug · Simultaneous uploads clobber state when handler reads closure, not prev
 - **Ref:** photos-race
