@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: minified-constructor-name :: constructor.name checks break in production (minified) builds -->
+### 2026-07-07 · lib · bug · constructor.name checks break in production (minified) builds
+- **Ref:** minified-constructor-name
+- **Symptom:** Review screen showed '0/79 fields populated' on the deployed site, but 41-48/79 in local dev. The PDF itself filled correctly.
+- **Root cause:** The populated-field counter compared f.constructor.name to literal class-name strings; the production build minifies class names so the strings never matched.
+- **Fix:** Use instanceof (f instanceof PDFTextField / PDFCheckBox) instead of constructor.name. instanceof is safe under minification.
+- **Lesson:** Never branch on constructor.name / class-name strings in code that ships minified. Use instanceof or an explicit type tag. Verify build-sensitive logic with `next build` + `next start`, not just `next dev`.
+
+
 <!-- log-id: blank-filter-row :: Property read from first row after header grabbed AppFolio's blank filter row -->
 ### 2026-07-07 · lib · bug · Property read from first row after header grabbed AppFolio's blank filter row
 - **Ref:** blank-filter-row

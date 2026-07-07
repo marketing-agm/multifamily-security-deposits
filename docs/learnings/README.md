@@ -17,6 +17,7 @@ Cross-session record of fixes and gotchas. **Before fixing in an area, grep its 
 - [2026-07-06] gotcha — Semantic design tokens in globals.css remove per-element dark:bg-[#hex] duplication and centralize the palette. (2333f85)
 
 ## lib
+- [2026-07-07] bug — Field-type detection via f.constructor.name === 'PDFTextField' returned 0 in prod because minification renames classes; dev worked. (minified-constructor-name)
 - [2026-07-07] bug — Deriving the property from ledgerRows[0] returned empty because AppFolio exports put a blank filter row directly under the header, so the app fell back to the file name. (blank-filter-row)
 - [2026-07-07] bug — The parser read the property from the first ledger row and applied its name + config to every tenant, so multi-property exports got wrong managers/NRC/utility. (multi-property)
 - [2026-07-06] bug — The AGM template pre-prints a $ in each currency cell, so writing formatCurrency() (which adds $) produced $$0.00. (98eb57f-pdf)
