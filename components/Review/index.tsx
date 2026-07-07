@@ -338,12 +338,21 @@ export function ReviewScreen({ returnId }: Props) {
             : '↓ Download AGM Checkout Report'}
         </button>
 
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="w-full border border-separator text-secondary hover:text-app-text font-medium py-2.5 rounded-2xl hover:bg-fill transition-colors text-sm"
-        >
-          ← Back to Dashboard
-        </button>
+        {/* Back navigation — return to the form/calculations or the dashboard. */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => router.push(`/return/${returnId}`)}
+            className="w-full border border-separator text-secondary hover:text-app-text font-medium py-2.5 rounded-2xl hover:bg-fill transition-colors text-sm"
+          >
+            ← Back to form
+          </button>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="w-full border border-separator text-secondary hover:text-app-text font-medium py-2.5 rounded-2xl hover:bg-fill transition-colors text-sm"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
       </div>
     </div>
   );
