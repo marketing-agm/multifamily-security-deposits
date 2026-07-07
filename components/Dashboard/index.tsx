@@ -118,6 +118,16 @@ export function Dashboard() {
   );
 }
 
+// Consistent date format across the dashboard, e.g. "Jul 7, 2026".
+// Accepts an ISO "YYYY-MM-DD" string (parsed as local midnight so the day
+// doesn't shift by timezone) or a Date (used directly).
+function fmtDate(value: string | Date): string {
+  if (!value) return '—';
+  const d = typeof value === 'string' ? new Date(value + 'T00:00:00') : value;
+  if (Number.isNaN(d.getTime())) return typeof value === 'string' ? value : '—';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // One move-out row in the dashboard table.
 function TenantRow({ r, last, onClick }: { r: TenantReturn; last: boolean; onClick: () => void }) {
   const deadline = computeDeadline(r.tenantData.moveOutDate);
@@ -144,13 +154,13 @@ function TenantRow({ r, last, onClick }: { r: TenantReturn; last: boolean; onCli
 
       {/* Move-Out */}
       <div className="flex items-center">
-        <span className="text-subhead text-app-text">{r.tenantData.moveOutDate}</span>
+        <span className="text-subhead text-app-text">{fmtDate(r.tenantData.moveOutDate)}</span>
       </div>
 
       {/* Due Date */}
       <div className="flex items-center">
         <span className="text-subhead text-app-text">
-          {deadline ? deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+          {deadline ? fmtDate(deadline) : '—'}
         </span>
       </div>
 
