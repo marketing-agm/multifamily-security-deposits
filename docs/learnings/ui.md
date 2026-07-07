@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: b692d86 :: Inline unlock gate: dim/blur content until a server session check passes -->
+### 2026-07-07 · ui · gotcha · Inline unlock gate: dim/blur content until a server session check passes
+- **Ref:** b692d86
+- **Symptom:** Wanted the upload UI visible but unusable until a site password is entered — no separate /login redirect.
+- **Root cause:** N/A — UX pattern for gating a client-rendered page while still verifying the password server-side.
+- **Fix:** Render the content wrapped in `opacity-40 blur-[2px] pointer-events-none` while locked; absolutely-position a password card over it. On mount GET /api/session (reads httpOnly cookie server-side) to auto-unlock returning users / unconfigured gate. Unlock POSTs /api/login (sets cookie) then flips client state. Middleware keeps '/' public but protects deeper routes via the same cookie.
+- **Lesson:** For a client-rendered app, a visible-but-locked overlay + /api/session check is a friendlier gate than a redirect — but still verify the password server-side and protect deep routes with the cookie, or the 'lock' is cosmetic.
+
+
 <!-- log-id: e45dbc5 :: Responsive two-panel auth splash on design tokens -->
 ### 2026-07-07 · ui · gotcha · Responsive two-panel auth splash on design tokens
 - **Ref:** e45dbc5
