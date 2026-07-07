@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: e010cfb :: Terminal screens should offer explicit back-navigation to prior steps -->
+### 2026-07-07 · ui · ux · Terminal screens should offer explicit back-navigation to prior steps
+- **Ref:** e010cfb
+- **Symptom:** Users on the final Review screen had no obvious way back to the form/calculations to fix something.
+- **Root cause:** Only a bottom 'Back to Dashboard' and a subtle header 'Edit form' link existed.
+- **Fix:** Add side-by-side bottom buttons: '← Back to form' (router.push(/return/[id])) and '← Back to Dashboard'.
+- **Lesson:** On terminal/confirmation screens, surface explicit navigation back to each prior step; don't rely on a single header link users may miss.
+
+
 <!-- log-id: 3ed40fa :: Format ISO date strings as local midnight to avoid a timezone day-shift -->
 ### 2026-07-07 · ui · gotcha · Format ISO date strings as local midnight to avoid a timezone day-shift
 - **Ref:** 3ed40fa
