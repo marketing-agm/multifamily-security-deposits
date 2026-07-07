@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: gate-flash :: Auth gate flashes 'locked' then unlocks (fail-open session check) -->
+### 2026-07-07 · ui · bug · Auth gate flashes 'locked' then unlocks (fail-open session check)
+- **Ref:** gate-flash
+- **Symptom:** The lock/password UI appeared for a moment on load, then vanished.
+- **Root cause:** Initial state was locked and rendered immediately; the async /api/session check then resolved to authed/unconfigured and unlocked it.
+- **Fix:** Render the locked UI only when `!checking && !unlocked` (checking=true until the session fetch resolves); keep protected content neutral while checking.
+- **Lesson:** Any UI whose initial value is corrected by an async check needs a checking/loading guard so you don't flash the pre-check state.
+
+
 <!-- log-id: f3bbafe :: Keep new pages on the design system: quick consistency audit -->
 ### 2026-07-07 · ui · gotcha · Keep new pages on the design system: quick consistency audit
 - **Ref:** f3bbafe
