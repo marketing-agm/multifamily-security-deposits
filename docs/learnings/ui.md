@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: 3ed40fa :: Format ISO date strings as local midnight to avoid a timezone day-shift -->
+### 2026-07-07 · ui · gotcha · Format ISO date strings as local midnight to avoid a timezone day-shift
+- **Ref:** 3ed40fa
+- **Symptom:** Move-Out showed raw '2026-05-31' while Due Date showed 'Jun 30, 2026'; naive `new Date('2026-05-31')` can render the day before in negative-UTC timezones.
+- **Root cause:** `new Date('YYYY-MM-DD')` parses as UTC midnight, so toLocaleDateString in a behind-UTC zone shows the previous day.
+- **Fix:** Shared fmtDate() parses ISO as local midnight (`new Date(iso + 'T00:00:00')`) or takes a Date directly; format both columns with month:'short'.
+- **Lesson:** When formatting date-only ISO strings for display, append 'T00:00:00' (local) — never pass a bare 'YYYY-MM-DD' to new Date() for display.
+
+
 <!-- log-id: amount-input :: Controlled number input with `|| 0` can't be cleared and can't show 2 decimals -->
 ### 2026-07-07 · ui · gotcha · Controlled number input with `|| 0` can't be cleared and can't show 2 decimals
 - **Ref:** amount-input
