@@ -165,20 +165,56 @@ export default function UploadPage() {
               </p>
             </div>
           </div>
+
+          {/* Site password — sits at the bottom of the instructions. Only shown
+              once the session check has resolved to "locked" (avoids a flash). */}
+          {!checking && !unlocked && (
+            <form onSubmit={handleUnlock} className="bg-surface rounded-2xl border border-separator p-5 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-accent/12 text-accent flex items-center justify-center text-base shrink-0">🔒</span>
+                <div>
+                  <p className="text-sm font-semibold text-app-text">Unlock uploads</p>
+                  <p className="text-xs text-secondary">Enter the site password to enable the upload panel.</p>
+                </div>
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoFocus
+                autoComplete="current-password"
+                placeholder="Site password"
+                className="w-full bg-surface border border-tertiary rounded-xl px-3 py-2.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
+              />
+              {authError && <p className="text-sm text-danger-fg">{authError}</p>}
+              <button
+                type="submit"
+                disabled={unlocking || !password}
+                className="w-full bg-accent hover:bg-accent-hover text-on-accent rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:bg-fill disabled:text-secondary disabled:cursor-not-allowed"
+              >
+                {unlocking ? 'Unlocking…' : 'Unlock'}
+              </button>
+            </form>
+          )}
         </section>
 
         {/* ── Right: upload (locked until password entered) ──────────────────── */}
         <section className="relative">
-          {/* Upload content — dimmed & non-interactive while locked. */}
+          {/* Upload content — dimmed & non-interactive once the check resolves to
+              locked. Stays normal while `checking` so the lock never flashes. */}
           <div
             className={`space-y-4 transition-all duration-500 ${
-              unlocked ? 'opacity-100' : 'opacity-40 blur-[2px] pointer-events-none select-none'
+              !checking && !unlocked ? 'opacity-40 blur-[2px] pointer-events-none select-none' : 'opacity-100'
             }`}
-            aria-hidden={!unlocked}
+            aria-hidden={!checking && !unlocked}
           >
             <div>
               <h2 className="text-title2 text-app-text">Upload AppFolio Export</h2>
-              <p className="text-secondary mt-1 text-sm">Drop your .xlsx file to get started.</p>
+              <p className="text-secondary mt-1 text-sm">
+                {!checking && !unlocked
+                  ? '🔒 Locked — unlock with the site password on the left.'
+                  : 'Drop your .xlsx file to get started.'}
+              </p>
             </div>
 
             <div
@@ -210,40 +246,6 @@ export default function UploadPage() {
               </div>
             )}
           </div>
-
-          {/* Lock overlay — shown until unlocked (and while we check the session). */}
-          {!unlocked && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-full max-w-sm bg-surface/90 backdrop-blur rounded-2xl border border-separator shadow-card p-6">
-                <div className="w-11 h-11 rounded-2xl bg-accent/12 text-accent flex items-center justify-center text-xl mb-3">🔒</div>
-                <h3 className="text-headline text-app-text">Uploads are locked</h3>
-                <p className="text-subhead text-secondary mt-1">
-                  Enter the site password to unlock uploads.
-                </p>
-
-                <form onSubmit={handleUnlock} className="mt-4 space-y-3">
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    autoFocus
-                    autoComplete="current-password"
-                    placeholder="Site password"
-                    disabled={checking}
-                    className="w-full bg-surface border border-tertiary rounded-xl px-3 py-2.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
-                  />
-                  {authError && <p className="text-sm text-danger-fg">{authError}</p>}
-                  <button
-                    type="submit"
-                    disabled={unlocking || checking || !password}
-                    className="w-full bg-accent hover:bg-accent-hover text-on-accent rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:bg-fill disabled:text-secondary disabled:cursor-not-allowed"
-                  >
-                    {unlocking ? 'Unlocking…' : 'Unlock'}
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
         </section>
       </main>
     </div>
