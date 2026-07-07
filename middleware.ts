@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AUTH_COOKIE, getSitePassword, expectedToken } from '@/lib/auth';
 
-// Run on every route EXCEPT the login page, the login API, and Next's static
-// assets (which the login page itself needs to load).
+// Run on everything except Next's static assets.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|login|api/login).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
 
 export async function middleware(req: NextRequest) {
-  const secret = await getSitePassword();
+  const { pathname } = req.nextUrl;
 
-  // No secret configured → gate is disabled (fail-open so the site isn't bricked
-  // before SITE_PASSWORD is set). Setting the secret turns the gate on.
+  // Public: the home page (the unlock gate lives here) and the auth endpoints.
+  if (pathname === '/' || pathname.startsWith('/api/login') || pathname.startsWith('/api/session')) {
+    return NextResponse.next();
+  }
+
+  const secret = await getSitePassword();
+  // No secret configured → gate disabled (fail-open) so the site isn't bricked.
   if (!secret) return NextResponse.next();
 
   const token = req.cookies.get(AUTH_COOKIE)?.value;
@@ -19,9 +23,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Not authenticated → send to the login page, remembering where they wanted to go.
+  // Not unlocked → send back to the home page to enter the password.
   const url = req.nextUrl.clone();
-  url.pathname = '/login';
-  url.searchParams.set('next', req.nextUrl.pathname + req.nextUrl.search);
+  url.pathname = '/';
   return NextResponse.redirect(url);
 }
