@@ -214,14 +214,11 @@ export function parseAppFolioExport(buffer: ArrayBuffer): ParseResult {
     }
   }
 
-  // Detect property name and config from first data row.
-  const firstPropertyValue = str(pick(ledgerRows[0] ?? {}, 'Property', 'property'));
-  const propertyConfig = lookupProperty(firstPropertyValue);
-  // Show the clean property name (e.g. "Niwa"), not "CODE - NAME" or the raw
-  // upload label. Falls back to the raw Property column when no config matches.
-  const propertyName = propertyConfig ? propertyConfig.name : firstPropertyValue;
-
+  // An export can span multiple properties, so we resolve the property PER ROW
+  // (below) rather than once for the whole file. `propertyNames` collects the
+  // distinct ones so we can build a summary label for the session.
   const returns: TenantReturn[] = [];
+  const propertyNames = new Set<string>();
 
   for (let i = 0; i < ledgerRows.length; i++) {
     const row = ledgerRows[i];
@@ -237,6 +234,12 @@ export function parseAppFolioExport(buffer: ArrayBuffer): ParseResult {
     if (!unit) {
       errors.push({ message: `Row ${i + 2}: Missing unit number.`, row: i + 2, sheet: sheetNames[0] });
     }
+
+    // Resolve THIS tenant's property + config (an upload can mix properties).
+    const rowPropertyValue = str(pick(row, 'Property', 'property'));
+    const rowPropertyConfig = lookupProperty(rowPropertyValue);
+    const rowPropertyName = rowPropertyConfig ? rowPropertyConfig.name : rowPropertyValue;
+    if (rowPropertyName) propertyNames.add(rowPropertyName);
 
     const tx: Row = txByUnit.get(unit.toLowerCase()) ?? {};
 
@@ -271,14 +274,14 @@ export function parseAppFolioExport(buffer: ArrayBuffer): ParseResult {
       petDeposit: 0,
       keyDeposit: 0,
       garageOpenerDeposit: 0,
-      nrcCleaningFee: propertyConfig?.nrcCleaningFee ?? 0,
-      nrcPetFee: propertyConfig?.nrcPetFee ?? 0,
+      nrcCleaningFee: rowPropertyConfig?.nrcCleaningFee ?? 0,
+      nrcPetFee: rowPropertyConfig?.nrcPetFee ?? 0,
     };
 
-    const utilityType: UtilityType = propertyConfig?.utilityType ?? 'flat_fee';
+    const utilityType: UtilityType = rowPropertyConfig?.utilityType ?? 'flat_fee';
     const utilityData: UtilityData = {
       utilityType,
-      flatFeeRate: propertyConfig?.flatFeeRate ?? 0,
+      flatFeeRate: rowPropertyConfig?.flatFeeRate ?? 0,
       flatFeeBillingMethod: 'billed_at_moveout',
       rubsBuildingTotal: 0,
       rubsUnitRatio: 0,
@@ -303,11 +306,17 @@ export function parseAppFolioExport(buffer: ArrayBuffer): ParseResult {
       processingStatus: 'not_started' as const,
       complianceChecked: false,
       pdfGenerated: false,
+      propertyName: rowPropertyName,
+      propertyConfig: rowPropertyConfig,
     };
 
     const calculatedCharges = computeCalculatedCharges(partial);
     returns.push({ ...partial, calculatedCharges });
   }
+
+  // Session-level label: the single property name, or "N properties" when mixed.
+  const names = [...propertyNames];
+  const propertyName = names.length === 1 ? names[0] : `${names.length} properties`;
 
   return { returns, errors, propertyName };
 }

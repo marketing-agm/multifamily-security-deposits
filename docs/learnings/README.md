@@ -3,6 +3,9 @@
 Cross-session record of fixes and gotchas. **Before fixing in an area, grep its file for prior lessons; after fixing, add an entry** via the `learnings-log` skill (`scripts/log.mjs`). Full entries live in the per-area files; one line per entry below, newest first.
 
 ## ui
+- [2026-07-07] ux — The review/download screen only had 'Back to Dashboard' plus an easy-to-miss header link; add clear bottom back-buttons to both the form and the dashboard. (e010cfb)
+- [2026-07-07] gotcha — Dashboard Move-Out and Due Date used different formats; unifying them requires parsing ISO dates safely so the displayed day doesn't shift. (3ed40fa)
+- [2026-07-07] gotcha — A controlled <input type=number value={n} onChange={parseFloat||0}> forces a sticky 0 and can't display formatted 0.00 / thousands. (amount-input)
 - [2026-07-07] bug — Gate the locked UI behind a checking flag so the pre-check state doesn't flash before the async session check resolves. (gate-flash)
 - [2026-07-07] gotcha — New screens tend to drift from the token system (raw Tailwind sizes/colors, ad-hoc disabled states). A fast grep audit catches it. (f3bbafe)
 - [2026-07-07] gotcha — Alternative to a redirect login: keep the target screen visible but locked, overlay a password card, and 'light up' the content once verified. (b692d86)
@@ -14,6 +17,8 @@ Cross-session record of fixes and gotchas. **Before fixing in an area, grep its 
 - [2026-07-06] gotcha — Semantic design tokens in globals.css remove per-element dark:bg-[#hex] duplication and centralize the palette. (2333f85)
 
 ## lib
+- [2026-07-07] bug — Deriving the property from ledgerRows[0] returned empty because AppFolio exports put a blank filter row directly under the header, so the app fell back to the file name. (blank-filter-row)
+- [2026-07-07] bug — The parser read the property from the first ledger row and applied its name + config to every tenant, so multi-property exports got wrong managers/NRC/utility. (multi-property)
 - [2026-07-06] bug — The AGM template pre-prints a $ in each currency cell, so writing formatCurrency() (which adds $) produced $$0.00. (98eb57f-pdf)
 - [2026-07-06] bug — Dashboard showed 0 tenants after uploading a real AppFolio Excel export because the parser misread the file structure. (2618a8f)
 

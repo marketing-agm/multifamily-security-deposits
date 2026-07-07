@@ -96,6 +96,10 @@ export interface TenantReturn {
   complianceChecked: boolean;
   pdfGenerated: boolean;
   inspectionPhotos?: InspectionPhotos;
+  // Per-tenant property (an upload can span multiple properties). Falls back to
+  // the session-level property when absent (e.g. older sessions / demo data).
+  propertyName?: string;
+  propertyConfig?: PropertyConfig | null;
 }
 
 export interface PropertyConfig {

@@ -22,11 +22,24 @@ export function Dashboard() {
 
   const total = session.returns.length;
   const complete = session.returns.filter(r => r.processingStatus === 'complete').length;
-  const pending = total - complete;
 
   function handleRowClick(r: TenantReturn) {
     router.push(`/return/${r.id}`);
   }
+
+  // Group move-outs by property — an upload can span several properties.
+  const groups: { property: string; rows: TenantReturn[] }[] = [];
+  const groupIndex = new Map<string, number>();
+  for (const r of session.returns) {
+    const prop = r.propertyName || session.propertyName || 'Unassigned';
+    if (!groupIndex.has(prop)) {
+      groupIndex.set(prop, groups.length);
+      groups.push({ property: prop, rows: [] });
+    }
+    groups[groupIndex.get(prop)!].rows.push(r);
+  }
+  const multiProperty = groups.length > 1;
+  const HEADERS = ['Tenant / Unit', 'Move-Out', 'Due Date', 'Days Left', 'Deposit', 'Utility', 'Inspection', 'Status'];
 
   return (
     <div className="min-h-screen bg-bg">
@@ -68,95 +81,120 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="w-full px-6 py-6 space-y-1">
-        {/* Section header — Obsidian style */}
-        <p className="text-caption font-semibold text-secondary uppercase tracking-wider px-1 mb-2">
-          Move-Outs · {pending} pending
-        </p>
+      {/* Content — one card per property group */}
+      <div className="w-full px-6 py-6 space-y-6">
+        {groups.map(group => {
+          const groupPending = group.rows.filter(r => r.processingStatus !== 'complete').length;
+          return (
+            <div key={group.property} className="space-y-1">
+              {/* Group header: property name only when the upload spans several. */}
+              <p className="text-caption font-semibold text-secondary uppercase tracking-wider px-1 mb-2">
+                {multiProperty ? `${group.property} · ` : ''}{group.rows.length} move-out{group.rows.length === 1 ? '' : 's'} · {groupPending} pending
+              </p>
 
-        {/* Grouped list card */}
-        <div className="bg-surface rounded-lg overflow-hidden border border-separator shadow-card">
-          {/* Table header */}
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_112px] gap-0 px-4 py-2.5 bg-surface-2 border-b border-separator">
-            {['Tenant / Unit', 'Move-Out', 'Due Date', 'Days Left', 'Deposit', 'Utility', 'Inspection', 'Status'].map((h, i) => (
-              <span key={i} className="text-caption font-semibold text-secondary uppercase tracking-wider">{h}</span>
-            ))}
-          </div>
-
-          {/* Rows */}
-          {session.returns.map((r, i) => {
-            const deadline = computeDeadline(r.tenantData.moveOutDate);
-            const daysLeft = daysUntilDeadline(deadline);
-            return (
-              <div
-                key={r.id}
-                onClick={() => handleRowClick(r)}
-                className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_112px] gap-0 px-4 py-3.5 cursor-pointer hover:bg-fill transition-colors ${
-                  i < session.returns.length - 1 ? 'border-b border-separator' : ''
-                }`}
-              >
-                {/* Tenant */}
-                <div className="flex flex-col justify-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-subhead font-medium text-app-text">{r.tenantData.tenantName}</span>
-                    {r.tenantData.leaseBreak && (
-                      <span className="text-[10px] font-semibold text-warning-fg bg-warning/12 px-1.5 py-0.5 rounded-full">
-                        Lease Break
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-caption text-secondary mt-0.5">Unit {r.tenantData.unit} · {formatCurrency(r.depositData.securityDeposit)} deposit</span>
+              <div className="bg-surface rounded-lg overflow-hidden border border-separator shadow-card">
+                {/* Table header */}
+                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_112px] gap-0 px-4 py-2.5 bg-surface-2 border-b border-separator">
+                  {HEADERS.map((h, i) => (
+                    <span key={i} className="text-caption font-semibold text-secondary uppercase tracking-wider">{h}</span>
+                  ))}
                 </div>
 
-                {/* Move-Out */}
-                <div className="flex items-center">
-                  <span className="text-subhead text-app-text">{r.tenantData.moveOutDate}</span>
-                </div>
-
-                {/* Due Date */}
-                <div className="flex items-center">
-                  <span className="text-subhead text-app-text">
-                    {deadline ? deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                  </span>
-                </div>
-
-                {/* Days Left */}
-                <div className="flex items-center">
-                  {daysLeft !== null ? (
-                    <span className={`font-medium px-2 py-0.5 rounded-full text-caption ${
-                      daysLeft <= 3 ? 'bg-danger/12 text-danger-fg' :
-                      daysLeft <= 7 ? 'bg-warning/12 text-warning-fg' :
-                      'bg-fill text-secondary'
-                    }`}>
-                      {daysLeft}d left
-                    </span>
-                  ) : <span className="text-secondary">—</span>}
-                </div>
-
-                {/* Deposit */}
-                <div className="flex items-center">
-                  <span className="text-subhead font-medium text-app-text">{formatCurrency(r.depositData.securityDeposit)}</span>
-                </div>
-
-                {/* Utility */}
-                <div className="flex items-center">
-                  <UtilityTag type={r.utilityData.utilityType} />
-                </div>
-
-                {/* Inspection */}
-                <div className="flex items-center">
-                  <InspectionBadge status={r.tenantData.inspectionStatus} />
-                </div>
-
-                {/* Status */}
-                <div className="flex items-center">
-                  <StatusBadge status={r.processingStatus} />
-                </div>
+                {/* Rows */}
+                {group.rows.map((r, i) => (
+                  <TenantRow
+                    key={r.id}
+                    r={r}
+                    last={i === group.rows.length - 1}
+                    onClick={() => handleRowClick(r)}
+                  />
+                ))}
               </div>
-            );
-          })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Consistent date format across the dashboard, e.g. "Jul 7, 2026".
+// Accepts an ISO "YYYY-MM-DD" string (parsed as local midnight so the day
+// doesn't shift by timezone) or a Date (used directly).
+function fmtDate(value: string | Date): string {
+  if (!value) return '—';
+  const d = typeof value === 'string' ? new Date(value + 'T00:00:00') : value;
+  if (Number.isNaN(d.getTime())) return typeof value === 'string' ? value : '—';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// One move-out row in the dashboard table.
+function TenantRow({ r, last, onClick }: { r: TenantReturn; last: boolean; onClick: () => void }) {
+  const deadline = computeDeadline(r.tenantData.moveOutDate);
+  const daysLeft = daysUntilDeadline(deadline);
+  return (
+    <div
+      onClick={onClick}
+      className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_112px] gap-0 px-4 py-3.5 cursor-pointer hover:bg-fill transition-colors ${
+        last ? '' : 'border-b border-separator'
+      }`}
+    >
+      {/* Tenant */}
+      <div className="flex flex-col justify-center">
+        <div className="flex items-center gap-2">
+          <span className="text-subhead font-medium text-app-text">{r.tenantData.tenantName}</span>
+          {r.tenantData.leaseBreak && (
+            <span className="text-[10px] font-semibold text-warning-fg bg-warning/12 px-1.5 py-0.5 rounded-full">
+              Lease Break
+            </span>
+          )}
         </div>
+        <span className="text-caption text-secondary mt-0.5">Unit {r.tenantData.unit} · {formatCurrency(r.depositData.securityDeposit)} deposit</span>
+      </div>
+
+      {/* Move-Out */}
+      <div className="flex items-center">
+        <span className="text-subhead text-app-text">{fmtDate(r.tenantData.moveOutDate)}</span>
+      </div>
+
+      {/* Due Date */}
+      <div className="flex items-center">
+        <span className="text-subhead text-app-text">
+          {deadline ? fmtDate(deadline) : '—'}
+        </span>
+      </div>
+
+      {/* Days Left */}
+      <div className="flex items-center">
+        {daysLeft !== null ? (
+          <span className={`font-medium px-2 py-0.5 rounded-full text-caption ${
+            daysLeft <= 3 ? 'bg-danger/12 text-danger-fg' :
+            daysLeft <= 7 ? 'bg-warning/12 text-warning-fg' :
+            'bg-fill text-secondary'
+          }`}>
+            {daysLeft}d left
+          </span>
+        ) : <span className="text-secondary">—</span>}
+      </div>
+
+      {/* Deposit */}
+      <div className="flex items-center">
+        <span className="text-subhead font-medium text-app-text">{formatCurrency(r.depositData.securityDeposit)}</span>
+      </div>
+
+      {/* Utility */}
+      <div className="flex items-center">
+        <UtilityTag type={r.utilityData.utilityType} />
+      </div>
+
+      {/* Inspection */}
+      <div className="flex items-center">
+        <InspectionBadge status={r.tenantData.inspectionStatus} />
+      </div>
+
+      {/* Status */}
+      <div className="flex items-center">
+        <StatusBadge status={r.processingStatus} />
       </div>
     </div>
   );

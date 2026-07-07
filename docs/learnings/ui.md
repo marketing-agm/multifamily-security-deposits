@@ -4,6 +4,33 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: e010cfb :: Terminal screens should offer explicit back-navigation to prior steps -->
+### 2026-07-07 · ui · ux · Terminal screens should offer explicit back-navigation to prior steps
+- **Ref:** e010cfb
+- **Symptom:** Users on the final Review screen had no obvious way back to the form/calculations to fix something.
+- **Root cause:** Only a bottom 'Back to Dashboard' and a subtle header 'Edit form' link existed.
+- **Fix:** Add side-by-side bottom buttons: '← Back to form' (router.push(/return/[id])) and '← Back to Dashboard'.
+- **Lesson:** On terminal/confirmation screens, surface explicit navigation back to each prior step; don't rely on a single header link users may miss.
+
+
+<!-- log-id: 3ed40fa :: Format ISO date strings as local midnight to avoid a timezone day-shift -->
+### 2026-07-07 · ui · gotcha · Format ISO date strings as local midnight to avoid a timezone day-shift
+- **Ref:** 3ed40fa
+- **Symptom:** Move-Out showed raw '2026-05-31' while Due Date showed 'Jun 30, 2026'; naive `new Date('2026-05-31')` can render the day before in negative-UTC timezones.
+- **Root cause:** `new Date('YYYY-MM-DD')` parses as UTC midnight, so toLocaleDateString in a behind-UTC zone shows the previous day.
+- **Fix:** Shared fmtDate() parses ISO as local midnight (`new Date(iso + 'T00:00:00')`) or takes a Date directly; format both columns with month:'short'.
+- **Lesson:** When formatting date-only ISO strings for display, append 'T00:00:00' (local) — never pass a bare 'YYYY-MM-DD' to new Date() for display.
+
+
+<!-- log-id: amount-input :: Controlled number input with `|| 0` can't be cleared and can't show 2 decimals -->
+### 2026-07-07 · ui · gotcha · Controlled number input with `|| 0` can't be cleared and can't show 2 decimals
+- **Ref:** amount-input
+- **Symptom:** Users couldn't delete the leading 0 while editing a money field, and blurred fields showed '0' instead of '0.00'.
+- **Root cause:** The numeric state is the single source of truth, so an empty string immediately becomes 0; and type=number can't render a formatted string like '1,575.00'.
+- **Fix:** Use type=text with a local `focused`+`draft` string. Blurred display = value.toFixed(2) (money) so blanks read 0.00; on focus seed draft from the number (empty when 0) so it's fully clearable; onChange strip to digits/'.' and setValue(parseFloat||0). See AmountInput in components/ReturnForm.
+- **Lesson:** For editable-yet-formatted numeric fields, separate the display string (focused draft vs blurred formatted) from the numeric model value; don't bind type=number directly to the number with `|| 0`.
+
+
 <!-- log-id: gate-flash :: Auth gate flashes 'locked' then unlocks (fail-open session check) -->
 ### 2026-07-07 · ui · bug · Auth gate flashes 'locked' then unlocks (fail-open session check)
 - **Ref:** gate-flash
