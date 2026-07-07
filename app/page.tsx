@@ -112,7 +112,7 @@ export default function UploadPage() {
       <header className="bg-surface border-b border-separator px-6 py-4">
         <div className="w-full flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-app-text">AGM Security Deposit Return Tool</h1>
+            <h1 className="text-base font-semibold text-app-text">AGM Security Deposit Return Tool</h1>
             <p className="text-xs text-secondary mt-0.5">AGM Real Estate Group</p>
           </div>
           <div className="flex items-center gap-3">
@@ -177,7 +177,7 @@ export default function UploadPage() {
             aria-hidden={!unlocked}
           >
             <div>
-              <h2 className="text-2xl font-bold text-app-text">Upload AppFolio Export</h2>
+              <h2 className="text-title2 text-app-text">Upload AppFolio Export</h2>
               <p className="text-secondary mt-1 text-sm">Drop your .xlsx file to get started.</p>
             </div>
 
@@ -236,7 +236,7 @@ export default function UploadPage() {
                   <button
                     type="submit"
                     disabled={unlocking || checking || !password}
-                    className="w-full bg-accent text-on-accent rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-hover transition-colors disabled:opacity-50"
+                    className="w-full bg-accent hover:bg-accent-hover text-on-accent rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:bg-fill disabled:text-secondary disabled:cursor-not-allowed"
                   >
                     {unlocking ? 'Unlocking…' : 'Unlock'}
                   </button>
