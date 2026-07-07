@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: blank-filter-row :: Property read from first row after header grabbed AppFolio's blank filter row -->
+### 2026-07-07 · lib · bug · Property read from first row after header grabbed AppFolio's blank filter row
+- **Ref:** blank-filter-row
+- **Symptom:** Dashboard/PDF showed the uploaded file name ('...Appfolio Refresh - V1') instead of the real property ('NIWA APARTMENTS'), even though the sheet's Property column clearly said 'A416 - NIWA APARTMENTS ...'.
+- **Root cause:** The row immediately after the detected header is AppFolio's empty filter row; ledgerRows[0].Property was '' → lookupProperty(null) → propertyName '' → app/page.tsx fell back to file.name.
+- **Fix:** Resolve the property PER tenant row (inside the loop, after the blank-row skip) instead of from ledgerRows[0]; also fixes multi-property exports. Store per-return propertyName/propertyConfig; the parser summarizes distinct names for the session label.
+- **Lesson:** Never derive file-level values from 'first data row' of an AppFolio export — the first row is a blank filter row. Read from real (non-blank) rows. Test parsers with a blank filter row present.
+
+
 <!-- log-id: multi-property :: Parser assumed one property per upload; multi-property exports mis-tagged -->
 ### 2026-07-07 · lib · bug · Parser assumed one property per upload; multi-property exports mis-tagged
 - **Ref:** multi-property
