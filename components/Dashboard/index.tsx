@@ -87,9 +87,9 @@ export function Dashboard() {
           const groupPending = group.rows.filter(r => r.processingStatus !== 'complete').length;
           return (
             <div key={group.property} className="space-y-1">
-              {/* Group header: property name (when mixed) + pending count */}
+              {/* Group header: property name only when the upload spans several. */}
               <p className="text-caption font-semibold text-secondary uppercase tracking-wider px-1 mb-2">
-                {multiProperty ? group.property : 'Move-Outs'} · {group.rows.length} move-out{group.rows.length === 1 ? '' : 's'} · {groupPending} pending
+                {multiProperty ? `${group.property} · ` : ''}{group.rows.length} move-out{group.rows.length === 1 ? '' : 's'} · {groupPending} pending
               </p>
 
               <div className="bg-surface rounded-lg overflow-hidden border border-separator shadow-card">
