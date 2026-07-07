@@ -17,7 +17,7 @@ import { UtilityTag } from '@/components/shared/UtilityTag';
 // The 9 sections mirror the AGM Checkout Report PDF sections.
 const SECTIONS = [
   { title: 'Property & Tenant',    subtitle: 'Name, unit, forwarding address' },
-  { title: 'Lease & Dates',        subtitle: 'Rent, NRC, move-in / move-out' },
+  { title: 'Lease & Dates',        subtitle: 'Rent, move-in / move-out' },
   { title: 'NRC Fees',             subtitle: 'Non-refundable cleaning & pet' },
   { title: 'Move-In / Out Photos', subtitle: 'Inspection — drives repair charges' },
   { title: 'Rent Due',             subtitle: 'Pro-rated / lease break' },
@@ -341,10 +341,6 @@ export function ReturnForm({ returnId }: Props) {
             <SectionLeaseDates
               tenantData={tenantData}
               onUpdate={updateTenant}
-              nrcCleaningFee={nrcCleaningFee}
-              nrcPetFee={nrcPetFee}
-              onNrcCleaningChange={setNrcCleaningFee}
-              onNrcPetChange={setNrcPetFee}
             />
           )}
           {section === 2 && (
@@ -582,39 +578,72 @@ function EditField({
   );
 }
 
+// A numeric money/amount input that:
+//  • when NOT focused, shows a formatted value ("0.00", "1,575.00") — two decimals
+//    for money fields, so blank fields read as "0.00" and filled ones stay tidy;
+//  • when focused, lets you type freely and DELETE everything (no sticky "0");
+//  • flags a still-blank ($0) field in orange so PMs see what's unfilled.
+// `prefix=""` switches off money formatting (used for the RUBS unit ratio).
+function AmountInput({
+  value, onChange, prefix = '$', widthClass = 'w-full', align = 'left', dense = false,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  prefix?: string;
+  widthClass?: string;
+  align?: 'left' | 'right';
+  dense?: boolean;
+}) {
+  const money = prefix !== '';
+  const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState('');
+  const isEmpty = !value;
+  const flagged = isEmpty && !focused;
+  const blurred = money ? value.toFixed(2) : (value === 0 ? '' : String(value));
+  const display = focused ? draft : blurred;
+
+  return (
+    <div className={`relative ${widthClass}`}>
+      {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">{prefix}</span>}
+      <input
+        type="text"
+        inputMode="decimal"
+        value={display}
+        onFocus={() => { setFocused(true); setDraft(value ? String(value) : ''); }}
+        onChange={e => {
+          // Keep only digits and a single decimal point; empty is allowed.
+          const raw = e.target.value.replace(/[^0-9.]/g, '');
+          setDraft(raw);
+          const n = parseFloat(raw);
+          onChange(Number.isFinite(n) ? n : 0);
+        }}
+        onBlur={() => setFocused(false)}
+        className={`w-full rounded-xl border ${prefix ? 'pl-7' : 'px-3'} ${flagged ? 'pr-16' : 'pr-3'} ${dense ? 'py-1.5' : 'py-2'} text-sm text-app-text ${align === 'right' ? 'text-right' : ''} focus:outline-none focus:ring-2 focus:ring-accent transition-colors ${
+          flagged ? 'bg-warning/5 border-warning' : NEUTRAL_INPUT
+        }`}
+      />
+      {flagged && (
+        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-warning-fg bg-warning/15 px-1.5 py-0.5 rounded-full pointer-events-none">
+          empty
+        </span>
+      )}
+    </div>
+  );
+}
+
 function NumberField({
-  label, value, onChange, variant = 'appfolio', prefix = '$',
+  label, value, onChange, prefix = '$',
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
-  variant?: InputVariant;
+  variant?: InputVariant;   // kept for existing call sites; no visual effect
   prefix?: string;
 }) {
-  // Flag still-blank ($0) fields in orange so a Property Manager can see at a
-  // glance what hasn't been filled in / auto-populated yet.
-  const isEmpty = !value;
   return (
     <label className="block space-y-1">
       <span className="text-xs font-medium text-secondary">{label}</span>
-      <div className="relative">
-        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">{prefix}</span>}
-        <input
-          type="number"
-          min={0}
-          step={0.01}
-          value={value}
-          onChange={e => onChange(parseFloat(e.target.value) || 0)}
-          className={`w-full border rounded-xl ${prefix ? 'pl-7' : 'px-3'} ${isEmpty ? 'pr-16' : 'pr-3'} py-2 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent transition-colors ${
-            isEmpty ? 'bg-warning/5 border-warning' : NEUTRAL_INPUT
-          }`}
-        />
-        {isEmpty && (
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-warning-fg bg-warning/15 px-1.5 py-0.5 rounded-full pointer-events-none">
-            empty
-          </span>
-        )}
-      </div>
+      <AmountInput value={value} onChange={onChange} prefix={prefix} />
     </label>
   );
 }
@@ -709,17 +738,12 @@ function SectionPropertyTenant({
 }
 
 function SectionLeaseDates({
-  tenantData, onUpdate, nrcCleaningFee, nrcPetFee, onNrcCleaningChange, onNrcPetChange,
+  tenantData, onUpdate,
 }: {
   tenantData: TenantData;
   onUpdate: <K extends keyof TenantData>(k: K, v: TenantData[K]) => void;
-  nrcCleaningFee: number;
-  nrcPetFee: number;
-  onNrcCleaningChange: (v: number) => void;
-  onNrcPetChange: (v: number) => void;
 }) {
   return (
-    <>
       <SectionCard title="Lease &amp; Dates">
         <div className="grid grid-cols-2 gap-3">
           <NumberField label="Monthly rent" value={tenantData.monthlyRent} onChange={v => onUpdate('monthlyRent', v)} />
@@ -748,23 +772,6 @@ function SectionLeaseDates({
           />
         )}
       </SectionCard>
-      {/* NRC fees live in this section per the AGM Checkout PDF layout */}
-      <SectionCard title="NRC Fees">
-        <p className="text-sm text-secondary">
-          Non-refundable charges collected at move-in. The NRC cleaning fee offsets the
-          tenant&apos;s share of general cleaning costs.
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <NumberField label="NRC cleaning fee" value={nrcCleaningFee} onChange={onNrcCleaningChange} variant="appfolio" />
-          <NumberField label="NRC pet fee" value={nrcPetFee} onChange={onNrcPetChange} variant="appfolio" />
-        </div>
-        {(nrcCleaningFee > 0 || nrcPetFee > 0) && (
-          <p className="text-xs text-success-fg bg-success/10 rounded-xl px-3 py-2">
-            Pre-filled from property config — edit here if this unit&apos;s amounts differ.
-          </p>
-        )}
-      </SectionCard>
-    </>
   );
 }
 
@@ -1014,24 +1021,10 @@ function ChargeRow({
   value: number;
   onChange: (key: keyof ManualCharges, v: number) => void;
 }) {
-  // Flag still-blank ($0) charges in orange so PMs can see what's unfilled.
-  const isEmpty = !value;
   return (
     <div className="flex items-center gap-3">
       <span className="flex-1 text-sm text-app-text">{label}</span>
-      <div className="relative w-32">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">$</span>
-        <input
-          type="number"
-          min={0}
-          step={0.01}
-          value={value}
-          onChange={e => onChange(chargeKey, parseFloat(e.target.value) || 0)}
-          className={`w-full rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right border ${
-            isEmpty ? 'bg-warning/5 border-warning' : 'bg-surface border-tertiary'
-          }`}
-        />
-      </div>
+      <AmountInput value={value} onChange={v => onChange(chargeKey, v)} widthClass="w-32" align="right" dense />
     </div>
   );
 }
@@ -1073,16 +1066,7 @@ function SectionTotalCharges({
             placeholder="Other label"
             className="flex-1 bg-surface border border-tertiary rounded-xl px-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <div className="relative w-32">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">$</span>
-            <input
-              type="number" min={0} step={0.01} value={manualCharges.other1}
-              onChange={e => onChange('other1', parseFloat(e.target.value) || 0)}
-              className={`w-full rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right border ${
-                manualCharges.other1 ? 'bg-surface border-tertiary' : 'bg-warning/5 border-warning'
-              }`}
-            />
-          </div>
+          <AmountInput value={manualCharges.other1} onChange={v => onChange('other1', v)} widthClass="w-32" align="right" dense />
         </div>
         {/* Other 2 */}
         <div className="flex items-center gap-3">
@@ -1093,16 +1077,7 @@ function SectionTotalCharges({
             placeholder="Other label"
             className="flex-1 bg-surface border border-tertiary rounded-xl px-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <div className="relative w-32">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">$</span>
-            <input
-              type="number" min={0} step={0.01} value={manualCharges.other2}
-              onChange={e => onChange('other2', parseFloat(e.target.value) || 0)}
-              className={`w-full rounded-xl pl-7 pr-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent text-right border ${
-                manualCharges.other2 ? 'bg-surface border-tertiary' : 'bg-warning/5 border-warning'
-              }`}
-            />
-          </div>
+          <AmountInput value={manualCharges.other2} onChange={v => onChange('other2', v)} widthClass="w-32" align="right" dense />
         </div>
       </div>
 
