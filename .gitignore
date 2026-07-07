@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Claude Code git worktrees (local tooling only)
 .claude/worktrees/
+
+# wrangler local secrets
+.dev.vars

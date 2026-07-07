@@ -4,6 +4,42 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: gate-flash :: Auth gate flashes 'locked' then unlocks (fail-open session check) -->
+### 2026-07-07 · ui · bug · Auth gate flashes 'locked' then unlocks (fail-open session check)
+- **Ref:** gate-flash
+- **Symptom:** The lock/password UI appeared for a moment on load, then vanished.
+- **Root cause:** Initial state was locked and rendered immediately; the async /api/session check then resolved to authed/unconfigured and unlocked it.
+- **Fix:** Render the locked UI only when `!checking && !unlocked` (checking=true until the session fetch resolves); keep protected content neutral while checking.
+- **Lesson:** Any UI whose initial value is corrected by an async check needs a checking/loading guard so you don't flash the pre-check state.
+
+
+<!-- log-id: f3bbafe :: Keep new pages on the design system: quick consistency audit -->
+### 2026-07-07 · ui · gotcha · Keep new pages on the design system: quick consistency audit
+- **Ref:** f3bbafe
+- **Symptom:** The site-gate page used raw text-2xl headings and disabled:opacity-50 instead of the app's text-title2 token and standard disabled:bg-fill/text-secondary button style.
+- **Root cause:** Building a page in isolation without cross-checking established patterns.
+- **Fix:** Audit: grep for raw colors/hexes (bg|text|border)-(gray|green|blue|red|yellow|orange|purple)-[0-9] and #hex; grep existing 'bg-accent' buttons to copy the exact hover/disabled classes; use type-scale tokens (text-title2 / text-headline / text-subhead / text-caption) for headings; cards = rounded-2xl border-separator.
+- **Lesson:** Before finishing a new page, grep the codebase for the canonical button/heading/card classes and match them — consistency is a 2-minute audit, not a redesign.
+
+
+<!-- log-id: b692d86 :: Inline unlock gate: dim/blur content until a server session check passes -->
+### 2026-07-07 · ui · gotcha · Inline unlock gate: dim/blur content until a server session check passes
+- **Ref:** b692d86
+- **Symptom:** Wanted the upload UI visible but unusable until a site password is entered — no separate /login redirect.
+- **Root cause:** N/A — UX pattern for gating a client-rendered page while still verifying the password server-side.
+- **Fix:** Render the content wrapped in `opacity-40 blur-[2px] pointer-events-none` while locked; absolutely-position a password card over it. On mount GET /api/session (reads httpOnly cookie server-side) to auto-unlock returning users / unconfigured gate. Unlock POSTs /api/login (sets cookie) then flips client state. Middleware keeps '/' public but protects deeper routes via the same cookie.
+- **Lesson:** For a client-rendered app, a visible-but-locked overlay + /api/session check is a friendlier gate than a redirect — but still verify the password server-side and protect deep routes with the cookie, or the 'lock' is cosmetic.
+
+
+<!-- log-id: e45dbc5 :: Responsive two-panel auth splash on design tokens -->
+### 2026-07-07 · ui · gotcha · Responsive two-panel auth splash on design tokens
+- **Ref:** e45dbc5
+- **Symptom:** A bare centered password box felt unfinished for the first screen users see.
+- **Root cause:** N/A — design improvement, captured as a reusable layout pattern.
+- **Fix:** flex md:flex-row: left <aside> uses bg-gradient-to-br from-accent to-accent-hover + text-on-accent with blurred bg-white/10 glows for depth; right <main> centers the form. All colors from tokens so light/dark just work. Keep the login POST/cookie logic untouched.
+- **Lesson:** For auth/splash pages, drive the brand panel with the accent token gradient (theme-agnostic colored panel + on-accent text) and let the form side use surface/app-text tokens; stack to single column below md. Reuse this shape for any future gated entry screen.
+
+
 <!-- log-id: photos-race :: Simultaneous uploads clobber state when handler reads closure, not prev -->
 ### 2026-07-06 · ui · bug · Simultaneous uploads clobber state when handler reads closure, not prev
 - **Ref:** photos-race
