@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: amount-input :: Controlled number input with `|| 0` can't be cleared and can't show 2 decimals -->
+### 2026-07-07 · ui · gotcha · Controlled number input with `|| 0` can't be cleared and can't show 2 decimals
+- **Ref:** amount-input
+- **Symptom:** Users couldn't delete the leading 0 while editing a money field, and blurred fields showed '0' instead of '0.00'.
+- **Root cause:** The numeric state is the single source of truth, so an empty string immediately becomes 0; and type=number can't render a formatted string like '1,575.00'.
+- **Fix:** Use type=text with a local `focused`+`draft` string. Blurred display = value.toFixed(2) (money) so blanks read 0.00; on focus seed draft from the number (empty when 0) so it's fully clearable; onChange strip to digits/'.' and setValue(parseFloat||0). See AmountInput in components/ReturnForm.
+- **Lesson:** For editable-yet-formatted numeric fields, separate the display string (focused draft vs blurred formatted) from the numeric model value; don't bind type=number directly to the number with `|| 0`.
+
+
 <!-- log-id: gate-flash :: Auth gate flashes 'locked' then unlocks (fail-open session check) -->
 ### 2026-07-07 · ui · bug · Auth gate flashes 'locked' then unlocks (fail-open session check)
 - **Ref:** gate-flash

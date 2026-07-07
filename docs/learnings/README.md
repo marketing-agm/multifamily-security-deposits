@@ -3,6 +3,7 @@
 Cross-session record of fixes and gotchas. **Before fixing in an area, grep its file for prior lessons; after fixing, add an entry** via the `learnings-log` skill (`scripts/log.mjs`). Full entries live in the per-area files; one line per entry below, newest first.
 
 ## ui
+- [2026-07-07] gotcha — A controlled <input type=number value={n} onChange={parseFloat||0}> forces a sticky 0 and can't display formatted 0.00 / thousands. (amount-input)
 - [2026-07-07] bug — Gate the locked UI behind a checking flag so the pre-check state doesn't flash before the async session check resolves. (gate-flash)
 - [2026-07-07] gotcha — New screens tend to drift from the token system (raw Tailwind sizes/colors, ad-hoc disabled states). A fast grep audit catches it. (f3bbafe)
 - [2026-07-07] gotcha — Alternative to a redirect login: keep the target screen visible but locked, overlay a password card, and 'light up' the content once verified. (b692d86)
