@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: f3bbafe :: Keep new pages on the design system: quick consistency audit -->
+### 2026-07-07 · ui · gotcha · Keep new pages on the design system: quick consistency audit
+- **Ref:** f3bbafe
+- **Symptom:** The site-gate page used raw text-2xl headings and disabled:opacity-50 instead of the app's text-title2 token and standard disabled:bg-fill/text-secondary button style.
+- **Root cause:** Building a page in isolation without cross-checking established patterns.
+- **Fix:** Audit: grep for raw colors/hexes (bg|text|border)-(gray|green|blue|red|yellow|orange|purple)-[0-9] and #hex; grep existing 'bg-accent' buttons to copy the exact hover/disabled classes; use type-scale tokens (text-title2 / text-headline / text-subhead / text-caption) for headings; cards = rounded-2xl border-separator.
+- **Lesson:** Before finishing a new page, grep the codebase for the canonical button/heading/card classes and match them — consistency is a 2-minute audit, not a redesign.
+
+
 <!-- log-id: b692d86 :: Inline unlock gate: dim/blur content until a server session check passes -->
 ### 2026-07-07 · ui · gotcha · Inline unlock gate: dim/blur content until a server session check passes
 - **Ref:** b692d86
