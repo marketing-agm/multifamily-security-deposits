@@ -49,7 +49,10 @@ export function ReviewScreen({ returnId }: Props) {
         if (!templateRes.ok) throw new Error('PDF template not found.');
         const templateBytes = await templateRes.arrayBuffer();
         const { filled, populated } = await fillAGMCheckoutPDF(
-          templateBytes, tenantReturn, session.propertyName, session.propertyConfig,
+          templateBytes,
+          tenantReturn,
+          tenantReturn.propertyName ?? session.propertyName,
+          tenantReturn.propertyConfig ?? session.propertyConfig,
         );
         if (!cancelled) {
           setPdfBytes(filled);
@@ -80,8 +83,9 @@ export function ReviewScreen({ returnId }: Props) {
   const deadlineDate = computeDeadline(tenantData.moveOutDate);
   const daysUntilDeadline = daysUntil(deadlineDate);
 
-  // Property address for the FROM block.
-  const propertyAddress = session.propertyConfig?.address ?? '';
+  // This tenant's property (an upload can span several) — used for the FROM block.
+  const propertyName = tenantReturn.propertyName ?? session.propertyName;
+  const propertyAddress = (tenantReturn.propertyConfig ?? session.propertyConfig)?.address ?? '';
 
   // Forwarding address for the MAIL TO block.
   const { street, city, state, zip } = tenantData.forwardingAddress;
@@ -190,8 +194,8 @@ export function ReviewScreen({ returnId }: Props) {
             <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-3">From</p>
             <p className="text-sm font-semibold text-app-text">AGM Real Estate Group</p>
             <p className="text-sm text-secondary mt-0.5">{AGM_ADDRESS}</p>
-            {session.propertyName && (
-              <p className="text-sm text-app-text mt-1">{session.propertyName}</p>
+            {propertyName && (
+              <p className="text-sm text-app-text mt-1">{propertyName}</p>
             )}
             {propertyAddress && (
               <p className="text-sm text-secondary mt-0.5">{propertyAddress}</p>

@@ -89,6 +89,10 @@ export function ReturnForm({ returnId }: Props) {
 
   if (!tenantReturn) return null;
 
+  // This tenant's property (an upload can span several); fall back to the session.
+  const propertyName = tenantReturn.propertyName ?? session?.propertyName ?? '';
+  const propertyConfig = tenantReturn.propertyConfig ?? session?.propertyConfig ?? null;
+
   // ── Live computed values ────────────────────────────────────────────────────
 
   const liveDepositData: DepositData = { ...tenantReturn.depositData, nrcCleaningFee, nrcPetFee };
@@ -183,7 +187,7 @@ export function ReturnForm({ returnId }: Props) {
       const res = await fetch('/AGM_template.pdf');
       if (!res.ok) throw new Error('PDF template not found.');
       const bytes = await res.arrayBuffer();
-      const { filled } = await fillAGMCheckoutPDF(bytes, displayReturn, session?.propertyName ?? '', session?.propertyConfig);
+      const { filled } = await fillAGMCheckoutPDF(bytes, displayReturn, propertyName, propertyConfig);
       const blob = new Blob([filled.buffer as ArrayBuffer], { type: 'application/pdf' });
       setFullFormUrl(URL.createObjectURL(blob));
     } catch {
@@ -227,7 +231,7 @@ export function ReturnForm({ returnId }: Props) {
               {tenantData.tenantName} — Unit {tenantData.unit}
             </h1>
             <p className="text-xs text-secondary mt-0.5">
-              {session?.propertyName}
+              {propertyName}
               {moveOutDisplay ? ` · Move-out ${moveOutDisplay}` : ''}
               {' · '}
               <span className="inline-flex items-center gap-1">
@@ -457,7 +461,7 @@ export function ReturnForm({ returnId }: Props) {
                 <DataRow label="Tenant" value={tenantData.tenantName} />
                 <DataRow label="Co-tenant" value={tenantData.coTenant || 'None'} />
                 <DataRow label="Unit" value={tenantData.unit} />
-                <DataRow label="Property" value={session?.propertyName ?? ''} />
+                <DataRow label="Property" value={propertyName} />
                 <DataRow label="Forwarding address" value={
                   [tenantData.forwardingAddress.street, tenantData.forwardingAddress.city,
                    tenantData.forwardingAddress.state, tenantData.forwardingAddress.zip]
