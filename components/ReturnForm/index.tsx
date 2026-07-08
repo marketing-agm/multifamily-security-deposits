@@ -21,9 +21,9 @@ const SECTIONS = [
   { title: 'NRC Fees',             subtitle: 'Non-refundable cleaning & pet' },
   { title: 'Move-In / Out Photos', subtitle: 'Inspection — drives repair charges' },
   { title: 'Rent Due',             subtitle: 'Pro-rated / lease break' },
+  { title: 'Turnover Charges',     subtitle: 'Cleaning, repairs & other' },
   { title: 'Utility Charges',      subtitle: 'RUBS or flat fee' },
   { title: 'Legal / Court Costs',  subtitle: 'Court fees, attorney costs' },
-  { title: 'Total Charges',        subtitle: 'All deductions' },
   { title: 'Refunds & Credits',    subtitle: 'Deposits held — final balance' },
 ];
 
@@ -368,6 +368,16 @@ export function ReturnForm({ returnId }: Props) {
             <SectionRentDue calculatedCharges={calculatedCharges} tenantData={tenantData} />
           )}
           {section === 5 && (
+            <SectionTotalCharges
+              manualCharges={manualCharges}
+              onChange={updateCharge}
+              nrcCleaningFee={nrcCleaningFee}
+              cleaningTenant={cleaningTenant}
+              calculatedCharges={calculatedCharges}
+              totalCharges={totalCharges}
+            />
+          )}
+          {section === 6 && (
             <SectionUtility
               utilityData={liveUtilityData}
               utilityType={utilityType}
@@ -379,20 +389,10 @@ export function ReturnForm({ returnId }: Props) {
               onRateChange={setUtilityRate}
             />
           )}
-          {section === 6 && (
+          {section === 7 && (
             <SectionLegalCosts
               legalCourtCosts={manualCharges.legalCourtCosts}
               onChange={v => updateCharge('legalCourtCosts', v)}
-            />
-          )}
-          {section === 7 && (
-            <SectionTotalCharges
-              manualCharges={manualCharges}
-              onChange={updateCharge}
-              nrcCleaningFee={nrcCleaningFee}
-              cleaningTenant={cleaningTenant}
-              calculatedCharges={calculatedCharges}
-              totalCharges={totalCharges}
             />
           )}
           {section === 8 && (
@@ -1061,7 +1061,7 @@ function SectionTotalCharges({
   totalCharges: number;
 }) {
   return (
-    <SectionCard title="Total Charges">
+    <SectionCard title="Turnover Charges">
       <p className="text-xs text-secondary">
         Enter the total vendor cost for each item. NRC offset is applied automatically to cleaning.
       </p>
