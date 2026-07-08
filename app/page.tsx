@@ -9,6 +9,7 @@ import { lookupProperty } from '@/lib/propertyConfig';
 // Lucide is the icon set both Notion and Obsidian use (notionicons.so is a
 // Lucide picker). Each icon is a React component we can size/color inline.
 import { Sun, Moon, Lock, ArrowRight, FileSpreadsheet, Camera, UploadCloud, AlertCircle } from 'lucide-react';
+import { BrandMark } from '@/components/shared/BrandMark';
 
 export default function UploadPage() {
   const { session, setSession } = useSession();
@@ -114,9 +115,14 @@ export default function UploadPage() {
       {/* Header */}
       <header className="bg-surface border-b border-separator px-6 py-4">
         <div className="w-full flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-serif font-semibold text-app-text">AGM Security Deposit Return Tool</h1>
-            <p className="text-xs text-secondary mt-0.5">AGM Real Estate Group</p>
+          {/* AGM lockup: the shared brand tile + two-line wordmark, mirroring the
+              header used in Report Studio and the Corporate Library. */}
+          <div className="flex items-center gap-3">
+            <BrandMark size={38} />
+            <div>
+              <h1 className="text-lg font-serif font-semibold text-app-text">AGM Security Deposit Return Tool</h1>
+              <p className="text-xs text-secondary mt-0.5">AGM Real Estate Group</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {unlocked && hasSession && (

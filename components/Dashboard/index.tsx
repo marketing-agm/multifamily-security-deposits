@@ -10,6 +10,7 @@ import { formatCurrency } from '@/lib/calculations';
 import { computeDeadline, daysUntilDeadline } from '@/lib/deadline';
 import { TenantReturn } from '@/types';
 import { Sun, Moon, Building2, ChevronRight, Plus } from 'lucide-react';
+import { BrandMark } from '@/components/shared/BrandMark';
 
 export function Dashboard() {
   const { session, clearSession } = useSession();
@@ -47,13 +48,17 @@ export function Dashboard() {
       {/* Header */}
       <div className="bg-surface border-b border-separator px-6 py-4">
         <div className="w-full flex items-center justify-between">
-          <div>
-            <h1 className="text-title font-serif text-app-text">
-              {session.propertyName || 'Security Deposit Returns'}
-            </h1>
-            <p className="text-subhead text-secondary mt-0.5">
-              {complete} of {total} complete · Uploaded {session.uploadDate}
-            </p>
+          {/* AGM brand tile persists as chrome next to the property title. */}
+          <div className="flex items-center gap-3">
+            <BrandMark size={36} />
+            <div>
+              <h1 className="text-title font-serif text-app-text">
+                {session.propertyName || 'Security Deposit Returns'}
+              </h1>
+              <p className="text-subhead text-secondary mt-0.5">
+                {complete} of {total} complete · Uploaded {session.uploadDate}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {/* Dark mode toggle — shared 36px icon-button style across all screens */}
