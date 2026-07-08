@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: c5c3d51 :: Utility type (RUBS vs Flat Fee) is per-unit editable, not just from config -->
+### 2026-07-08 · ui · gotcha · Utility type (RUBS vs Flat Fee) is per-unit editable, not just from config
+- **Ref:** c5c3d51
+- **Symptom:** Utility type was locked to the property config with no way to correct a unit that differs.
+- **Root cause:** utilityType was read straight from the parsed config and never surfaced as editable state.
+- **Fix:** Add utilityType to ReturnForm state, thread it into liveUtilityData, and render a toggle in SectionUtility; computeCalculatedCharges already branches on utilityData.utilityType.
+- **Lesson:** When a computed value already switches on a field (here utilityType), exposing that field as editable state is enough to make the whole section reactive — no calc changes needed.
+
+
 <!-- log-id: e010cfb :: Terminal screens should offer explicit back-navigation to prior steps -->
 ### 2026-07-07 · ui · ux · Terminal screens should offer explicit back-navigation to prior steps
 - **Ref:** e010cfb
