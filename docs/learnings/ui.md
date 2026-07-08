@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: 8e17f60 :: Reordering form sections requires updating both SECTIONS and the section===N render map -->
+### 2026-07-08 · ui · gotcha · Reordering form sections requires updating both SECTIONS and the section===N render map
+- **Ref:** 8e17f60
+- **Symptom:** Renaming 'Total Charges' to 'Turnover Charges' and moving it before Utility.
+- **Root cause:** Sidebar order (SECTIONS) and the rendered component per index are two separate lists keyed by numeric index.
+- **Fix:** Reorder SECTIONS and renumber the matching `section === N` blocks in lockstep (Turnover=5, Utility=6, Legal=7).
+- **Lesson:** In ReturnForm, section index is the contract between the sidebar list and the render switch — change both, or consider keying sections by id to avoid the dual-maintenance.
+
+
 <!-- log-id: c5c3d51 :: Utility type (RUBS vs Flat Fee) is per-unit editable, not just from config -->
 ### 2026-07-08 · ui · gotcha · Utility type (RUBS vs Flat Fee) is per-unit editable, not just from config
 - **Ref:** c5c3d51
