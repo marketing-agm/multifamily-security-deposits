@@ -6,6 +6,9 @@ import { useSession } from '@/context/SessionContext';
 import { useTheme } from '@/context/ThemeContext';
 import { parseAppFolioExport, ParseError } from '@/lib/parser';
 import { lookupProperty } from '@/lib/propertyConfig';
+// Lucide is the icon set both Notion and Obsidian use (notionicons.so is a
+// Lucide picker). Each icon is a React component we can size/color inline.
+import { Sun, Moon, Lock, ArrowRight, FileSpreadsheet, Camera, UploadCloud, AlertCircle } from 'lucide-react';
 
 export default function UploadPage() {
   const { session, setSession } = useSession();
@@ -119,17 +122,18 @@ export default function UploadPage() {
             {unlocked && hasSession && (
               <button
                 onClick={() => router.push('/dashboard')}
-                className="text-sm text-accent hover:underline font-medium"
+                className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline font-medium"
               >
-                Resume session ({session.returns.length} tenant{session.returns.length !== 1 ? 's' : ''}) →
+                Resume session ({session.returns.length} tenant{session.returns.length !== 1 ? 's' : ''})
+                <ArrowRight size={15} />
               </button>
             )}
             <button
               onClick={toggle}
-              className="w-9 h-9 rounded-full bg-fill flex items-center justify-center text-base hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
+              className="w-9 h-9 rounded-lg bg-fill flex items-center justify-center text-secondary hover:text-app-text hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             </button>
           </div>
         </div>
@@ -148,8 +152,11 @@ export default function UploadPage() {
             </p>
           </div>
 
-          <div className="bg-surface rounded-2xl border border-separator p-5 space-y-3">
-            <p className="text-xs font-semibold text-secondary uppercase tracking-wider">What to export from AppFolio</p>
+          <div className="bg-surface rounded-2xl border border-separator p-5 space-y-3 shadow-card">
+            <p className="flex items-center gap-2 text-xs font-semibold text-secondary uppercase tracking-wider">
+              <FileSpreadsheet size={15} className="text-accent" />
+              What to export from AppFolio
+            </p>
             <ol className="text-sm text-app-text space-y-2 list-decimal list-inside">
               <li>Run the Move-Out report in AppFolio for the target property</li>
               <li>Export to Excel (.xlsx)</li>
@@ -157,7 +164,10 @@ export default function UploadPage() {
               <li>Upload the file — all move-outs will populate automatically</li>
             </ol>
             <div className="border-t border-separator pt-3">
-              <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Inspection photos</p>
+              <p className="flex items-center gap-2 text-xs font-semibold text-secondary uppercase tracking-wider mb-1">
+                <Camera size={15} className="text-accent" />
+                Inspection photos
+              </p>
               <p className="text-sm text-app-text">
                 In each return&apos;s <span className="font-medium">Move-In / Out Photos</span> section you can
                 upload the move-in and move-out inspection photos so they&apos;re visible right in the form.
@@ -169,9 +179,9 @@ export default function UploadPage() {
           {/* Site password — sits at the bottom of the instructions. Only shown
               once the session check has resolved to "locked" (avoids a flash). */}
           {!checking && !unlocked && (
-            <form onSubmit={handleUnlock} className="bg-surface rounded-2xl border border-separator p-5 space-y-3">
+            <form onSubmit={handleUnlock} className="bg-surface rounded-2xl border border-separator p-5 space-y-3 shadow-card">
               <div className="flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-xl bg-accent/12 text-accent flex items-center justify-center text-base shrink-0">🔒</span>
+                <span className="w-8 h-8 rounded-xl bg-accent/12 text-accent flex items-center justify-center shrink-0"><Lock size={16} /></span>
                 <div>
                   <p className="text-sm font-semibold text-app-text">Unlock uploads</p>
                   <p className="text-xs text-secondary">Enter the site password to enable the upload panel.</p>
@@ -210,9 +220,9 @@ export default function UploadPage() {
           >
             <div>
               <h2 className="text-title2 text-app-text">Upload AppFolio Export</h2>
-              <p className="text-secondary mt-1 text-sm">
+              <p className="flex items-center gap-1.5 text-secondary mt-1 text-sm">
                 {!checking && !unlocked
-                  ? '🔒 Locked — unlock with the site password on the left.'
+                  ? <><Lock size={14} /> Locked — unlock with the site password on the left.</>
                   : 'Drop your .xlsx file to get started.'}
               </p>
             </div>
@@ -226,7 +236,7 @@ export default function UploadPage() {
                 dragging ? 'border-accent bg-accent/10' : 'border-tertiary hover:border-accent hover:bg-surface'
               }`}
             >
-              <div className="text-4xl mb-4">📂</div>
+              <UploadCloud size={40} strokeWidth={1.5} className={`mx-auto mb-4 ${dragging ? 'text-accent' : 'text-tertiary'}`} />
               <p className="text-app-text font-medium">Drop your .xlsx file here</p>
               <p className="text-secondary text-sm mt-1">or click to browse</p>
               <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={onFileChange} className="hidden" />
@@ -239,8 +249,9 @@ export default function UploadPage() {
             {errors.length > 0 && (
               <div className="bg-danger/10 border border-danger/30 rounded-2xl p-4 space-y-1">
                 {errors.map((e, i) => (
-                  <p key={i} className="text-sm text-danger-fg">
-                    {e.sheet ? <span className="font-medium">[{e.sheet}]</span> : null} {e.message}
+                  <p key={i} className="flex items-start gap-1.5 text-sm text-danger-fg">
+                    <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                    <span>{e.sheet ? <span className="font-medium">[{e.sheet}]</span> : null} {e.message}</span>
                   </p>
                 ))}
               </div>

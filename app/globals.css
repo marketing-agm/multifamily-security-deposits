@@ -10,28 +10,32 @@
    raw color "#f2f2f7" in 200 different files, we name it ONCE here (--bg) and
    every screen refers to the name. Change it here → the whole app updates.
 
-   The values are Apple's iOS "system" colors, which are designed to hit proper
-   contrast ratios in both light and dark mode. We keep the LIGHT values in
-   :root and override just the ones that differ in .dark below.
+   The palette is modeled on Notion (light mode) and Obsidian (dark mode):
+   warm, low-chroma neutrals with a single confident purple accent — the look
+   both apps share. Because these are the ONLY place colors are defined, this
+   one edit re-skins every screen at once. We keep the LIGHT values in :root
+   and override just the ones that differ in .dark below.
    ========================================================================== */
 :root {
-  /* Backgrounds & surfaces (back-to-front layering) */
-  --bg:          #f2f2f7;   /* app background (the desktop behind cards) */
+  /* Backgrounds & surfaces (back-to-front layering) — Notion's warm paper.
+     The neutrals carry a faint warm (yellow-ish) bias instead of pure grey, so
+     they read as "chosen paper", the way Notion's canvas does. */
+  --bg:          #f7f6f3;   /* app background (Notion's warm canvas) */
   --surface:     #ffffff;   /* cards, panels, sheets */
-  --surface-2:   #f8f8f8;   /* nested surfaces: table headers, inset rows */
-  --fill:        #eef0f3;   /* subtle fills: pills, toggles, icon buttons */
+  --surface-2:   #f7f6f3;   /* nested surfaces: table headers, inset rows */
+  --fill:        #efeeea;   /* subtle fills: pills, toggles, icon buttons */
 
-  /* Lines */
-  --separator:   #e5e5ea;   /* hairline borders between rows/sections */
+  /* Lines — Notion's hairlines are a translucent warm grey, very quiet */
+  --separator:   #e9e8e3;   /* hairline borders between rows/sections */
 
-  /* Text (the "label" hierarchy — primary is darkest, tertiary is faintest) */
-  --text:            #1c1c1e;
-  --text-secondary:  #8e8e93;
-  --text-tertiary:   #c7c7cc;
+  /* Text — Notion's warm near-black label hierarchy (not pure grey) */
+  --text:            #37352f;
+  --text-secondary:  #787774;
+  --text-tertiary:   #b6b4ae;
 
-  /* Brand accent (systemBlue) + the color of text that sits ON the accent */
-  --accent:        #007aff;
-  --accent-hover:  #0063cc;
+  /* Brand accent — Obsidian's signature purple + the text color that sits ON it */
+  --accent:        #6c5ce7;
+  --accent-hover:  #5a4bd4;
   --on-accent:     #ffffff;
 
   /* Semantic status colors — meaning, not decoration.
@@ -58,19 +62,21 @@
 /* Only the values that actually change in dark mode are re-declared here.
    Everything else (radius, the concept of "accent") is inherited from :root. */
 .dark {
-  --bg:          #1c1c1e;
-  --surface:     #2c2c2e;
-  --surface-2:   #3a3a3c;
-  --fill:        #3a3a3c;
+  /* Obsidian's dark theme: near-black charcoal surfaces, soft off-white text,
+     and a slightly brighter purple accent so it stays vivid on dark. */
+  --bg:          #1e1e1e;
+  --surface:     #262626;
+  --surface-2:   #2d2d2d;
+  --fill:        #363636;
 
-  --separator:   #38383a;
+  --separator:   #363636;
 
-  --text:            #ffffff;
-  --text-secondary:  #98989f;
-  --text-tertiary:   #48484a;
+  --text:            #dcddde;
+  --text-secondary:  #9a9a9a;
+  --text-tertiary:   #5c5c5c;
 
-  --accent:        #0a84ff;   /* iOS brightens blue slightly on dark */
-  --accent-hover:  #409cff;
+  --accent:        #8b7ff0;   /* Obsidian brightens the purple on dark */
+  --accent-hover:  #a49bf5;
 
   --success:     #30d158;
   --warning:     #ff9f0a;

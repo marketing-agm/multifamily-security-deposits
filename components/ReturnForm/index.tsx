@@ -13,18 +13,25 @@ import {
 } from '@/lib/calculations';
 import { InspectionBadge } from '@/components/shared/InspectionBadge';
 import { UtilityTag } from '@/components/shared/UtilityTag';
+import {
+  Sun, Moon, ArrowLeft, ArrowRight, Check, Home, CalendarDays, BadgeDollarSign,
+  Camera, Wallet, Gauge, Scale, Receipt, PiggyBank, AlertTriangle, CheckCircle2,
+  Info, X,
+  type LucideIcon,
+} from 'lucide-react';
 
 // The 9 sections mirror the AGM Checkout Report PDF sections.
-const SECTIONS = [
-  { title: 'Property & Tenant',    subtitle: 'Name, unit, forwarding address' },
-  { title: 'Lease & Dates',        subtitle: 'Rent, move-in / move-out' },
-  { title: 'NRC Fees',             subtitle: 'Non-refundable cleaning & pet' },
-  { title: 'Move-In / Out Photos', subtitle: 'Inspection — drives repair charges' },
-  { title: 'Rent Due',             subtitle: 'Pro-rated / lease break' },
-  { title: 'Utility Charges',      subtitle: 'RUBS or flat fee' },
-  { title: 'Legal / Court Costs',  subtitle: 'Court fees, attorney costs' },
-  { title: 'Total Charges',        subtitle: 'All deductions' },
-  { title: 'Refunds & Credits',    subtitle: 'Deposits held — final balance' },
+// Each carries a Lucide icon (the Notion/Obsidian icon set) for the sidebar.
+const SECTIONS: { title: string; subtitle: string; icon: LucideIcon }[] = [
+  { title: 'Property & Tenant',    subtitle: 'Name, unit, forwarding address',   icon: Home },
+  { title: 'Lease & Dates',        subtitle: 'Rent, move-in / move-out',          icon: CalendarDays },
+  { title: 'NRC Fees',             subtitle: 'Non-refundable cleaning & pet',     icon: BadgeDollarSign },
+  { title: 'Move-In / Out Photos', subtitle: 'Inspection — drives repair charges', icon: Camera },
+  { title: 'Rent Due',             subtitle: 'Pro-rated / lease break',           icon: Wallet },
+  { title: 'Utility Charges',      subtitle: 'RUBS or flat fee',                  icon: Gauge },
+  { title: 'Legal / Court Costs',  subtitle: 'Court fees, attorney costs',        icon: Scale },
+  { title: 'Total Charges',        subtitle: 'All deductions',                    icon: Receipt },
+  { title: 'Refunds & Credits',    subtitle: 'Deposits held — final balance',    icon: PiggyBank },
 ];
 
 interface Props { returnId: string; }
@@ -222,9 +229,9 @@ export function ReturnForm({ returnId }: Props) {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-sm text-secondary hover:text-app-text transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 text-sm text-secondary hover:text-app-text transition-colors shrink-0"
           >
-            ← Dashboard
+            <ArrowLeft size={15} /> Dashboard
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-semibold text-app-text truncate">
@@ -254,16 +261,16 @@ export function ReturnForm({ returnId }: Props) {
             </button>
             <button
               onClick={goToReview}
-              className="text-sm bg-accent hover:bg-accent-hover text-on-accent font-medium px-4 py-1.5 rounded-lg transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm bg-accent hover:bg-accent-hover text-on-accent font-medium px-4 py-1.5 rounded-lg transition-colors"
             >
-              Review &amp; Submit →
+              Review &amp; Submit <ArrowRight size={15} />
             </button>
             <button
               onClick={toggle}
-              className="w-9 h-9 rounded-full bg-fill flex items-center justify-center text-base hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
+              className="w-9 h-9 rounded-lg bg-fill flex items-center justify-center text-secondary hover:text-app-text hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             </button>
           </div>
         </div>
@@ -282,15 +289,15 @@ export function ReturnForm({ returnId }: Props) {
             {/* ⓘ button — opens Data & Calculations panel */}
             <button
               onClick={() => setShowDataPanel(p => !p)}
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
+              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
                 showDataPanel
                   ? 'bg-accent/12 text-accent'
-                  : 'bg-fill text-secondary hover:bg-fill'
+                  : 'bg-fill text-secondary hover:text-app-text'
               }`}
               aria-label="Show data & calculations"
               title="Data & Calculations"
             >
-              ⓘ
+              <Info size={15} />
             </button>
           </div>
 
@@ -298,6 +305,7 @@ export function ReturnForm({ returnId }: Props) {
             {SECTIONS.map((s, i) => {
               const isActive = i === section;
               const isDone = !isActive && i <= maxReached;   // reached, not current → complete
+              const Icon = s.icon;
               return (
                 <button
                   key={i}
@@ -308,14 +316,16 @@ export function ReturnForm({ returnId }: Props) {
                       : 'hover:bg-fill text-app-text'
                   }`}
                 >
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
+                  {/* Leading glyph: the section's Lucide icon, or a green check once
+                      the section has been reached (Notion/Obsidian icon-row style). */}
+                  <span className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
                     isActive
                       ? 'bg-accent text-on-accent'
                       : isDone
                       ? 'bg-success/15 text-success-fg'
-                      : 'bg-separator text-secondary'
+                      : 'bg-fill text-secondary'
                   }`}>
-                    {isDone ? '✓' : i + 1}
+                    {isDone ? <Check size={14} /> : <Icon size={14} />}
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm font-medium leading-tight">{s.title}</p>
@@ -405,24 +415,24 @@ export function ReturnForm({ returnId }: Props) {
             <button
               onClick={prevSection}
               disabled={section === 0}
-              className="text-sm font-medium text-secondary hover:text-app-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-app-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              ← Previous
+              <ArrowLeft size={15} /> Previous
             </button>
             <span className="text-xs text-secondary">Section {section + 1} of {SECTIONS.length}</span>
             {section === SECTIONS.length - 1 ? (
               <button
                 onClick={goToReview}
-                className="text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent px-4 py-2 rounded-xl transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent px-4 py-2 rounded-xl transition-colors"
               >
-                Review &amp; Submit →
+                Review &amp; Submit <ArrowRight size={15} />
               </button>
             ) : (
               <button
                 onClick={nextSection}
-                className="text-sm font-medium text-app-text hover:underline transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-app-text hover:underline transition-colors"
               >
-                Next →
+                Next <ArrowRight size={15} />
               </button>
             )}
           </div>
@@ -446,9 +456,9 @@ export function ReturnForm({ returnId }: Props) {
               </div>
               <button
                 onClick={() => setShowDataPanel(false)}
-                className="w-7 h-7 rounded-full bg-fill text-secondary flex items-center justify-center hover:bg-fill text-sm transition-colors"
+                className="w-7 h-7 rounded-lg bg-fill text-secondary flex items-center justify-center hover:text-app-text transition-colors"
               >
-                ✕
+                <X size={15} />
               </button>
             </div>
 
@@ -828,13 +838,13 @@ function SectionInspection({
         <div>
           <span className="text-sm font-medium text-app-text">Signed move-in inspection is on file</span>
           {!inspectionSigned && (
-            <p className="text-xs text-danger-fg mt-1">
-              ⚠ Without a signed inspection, any repair or cleaning deductions may be challenged.
+            <p className="flex items-center gap-1 text-xs text-danger-fg mt-1">
+              <AlertTriangle size={12} /> Without a signed inspection, any repair or cleaning deductions may be challenged.
             </p>
           )}
           {inspectionSigned && (
-            <p className="text-xs text-success-fg mt-1">
-              ✓ Deductions are defensible in small claims court.
+            <p className="flex items-center gap-1 text-xs text-success-fg mt-1">
+              <CheckCircle2 size={12} /> Deductions are defensible in small claims court.
             </p>
           )}
         </div>
@@ -926,8 +936,8 @@ function SectionRentDue({
         Calculated automatically from move-out date vs paid-through date and monthly rent. Set "Paid rent through" in Lease &amp; Dates to compute this.
       </p>
       {!tenantData.paidThroughDate && (
-        <div className="bg-warning/10 border border-warning/30 rounded-xl px-4 py-3 text-sm text-warning-fg">
-          ⚠ "Paid rent through" is blank — go to Lease &amp; Dates to fill it in.
+        <div className="flex items-center gap-1.5 bg-warning/10 border border-warning/30 rounded-xl px-4 py-3 text-sm text-warning-fg">
+          <AlertTriangle size={15} className="shrink-0" /> &quot;Paid rent through&quot; is blank — go to Lease &amp; Dates to fill it in.
         </div>
       )}
       <div className="space-y-1">
