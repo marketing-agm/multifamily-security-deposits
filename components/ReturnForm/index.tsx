@@ -16,7 +16,7 @@ import { UtilityTag } from '@/components/shared/UtilityTag';
 import {
   Sun, Moon, ArrowLeft, ArrowRight, Check, Home, CalendarDays, BadgeDollarSign,
   Camera, Wallet, Gauge, Scale, Receipt, PiggyBank, AlertTriangle, CheckCircle2,
-  Info, X,
+  Info, X, ZoomIn,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -872,6 +872,7 @@ function SectionInspection({
 }
 
 // One upload column (move-in or move-out): drop/click to add, thumbnail grid.
+// Clicking a thumbnail opens it full-size in a lightbox overlay.
 function PhotoUpload({
   title, date, images, onAdd, onRemove,
 }: {
@@ -881,6 +882,17 @@ function PhotoUpload({
   onAdd: (files: FileList | null) => void;
   onRemove: (index: number) => void;
 }) {
+  // The photo currently shown enlarged (its data-URL), or null when closed.
+  const [viewer, setViewer] = useState<string | null>(null);
+
+  // Close the lightbox on Escape — standard, expected behavior for an overlay.
+  useEffect(() => {
+    if (!viewer) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setViewer(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [viewer]);
+
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between">
@@ -890,7 +902,7 @@ function PhotoUpload({
 
       {/* Click-to-upload zone */}
       <label className="flex flex-col items-center justify-center gap-1 border border-dashed border-tertiary rounded-xl py-6 cursor-pointer hover:bg-fill transition-colors">
-        <span className="text-xl">📷</span>
+        <Camera size={22} className="text-secondary" />
         <span className="text-xs text-secondary">Click to upload</span>
         <input
           type="file"
@@ -905,20 +917,53 @@ function PhotoUpload({
         <div className="grid grid-cols-3 gap-2">
           {images.map((src, i) => (
             <div key={i} className="relative group aspect-square">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={`${title} ${i + 1}`} className="w-full h-full object-cover rounded-lg border border-separator" />
+              {/* Thumbnail — click to view full-size. A group-hover magnifier
+                  hints that it's clickable. */}
+              <button
+                type="button"
+                onClick={() => setViewer(src)}
+                className="w-full h-full rounded-lg overflow-hidden border border-separator cursor-zoom-in"
+                aria-label={`View ${title} ${i + 1}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt={`${title} ${i + 1}`} className="w-full h-full object-cover" />
+                <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/25 transition-colors">
+                  <ZoomIn size={18} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </span>
+              </button>
               <button
                 onClick={() => onRemove(i)}
-                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-danger text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-danger text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 aria-label="Remove photo"
               >
-                ×
+                <X size={12} />
               </button>
             </div>
           ))}
         </div>
       ) : (
         <p className="text-xs text-secondary text-center">No photos yet</p>
+      )}
+
+      {/* Lightbox overlay — full-size photo, click anywhere or the ✕ to close. */}
+      {viewer && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-6 cursor-zoom-out"
+          onClick={() => setViewer(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${title} preview`}
+        >
+          <button
+            onClick={() => setViewer(null)}
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition-colors"
+            aria-label="Close preview"
+          >
+            <X size={18} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={viewer} alt={`${title} full size`} className="max-w-full max-h-full object-contain rounded-lg" />
+        </div>
       )}
     </div>
   );
