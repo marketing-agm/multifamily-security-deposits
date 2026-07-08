@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: 0284487 :: app/icon.svg breaks next-on-pages (Cloudflare) — becomes a non-edge route -->
+### 2026-07-08 · infra · gotcha · app/icon.svg breaks next-on-pages (Cloudflare) — becomes a non-edge route
+- **Ref:** 0284487
+- **Symptom:** Cloudflare build error: 'The following routes were not configured to run with the Edge Runtime: /icon.svg'. next build itself passes; only build:cf fails.
+- **Root cause:** Next App Router turns app/icon.svg into a generated route; next-on-pages rejects non-edge routes.
+- **Fix:** Move the file to public/icon.svg (served as a plain static asset, no route) and set metadata.icons.icon to '/icon.svg' in app/layout.tsx. Verify with 'npm run build:cf' and that /icon.svg is absent from the next build route list.
+- **Lesson:** On Cloudflare/next-on-pages, keep favicons/icons in public/ and reference them via metadata.icons — don't use the app/icon.* metadata-file convention, which creates edge-route requirements.
+
+
 <!-- log-id: d2c29a2 :: next/font variable name must differ from Tailwind @theme font token -->
 ### 2026-07-08 · infra · gotcha · next/font variable name must differ from Tailwind @theme font token
 - **Ref:** d2c29a2
