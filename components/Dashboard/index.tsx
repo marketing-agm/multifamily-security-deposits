@@ -9,6 +9,7 @@ import { UtilityTag } from '@/components/shared/UtilityTag';
 import { formatCurrency } from '@/lib/calculations';
 import { computeDeadline, daysUntilDeadline } from '@/lib/deadline';
 import { TenantReturn } from '@/types';
+import { Sun, Moon, Building2, ChevronRight, Plus } from 'lucide-react';
 
 export function Dashboard() {
   const { session, clearSession } = useSession();
@@ -47,7 +48,7 @@ export function Dashboard() {
       <div className="bg-surface border-b border-separator px-6 py-4">
         <div className="w-full flex items-center justify-between">
           <div>
-            <h1 className="text-title2 text-app-text">
+            <h1 className="text-title font-serif text-app-text">
               {session.propertyName || 'Security Deposit Returns'}
             </h1>
             <p className="text-subhead text-secondary mt-0.5">
@@ -58,15 +59,16 @@ export function Dashboard() {
             {/* Dark mode toggle — shared 36px icon-button style across all screens */}
             <button
               onClick={toggle}
-              className="w-9 h-9 rounded-full bg-fill flex items-center justify-center text-base hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
+              className="w-9 h-9 rounded-lg bg-fill flex items-center justify-center text-secondary hover:text-app-text hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             </button>
             <button
               onClick={() => { clearSession(); router.push('/'); }}
-              className="text-subhead text-secondary hover:text-app-text transition-colors"
+              className="inline-flex items-center gap-1.5 text-subhead text-secondary hover:text-app-text transition-colors"
             >
+              <Plus size={15} />
               Start new upload
             </button>
           </div>
@@ -88,7 +90,8 @@ export function Dashboard() {
           return (
             <div key={group.property} className="space-y-1">
               {/* Group header: property name only when the upload spans several. */}
-              <p className="text-caption font-semibold text-secondary uppercase tracking-wider px-1 mb-2">
+              <p className="flex items-center gap-1.5 text-caption font-semibold text-secondary uppercase tracking-wider px-1 mb-2">
+                {multiProperty && <Building2 size={13} className="text-tertiary" />}
                 {multiProperty ? `${group.property} · ` : ''}{group.rows.length} move-out{group.rows.length === 1 ? '' : 's'} · {groupPending} pending
               </p>
 
@@ -192,9 +195,10 @@ function TenantRow({ r, last, onClick }: { r: TenantReturn; last: boolean; onCli
         <InspectionBadge status={r.tenantData.inspectionStatus} />
       </div>
 
-      {/* Status */}
-      <div className="flex items-center">
+      {/* Status + open-affordance chevron (brightens on row hover) */}
+      <div className="flex items-center justify-between gap-1 group">
         <StatusBadge status={r.processingStatus} />
+        <ChevronRight size={16} className="text-tertiary shrink-0" />
       </div>
     </div>
   );

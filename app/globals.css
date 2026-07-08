@@ -10,28 +10,33 @@
    raw color "#f2f2f7" in 200 different files, we name it ONCE here (--bg) and
    every screen refers to the name. Change it here → the whole app updates.
 
-   The values are Apple's iOS "system" colors, which are designed to hit proper
-   contrast ratios in both light and dark mode. We keep the LIGHT values in
-   :root and override just the ones that differ in .dark below.
+   The palette is modeled on Notion: warm, low-chroma paper neutrals with
+   Notion's signature blue as the single accent. Because these are the ONLY
+   place colors are defined, this one edit re-skins every screen at once. We
+   keep the LIGHT values in :root and override just the ones that differ in
+   .dark below (Notion's dark theme — a near-neutral charcoal).
    ========================================================================== */
 :root {
-  /* Backgrounds & surfaces (back-to-front layering) */
-  --bg:          #f2f2f7;   /* app background (the desktop behind cards) */
+  /* Backgrounds & surfaces (back-to-front layering) — Notion's warm paper.
+     The neutrals carry a faint warm (yellow-ish) bias instead of pure grey, so
+     they read as "chosen paper", the way Notion's canvas does. */
+  --bg:          #f7f6f3;   /* app background (Notion's warm canvas) */
   --surface:     #ffffff;   /* cards, panels, sheets */
-  --surface-2:   #f8f8f8;   /* nested surfaces: table headers, inset rows */
-  --fill:        #eef0f3;   /* subtle fills: pills, toggles, icon buttons */
+  --surface-2:   #f7f6f3;   /* nested surfaces: table headers, inset rows */
+  --fill:        #efeeea;   /* subtle fills: pills, toggles, icon buttons */
 
-  /* Lines */
-  --separator:   #e5e5ea;   /* hairline borders between rows/sections */
+  /* Lines — Notion's hairlines are a translucent warm grey, very quiet */
+  --separator:   #e9e8e3;   /* hairline borders between rows/sections */
 
-  /* Text (the "label" hierarchy — primary is darkest, tertiary is faintest) */
-  --text:            #1c1c1e;
-  --text-secondary:  #8e8e93;
-  --text-tertiary:   #c7c7cc;
+  /* Text — Notion's warm near-black label hierarchy (not pure grey) */
+  --text:            #37352f;
+  --text-secondary:  #787774;
+  --text-tertiary:   #b6b4ae;
 
-  /* Brand accent (systemBlue) + the color of text that sits ON the accent */
-  --accent:        #007aff;
-  --accent-hover:  #0063cc;
+  /* Brand accent — Notion's blue (the color Notion uses for links, selection,
+     and primary actions) + the text color that sits ON it. */
+  --accent:        #2383e2;
+  --accent-hover:  #1a6ec4;
   --on-accent:     #ffffff;
 
   /* Semantic status colors — meaning, not decoration.
@@ -58,19 +63,21 @@
 /* Only the values that actually change in dark mode are re-declared here.
    Everything else (radius, the concept of "accent") is inherited from :root. */
 .dark {
-  --bg:          #1c1c1e;
-  --surface:     #2c2c2e;
-  --surface-2:   #3a3a3c;
-  --fill:        #3a3a3c;
+  /* Notion's dark theme: near-neutral charcoal surfaces, soft off-white text,
+     and a lighter blue accent so links/actions stay legible on dark. */
+  --bg:          #191919;
+  --surface:     #252525;
+  --surface-2:   #2f2f2f;
+  --fill:        #373737;
 
-  --separator:   #38383a;
+  --separator:   #373737;
 
-  --text:            #ffffff;
-  --text-secondary:  #98989f;
-  --text-tertiary:   #48484a;
+  --text:            #d4d4d4;
+  --text-secondary:  #9b9b9b;
+  --text-tertiary:   #5a5a5a;
 
-  --accent:        #0a84ff;   /* iOS brightens blue slightly on dark */
-  --accent-hover:  #409cff;
+  --accent:        #529cca;   /* Notion lightens its blue on dark */
+  --accent-hover:  #6bb0da;
 
   --success:     #30d158;
   --warning:     #ff9f0a;
@@ -123,6 +130,12 @@
 
   --shadow-card: var(--shadow-card);
 
+  /* Font families — Inter (UI) and Lora (serif display). The vars are set by
+     next/font in layout.tsx; we fall back to the system stack if they're absent.
+     Usage: default text is Inter; class="font-serif" opts into Lora. */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: var(--font-lora), Georgia, "Times New Roman", serif;
+
   /* Type scale — a fixed ramp so text sizes are chosen, not improvised.
      Names mirror iOS text styles. Each pairs a size with a sensible line-height.
      Usage: class="text-headline", class="text-body", etc. */
@@ -140,10 +153,9 @@
    BASE STYLES  — sensible defaults every screen inherits.
    ========================================================================== */
 body {
-  /* System font stack: SF Pro on Apple, Segoe UI on Windows, Roboto on Android.
-     Using the OS font is deliberate — it's what HIG/Fluent both recommend, it
-     loads instantly (no web-font download), and the app feels native. */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Inter is Notion's UI typeface; the var falls back to the system stack if
+     the font hasn't loaded yet. This is what gives the app its "Notion" feel. */
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 

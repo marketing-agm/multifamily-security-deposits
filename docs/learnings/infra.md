@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: d2c29a2 :: next/font variable name must differ from Tailwind @theme font token -->
+### 2026-07-08 · infra · gotcha · next/font variable name must differ from Tailwind @theme font token
+- **Ref:** d2c29a2
+- **Symptom:** Font never applies; the @theme token resolves to itself.
+- **Root cause:** layout.tsx set next/font variable:'--font-sans' while globals.css @theme defined --font-sans: var(--font-sans), ... — a self-reference.
+- **Fix:** Give next/font distinct variable names (--font-inter, --font-lora) and have the @theme tokens (--font-sans/--font-serif) reference those.
+- **Lesson:** next/font variable names and Tailwind @theme token names live in the same custom-property namespace — keep them distinct.
+
+
 <!-- log-id: affedc5 :: Password-gating a next-on-pages app with a Cloudflare Secret -->
 ### 2026-07-06 · infra · gotcha · Password-gating a next-on-pages app with a Cloudflare Secret
 - **Ref:** affedc5

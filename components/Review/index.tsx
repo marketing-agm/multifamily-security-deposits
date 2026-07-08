@@ -8,6 +8,7 @@ import { calcTotalCharges, calcTotalCredits, calcBalance, formatCurrency } from 
 import { fillAGMCheckoutPDF } from '@/lib/pdfFiller';
 import { FIELD_MAP } from '@/lib/fieldMap';
 import { computeDeadline, daysUntilDeadline as daysUntil, DEADLINE_LAW_REF, DEPOSIT_RETURN_DAYS } from '@/lib/deadline';
+import { Sun, Moon, ArrowLeft, CalendarClock, FileText, CheckCircle2, AlertTriangle, Download, Eye, ShieldCheck, Building2, Send, LayoutDashboard } from 'lucide-react';
 
 // AGM's mailing address for the FROM block on the checkout report.
 const AGM_ADDRESS = '12330 Northup Way, Bellevue, WA 98005';
@@ -129,9 +130,9 @@ export function ReviewScreen({ returnId }: Props) {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push(`/return/${returnId}`)}
-            className="text-sm text-secondary hover:text-app-text transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 text-sm text-secondary hover:text-app-text transition-colors shrink-0"
           >
-            ← Edit form
+            <ArrowLeft size={15} /> Edit form
           </button>
           <span className="text-separator select-none">|</span>
           <div className="flex-1 min-w-0">
@@ -144,10 +145,10 @@ export function ReviewScreen({ returnId }: Props) {
           </div>
           <button
             onClick={toggle}
-            className="w-9 h-9 rounded-full bg-fill flex items-center justify-center text-base hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
+            className="w-9 h-9 rounded-lg bg-fill flex items-center justify-center text-secondary hover:text-app-text hover:brightness-95 dark:hover:brightness-110 transition-colors shrink-0"
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
           </button>
         </div>
       </div>
@@ -159,7 +160,8 @@ export function ReviewScreen({ returnId }: Props) {
         <div className={`rounded-2xl border px-5 py-4 ${deadlineBannerClass}`}>
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <p className="text-xs font-bold uppercase tracking-wider">
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
+                <CalendarClock size={15} />
                 {DEADLINE_LAW_REF} — {DEPOSIT_RETURN_DAYS}-Day Deadline
               </p>
               {deadlineDate ? (
@@ -190,8 +192,8 @@ export function ReviewScreen({ returnId }: Props) {
         {/* ── FROM / MAIL TO address blocks ──────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-4">
           {/* FROM */}
-          <div className="bg-surface rounded-2xl border border-separator p-5">
-            <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-3">From</p>
+          <div className="bg-surface rounded-2xl border border-separator p-5 shadow-card">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-secondary uppercase tracking-wider mb-3"><Building2 size={14} className="text-accent" />From</p>
             <p className="text-sm font-semibold text-app-text">AGM Real Estate Group</p>
             <p className="text-sm text-secondary mt-0.5">{AGM_ADDRESS}</p>
             {propertyName && (
@@ -203,8 +205,8 @@ export function ReviewScreen({ returnId }: Props) {
           </div>
 
           {/* MAIL TO */}
-          <div className="bg-surface rounded-2xl border border-separator p-5">
-            <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-3">Mail To</p>
+          <div className="bg-surface rounded-2xl border border-separator p-5 shadow-card">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-secondary uppercase tracking-wider mb-3"><Send size={14} className="text-accent" />Mail To</p>
             <p className="text-sm font-semibold text-app-text">{tenantData.tenantName}</p>
             {tenantData.coTenant && (
               <p className="text-sm text-app-text">{tenantData.coTenant}</p>
@@ -223,14 +225,14 @@ export function ReviewScreen({ returnId }: Props) {
         </div>
 
         {/* ── PDF card ───────────────────────────────────────────────────────── */}
-        <div className="bg-surface rounded-2xl border border-separator p-5">
-          <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-4">AGM Checkout Report PDF</p>
+        <div className="bg-surface rounded-2xl border border-separator p-5 shadow-card">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-secondary uppercase tracking-wider mb-4"><FileText size={14} className="text-accent" />AGM Checkout Report PDF</p>
 
           <div className="flex items-start gap-4">
             {/* PDF icon */}
-            <div className="w-12 h-14 bg-fill border border-separator rounded-xl flex flex-col items-center justify-center shrink-0 gap-0.5">
-              <span className="text-lg">📄</span>
-              <span className="text-[9px] font-bold text-secondary uppercase tracking-wide">PDF</span>
+            <div className="w-12 h-14 bg-accent/10 border border-accent/20 rounded-xl flex flex-col items-center justify-center shrink-0 gap-0.5 text-accent">
+              <FileText size={20} />
+              <span className="text-[9px] font-bold uppercase tracking-wide">PDF</span>
             </div>
 
             {/* Filename + status */}
@@ -240,8 +242,8 @@ export function ReviewScreen({ returnId }: Props) {
                 <p className="text-xs text-secondary mt-1">Generating…</p>
               )}
               {pdfReady && fieldsPopulated !== null && (
-                <p className="text-xs text-success-fg mt-1">
-                  ✓ {fieldsPopulated}/{TOTAL_FIELDS} fields populated
+                <p className="flex items-center gap-1 text-xs text-success-fg mt-1">
+                  <CheckCircle2 size={13} /> {fieldsPopulated}/{TOTAL_FIELDS} fields populated
                 </p>
               )}
               {pdfReady && !generating && (
@@ -249,8 +251,8 @@ export function ReviewScreen({ returnId }: Props) {
               )}
               {/* Balance warning in PDF card */}
               {balance < 0 && (
-                <p className="text-xs text-warning-fg mt-1">
-                  ⚠ Balance owing landlord — confirm charges before sending
+                <p className="flex items-center gap-1 text-xs text-warning-fg mt-1">
+                  <AlertTriangle size={13} /> Balance owing landlord — confirm charges before sending
                 </p>
               )}
             </div>
@@ -260,16 +262,16 @@ export function ReviewScreen({ returnId }: Props) {
               <button
                 onClick={handlePreview}
                 disabled={!pdfReady}
-                className="text-xs font-medium text-accent hover:underline disabled:text-secondary disabled:no-underline disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center justify-center gap-1 text-xs font-medium text-accent hover:underline disabled:text-secondary disabled:no-underline disabled:cursor-not-allowed transition-colors"
               >
-                Preview form
+                <Eye size={13} /> Preview form
               </button>
               <button
                 onClick={handleDownload}
                 disabled={!pdfReady || !complianceChecked}
-                className="text-xs font-semibold bg-accent hover:bg-accent-hover text-on-accent px-3 py-1.5 rounded-lg disabled:bg-fill disabled:text-secondary disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center justify-center gap-1 text-xs font-semibold bg-accent hover:bg-accent-hover text-on-accent px-3 py-1.5 rounded-lg disabled:bg-fill disabled:text-secondary disabled:cursor-not-allowed transition-colors"
               >
-                ↓ Download
+                <Download size={13} /> Download
               </button>
             </div>
           </div>
@@ -308,7 +310,7 @@ export function ReviewScreen({ returnId }: Props) {
 
         {/* ── Compliance checkbox ─────────────────────────────────────────────── */}
         <div className="bg-surface rounded-2xl border border-separator p-5">
-          <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-3">Compliance Check</p>
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-secondary uppercase tracking-wider mb-3"><ShieldCheck size={14} className="text-accent" />Compliance Check</p>
           <label className="flex items-start gap-3 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -327,7 +329,7 @@ export function ReviewScreen({ returnId }: Props) {
         <button
           onClick={handleDownload}
           disabled={!pdfReady || !complianceChecked}
-          className="w-full bg-accent hover:bg-accent-hover disabled:bg-fill disabled:text-secondary disabled:cursor-not-allowed text-on-accent font-semibold py-3.5 rounded-2xl transition-colors text-sm"
+          className="w-full inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover disabled:bg-fill disabled:text-secondary disabled:cursor-not-allowed text-on-accent font-semibold py-3.5 rounded-2xl transition-colors text-sm"
         >
           {generating
             ? 'Generating PDF…'
@@ -335,22 +337,22 @@ export function ReviewScreen({ returnId }: Props) {
             ? 'Preparing PDF…'
             : !complianceChecked
             ? 'Check compliance box to download'
-            : '↓ Download AGM Checkout Report'}
+            : <><Download size={16} /> Download AGM Checkout Report</>}
         </button>
 
         {/* Back navigation — return to the form/calculations or the dashboard. */}
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => router.push(`/return/${returnId}`)}
-            className="w-full border border-separator text-secondary hover:text-app-text font-medium py-2.5 rounded-2xl hover:bg-fill transition-colors text-sm"
+            className="w-full inline-flex items-center justify-center gap-1.5 border border-separator text-secondary hover:text-app-text font-medium py-2.5 rounded-2xl hover:bg-fill transition-colors text-sm"
           >
-            ← Back to form
+            <ArrowLeft size={15} /> Back to form
           </button>
           <button
             onClick={() => router.push('/dashboard')}
-            className="w-full border border-separator text-secondary hover:text-app-text font-medium py-2.5 rounded-2xl hover:bg-fill transition-colors text-sm"
+            className="w-full inline-flex items-center justify-center gap-1.5 border border-separator text-secondary hover:text-app-text font-medium py-2.5 rounded-2xl hover:bg-fill transition-colors text-sm"
           >
-            ← Back to Dashboard
+            <LayoutDashboard size={15} /> Back to Dashboard
           </button>
         </div>
       </div>
