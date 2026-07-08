@@ -74,6 +74,17 @@ export interface CalculatedCharges {
 export interface RUBSManualInput {
   buildingTotal: number;
   unitRatio: number;
+  // Optional: last month's building total, so we can flag whether this bill is
+  // higher or lower than the previous one. Not used in any calculation.
+  prevBuildingTotal?: number;
+}
+
+// An uploaded RUBS water bill (image or PDF), stored as a data URL so it
+// persists in the localStorage session and can be viewed from the form.
+export interface RubsBill {
+  name: string;
+  type: string;   // MIME type, e.g. "image/jpeg" or "application/pdf"
+  dataUrl: string;
 }
 
 // Inspection photos uploaded by the property manager, stored as (compressed)
@@ -96,6 +107,8 @@ export interface TenantReturn {
   complianceChecked: boolean;
   pdfGenerated: boolean;
   inspectionPhotos?: InspectionPhotos;
+  // The uploaded RUBS water bill (for RUBS units), kept for reference/records.
+  rubsBill?: RubsBill | null;
   // Per-tenant property (an upload can span multiple properties). Falls back to
   // the session-level property when absent (e.g. older sessions / demo data).
   propertyName?: string;
