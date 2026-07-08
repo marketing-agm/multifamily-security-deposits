@@ -115,7 +115,7 @@ export default function UploadPage() {
       <header className="bg-surface border-b border-separator px-6 py-4">
         <div className="w-full flex items-center justify-between">
           <div>
-            <h1 className="text-base font-semibold text-app-text">AGM Security Deposit Return Tool</h1>
+            <h1 className="text-lg font-serif font-semibold text-app-text">AGM Security Deposit Return Tool</h1>
             <p className="text-xs text-secondary mt-0.5">AGM Real Estate Group</p>
           </div>
           <div className="flex items-center gap-3">
@@ -145,7 +145,7 @@ export default function UploadPage() {
         {/* ── Left: instructions ─────────────────────────────────────────────── */}
         <section className="space-y-4">
           <div>
-            <h2 className="text-title2 text-app-text">Create a checkout report</h2>
+            <h2 className="text-title font-serif text-app-text">Create a checkout report</h2>
             <p className="text-subhead text-secondary mt-1">
               Export a move-out report from AppFolio, unlock uploads with the site
               password, then drop the file in to load every move-out at once.
@@ -219,7 +219,7 @@ export default function UploadPage() {
             aria-hidden={!checking && !unlocked}
           >
             <div>
-              <h2 className="text-title2 text-app-text">Upload AppFolio Export</h2>
+              <h2 className="text-title font-serif text-app-text">Upload AppFolio Export</h2>
               <p className="flex items-center gap-1.5 text-secondary mt-1 text-sm">
                 {!checking && !unlocked
                   ? <><Lock size={14} /> Locked — unlock with the site password on the left.</>

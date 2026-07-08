@@ -48,7 +48,7 @@ export function Dashboard() {
       <div className="bg-surface border-b border-separator px-6 py-4">
         <div className="w-full flex items-center justify-between">
           <div>
-            <h1 className="text-title2 text-app-text">
+            <h1 className="text-title font-serif text-app-text">
               {session.propertyName || 'Security Deposit Returns'}
             </h1>
             <p className="text-subhead text-secondary mt-0.5">
