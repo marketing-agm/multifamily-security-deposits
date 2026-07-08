@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
 import { useTheme } from '@/context/ThemeContext';
-import { ManualCharges, TenantReturn, RUBSManualInput, TenantData, DepositData, InspectionPhotos } from '@/types';
+import { ManualCharges, TenantReturn, RUBSManualInput, TenantData, DepositData, InspectionPhotos, UtilityType } from '@/types';
 import { compressImageFile } from '@/lib/imageCompress';
 import { fillAGMCheckoutPDF } from '@/lib/pdfFiller';
 import {
@@ -72,6 +72,8 @@ export function ReturnForm({ returnId }: Props) {
     tenantReturn?.rubsManualInput ?? { buildingTotal: 0, unitRatio: 0 }
   );
   const [utilityRate, setUtilityRate] = useState(tenantReturn?.utilityData.flatFeeRate ?? 0);
+  // Utility type is seeded from the property config but editable per unit.
+  const [utilityType, setUtilityType] = useState<UtilityType>(tenantReturn?.utilityData.utilityType ?? 'flat_fee');
 
   // Move-in / move-out inspection photos (compressed data URLs).
   const [photos, setPhotos] = useState<InspectionPhotos>(
@@ -96,7 +98,7 @@ export function ReturnForm({ returnId }: Props) {
   // ── Live computed values ────────────────────────────────────────────────────
 
   const liveDepositData: DepositData = { ...tenantReturn.depositData, nrcCleaningFee, nrcPetFee };
-  const liveUtilityData = { ...tenantReturn.utilityData, flatFeeRate: utilityRate };
+  const liveUtilityData = { ...tenantReturn.utilityData, utilityType, flatFeeRate: utilityRate };
   const withCharges: TenantReturn = {
     ...tenantReturn,
     tenantData,
@@ -368,6 +370,8 @@ export function ReturnForm({ returnId }: Props) {
           {section === 5 && (
             <SectionUtility
               utilityData={liveUtilityData}
+              utilityType={utilityType}
+              onTypeChange={setUtilityType}
               rubsInput={rubsInput}
               onRubsChange={setRubsInput}
               utilityCharge={calculatedCharges.utilityCharge}
@@ -944,9 +948,11 @@ function SectionRentDue({
 }
 
 function SectionUtility({
-  utilityData, rubsInput, onRubsChange, utilityCharge, utilityRate, onRateChange,
+  utilityData, utilityType, onTypeChange, rubsInput, onRubsChange, utilityCharge, utilityRate, onRateChange,
 }: {
   utilityData: TenantReturn['utilityData'];
+  utilityType: UtilityType;
+  onTypeChange: (v: UtilityType) => void;
   rubsInput: RUBSManualInput;
   onRubsChange: (v: RUBSManualInput) => void;
   utilityCharge: number;
@@ -955,8 +961,23 @@ function SectionUtility({
 }) {
   return (
     <SectionCard title="Utility Charges">
-      <div className="flex items-center gap-2">
-        <UtilityTag type={utilityData.utilityType} />
+      {/* Utility type toggle — seeded from the property but editable per unit. */}
+      <div>
+        <span className="text-xs font-medium text-secondary">Utility type for this unit</span>
+        <div className="mt-1 inline-flex rounded-xl border border-tertiary overflow-hidden">
+          {(['RUBS', 'flat_fee'] as UtilityType[]).map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onTypeChange(t)}
+              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                utilityType === t ? 'bg-accent text-on-accent' : 'bg-surface text-secondary hover:text-app-text'
+              }`}
+            >
+              {t === 'RUBS' ? 'RUBS' : 'Flat Fee'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {utilityData.utilityType === 'flat_fee' && (
