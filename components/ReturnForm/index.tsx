@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/context/SessionContext';
 import { useTheme } from '@/context/ThemeContext';
-import { ManualCharges, TenantReturn, RUBSManualInput, TenantData, DepositData, InspectionPhotos } from '@/types';
+import { ManualCharges, TenantReturn, RUBSManualInput, TenantData, DepositData, InspectionPhotos, RubsBill } from '@/types';
 import { compressImageFile } from '@/lib/imageCompress';
 import { fillAGMCheckoutPDF } from '@/lib/pdfFiller';
 import {
@@ -16,7 +16,7 @@ import { UtilityTag } from '@/components/shared/UtilityTag';
 import {
   Sun, Moon, ArrowLeft, ArrowRight, Check, Home, CalendarDays, BadgeDollarSign,
   Camera, Wallet, Gauge, Scale, Receipt, PiggyBank, AlertTriangle, CheckCircle2,
-  Info, X, ZoomIn,
+  Info, X, ZoomIn, TrendingUp, TrendingDown, FileText, Upload, ArrowUpRight,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -76,13 +76,24 @@ export function ReturnForm({ returnId }: Props) {
     }
   );
   const [rubsInput, setRubsInput] = useState<RUBSManualInput>(
-    tenantReturn?.rubsManualInput ?? { buildingTotal: 0, unitRatio: 0 }
+    // Fresh returns (rubsManualInput === null) get the unit ratio pre-filled from
+    // the property's saved settings — one less thing to type for RUBS units.
+    tenantReturn?.rubsManualInput ?? {
+      buildingTotal: 0,
+      unitRatio: tenantReturn?.propertyConfig?.rubsUnitRatio ?? 0,
+      prevBuildingTotal: 0,
+    }
   );
   const [utilityRate, setUtilityRate] = useState(tenantReturn?.utilityData.flatFeeRate ?? 0);
 
   // Move-in / move-out inspection photos (compressed data URLs).
   const [photos, setPhotos] = useState<InspectionPhotos>(
     tenantReturn?.inspectionPhotos ?? { moveIn: [], moveOut: [] }
+  );
+
+  // The uploaded RUBS water bill (image or PDF), stored as a data URL.
+  const [rubsBill, setRubsBill] = useState<RubsBill | null>(
+    tenantReturn?.rubsBill ?? null
   );
 
   // "View full form" — live preview of the real AGM Checkout PDF, filled from
@@ -143,6 +154,7 @@ export function ReturnForm({ returnId }: Props) {
       calculatedCharges,
       utilityData: liveUtilityData,
       inspectionPhotos: photos,
+      rubsBill,
       processingStatus: section < 7 ? 'in_progress' : tenantReturn!.processingStatus,
     });
   }
@@ -156,6 +168,7 @@ export function ReturnForm({ returnId }: Props) {
       calculatedCharges,
       utilityData: liveUtilityData,
       inspectionPhotos: photos,
+      rubsBill,
       processingStatus: 'in_progress',
     });
     router.push(`/review/${returnId}`);
@@ -185,6 +198,36 @@ export function ReturnForm({ returnId }: Props) {
     updateReturn(returnId, { inspectionPhotos: photos });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photos]);
+
+  // Upload the RUBS water bill. Images are compressed like inspection photos;
+  // PDFs are stored as-is (read to a data URL). We DON'T auto-read the total off
+  // the bill — the manager types it in, with the bill shown beside the field.
+  async function addRubsBill(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) return;
+    try {
+      let dataUrl: string;
+      if (file.type.startsWith('image/')) {
+        dataUrl = await compressImageFile(file);
+      } else {
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(r.result as string);
+          r.onerror = reject;
+          r.readAsDataURL(file);
+        });
+      }
+      setRubsBill({ name: file.name, type: file.type, dataUrl });
+    } catch {
+      // A bad file shouldn't break the form — silently skip.
+    }
+  }
+  function removeRubsBill() { setRubsBill(null); }
+  // Persist the bill whenever it changes (after render).
+  useEffect(() => {
+    updateReturn(returnId, { rubsBill });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rubsBill]);
 
   // Fill the real AGM Checkout PDF with the current (possibly partial) data and
   // open it in an inline preview overlay.
@@ -373,7 +416,11 @@ export function ReturnForm({ returnId }: Props) {
             />
           )}
           {section === 4 && (
-            <SectionRentDue calculatedCharges={calculatedCharges} tenantData={tenantData} />
+            <SectionRentDue
+              calculatedCharges={calculatedCharges}
+              tenantData={tenantData}
+              onGoToLease={() => { saveProgress(); setSection(1); }}
+            />
           )}
           {section === 5 && (
             <SectionUtility
@@ -383,6 +430,9 @@ export function ReturnForm({ returnId }: Props) {
               utilityCharge={calculatedCharges.utilityCharge}
               utilityRate={utilityRate}
               onRateChange={setUtilityRate}
+              rubsBill={rubsBill}
+              onAddRubsBill={addRubsBill}
+              onRemoveRubsBill={removeRubsBill}
             />
           )}
           {section === 6 && (
@@ -970,10 +1020,11 @@ function PhotoUpload({
 }
 
 function SectionRentDue({
-  calculatedCharges, tenantData,
+  calculatedCharges, tenantData, onGoToLease,
 }: {
   calculatedCharges: TenantReturn['calculatedCharges'];
   tenantData: TenantData;
+  onGoToLease: () => void;
 }) {
   return (
     <SectionCard title="Rent Due">
@@ -981,8 +1032,18 @@ function SectionRentDue({
         Calculated automatically from move-out date vs paid-through date and monthly rent. Set "Paid rent through" in Lease &amp; Dates to compute this.
       </p>
       {!tenantData.paidThroughDate && (
-        <div className="flex items-center gap-1.5 bg-warning/10 border border-warning/30 rounded-xl px-4 py-3 text-sm text-warning-fg">
-          <AlertTriangle size={15} className="shrink-0" /> &quot;Paid rent through&quot; is blank — go to Lease &amp; Dates to fill it in.
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 bg-warning/10 border border-warning/30 rounded-xl px-4 py-3 text-sm text-warning-fg">
+          <span className="flex items-center gap-1.5">
+            <AlertTriangle size={15} className="shrink-0" /> &quot;Paid rent through&quot; is blank.
+          </span>
+          {/* Jump straight to the section that has the field to fill. */}
+          <button
+            type="button"
+            onClick={onGoToLease}
+            className="inline-flex items-center gap-1 font-semibold text-warning-fg underline underline-offset-2 hover:no-underline"
+          >
+            Go to Lease &amp; Dates <ArrowUpRight size={14} />
+          </button>
         </div>
       )}
       <div className="space-y-1">
@@ -1000,6 +1061,7 @@ function SectionRentDue({
 
 function SectionUtility({
   utilityData, rubsInput, onRubsChange, utilityCharge, utilityRate, onRateChange,
+  rubsBill, onAddRubsBill, onRemoveRubsBill,
 }: {
   utilityData: TenantReturn['utilityData'];
   rubsInput: RUBSManualInput;
@@ -1007,6 +1069,9 @@ function SectionUtility({
   utilityCharge: number;
   utilityRate: number;
   onRateChange: (v: number) => void;
+  rubsBill: RubsBill | null;
+  onAddRubsBill: (files: FileList | null) => void;
+  onRemoveRubsBill: () => void;
 }) {
   return (
     <SectionCard title="Utility Charges">
@@ -1033,20 +1098,152 @@ function SectionUtility({
       )}
 
       {utilityData.utilityType === 'RUBS' && (
-        <div className="space-y-3 border-t border-separator pt-4">
+        <div className="space-y-4 border-t border-separator pt-4">
           <p className="text-sm text-secondary">
             RUBS: tenant pays their proportional share of the final water bill. Charge = Building Total × Unit Ratio.
           </p>
+
+          {/* Upload the water bill for reference — the manager reads the building
+              total off it and types it below (we don't auto-read the number). */}
+          <RubsBillUpload bill={rubsBill} onAdd={onAddRubsBill} onRemove={onRemoveRubsBill} />
+
           <div className="grid grid-cols-2 gap-3">
             <NumberField label="Building total ($)" value={rubsInput.buildingTotal} onChange={v => onRubsChange({ ...rubsInput, buildingTotal: v })} variant="manual" />
             <NumberField label="Unit ratio (e.g. 0.08)" value={rubsInput.unitRatio} onChange={v => onRubsChange({ ...rubsInput, unitRatio: v })} variant="manual" prefix="" />
           </div>
+
+          {/* Last month's total, so we can flag whether this bill went up or down. */}
+          <div className="w-56">
+            <NumberField
+              label="Last month's building total ($)"
+              value={rubsInput.prevBuildingTotal ?? 0}
+              onChange={v => onRubsChange({ ...rubsInput, prevBuildingTotal: v })}
+              variant="manual"
+            />
+          </div>
+          <BillTrendCallout current={rubsInput.buildingTotal} previous={rubsInput.prevBuildingTotal ?? 0} />
+
           <p className="text-sm font-medium text-app-text">
             Calculated tenant share: {formatCurrency(utilityCharge)}
           </p>
         </div>
       )}
     </SectionCard>
+  );
+}
+
+// Upload + preview for the RUBS water bill (image or PDF). Images get a
+// click-to-enlarge thumbnail; PDFs get an "Open" link. Mirrors the photo upload.
+function RubsBillUpload({
+  bill, onAdd, onRemove,
+}: {
+  bill: RubsBill | null;
+  onAdd: (files: FileList | null) => void;
+  onRemove: () => void;
+}) {
+  const [viewer, setViewer] = useState<string | null>(null);
+  useEffect(() => {
+    if (!viewer) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setViewer(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [viewer]);
+
+  const isImage = bill?.type.startsWith('image/');
+
+  return (
+    <div className="space-y-2">
+      <span className="text-xs font-semibold text-app-text">Water bill</span>
+
+      {!bill ? (
+        <label className="flex flex-col items-center justify-center gap-1 border border-dashed border-tertiary rounded-xl py-6 cursor-pointer hover:bg-fill transition-colors">
+          <Upload size={22} className="text-secondary" />
+          <span className="text-xs text-secondary">Upload the water bill (image or PDF)</span>
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            className="hidden"
+            onChange={e => { onAdd(e.target.files); e.currentTarget.value = ''; }}
+          />
+        </label>
+      ) : (
+        <div className="flex items-center gap-3 border border-separator rounded-xl p-3">
+          {isImage ? (
+            <button
+              type="button"
+              onClick={() => setViewer(bill.dataUrl)}
+              className="w-14 h-14 rounded-lg overflow-hidden border border-separator cursor-zoom-in shrink-0"
+              aria-label="View water bill"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={bill.dataUrl} alt="Water bill" className="w-full h-full object-cover" />
+            </button>
+          ) : (
+            <span className="w-14 h-14 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0"><FileText size={22} /></span>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-app-text truncate">{bill.name}</p>
+            <a href={bill.dataUrl} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline">Open bill</a>
+          </div>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="w-7 h-7 rounded-lg bg-fill text-secondary flex items-center justify-center hover:text-app-text transition-colors shrink-0"
+            aria-label="Remove water bill"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      <p className="text-xs text-secondary">
+        Read the building total off the bill and enter it below. Kept on file for records.
+      </p>
+
+      {viewer && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-6 cursor-zoom-out"
+          onClick={() => setViewer(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Water bill preview"
+        >
+          <button
+            onClick={() => setViewer(null)}
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition-colors"
+            aria-label="Close preview"
+          >
+            <X size={18} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={viewer} alt="Water bill full size" className="max-w-full max-h-full object-contain rounded-lg" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Attention-grabbing tag comparing this month's building total to last month's.
+// Renders nothing until both numbers are entered.
+function BillTrendCallout({ current, previous }: { current: number; previous: number }) {
+  if (!(current > 0) || !(previous > 0)) return null;
+  const diff = current - previous;
+  const pct = Math.round(Math.abs(diff / previous) * 100);
+  if (diff === 0) {
+    return (
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-fill text-secondary text-sm font-medium px-3 py-1">
+        No change from last month
+      </div>
+    );
+  }
+  const up = diff > 0;
+  const cls = up ? 'bg-danger/12 text-danger-fg' : 'bg-success/12 text-success-fg';
+  const Icon = up ? TrendingUp : TrendingDown;
+  return (
+    <div className={`inline-flex items-center gap-1.5 rounded-full text-sm font-semibold px-3 py-1 ${cls}`}>
+      <Icon size={15} />
+      {pct}% {up ? 'higher' : 'lower'} than last month ({formatCurrency(Math.abs(diff))})
+    </div>
   );
 }
 
