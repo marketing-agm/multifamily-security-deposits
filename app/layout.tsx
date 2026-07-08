@@ -16,6 +16,14 @@ const sourceSerif = Source_Serif_4({ subsets: ["latin"], variable: "--font-sourc
 export const metadata: Metadata = {
   title: "AGM Security Deposit Return Tool",
   description: "Generate AGM Checkout Report PDFs from AppFolio exports",
+  // The SVG favicon lives in public/ (not app/) so Cloudflare's next-on-pages
+  // adapter serves it as a static asset instead of an edge route.
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+  },
 };
 
 export default function RootLayout({
