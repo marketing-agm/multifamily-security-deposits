@@ -101,8 +101,8 @@ export function Dashboard() {
               </p>
 
               <div className="bg-surface rounded-lg overflow-hidden border border-separator shadow-card">
-                {/* Table header */}
-                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_112px] gap-0 px-4 py-2.5 bg-surface-2 border-b border-separator">
+                {/* Table header — only on wider screens; rows self-label on mobile. */}
+                <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_112px] gap-0 px-4 py-2.5 bg-surface-2 border-b border-separator">
                   {HEADERS.map((h, i) => (
                     <span key={i} className="text-caption font-semibold text-secondary uppercase tracking-wider">{h}</span>
                   ))}
@@ -143,11 +143,11 @@ function TenantRow({ r, last, onClick }: { r: TenantReturn; last: boolean; onCli
   return (
     <div
       onClick={onClick}
-      className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_112px] gap-0 px-4 py-3.5 cursor-pointer hover:bg-fill transition-colors ${
+      className={`flex flex-col gap-2.5 md:gap-0 md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1.2fr_112px] md:items-center px-4 py-4 md:py-3.5 cursor-pointer hover:bg-fill transition-colors ${
         last ? '' : 'border-b border-separator'
       }`}
     >
-      {/* Tenant */}
+      {/* Tenant (also carries unit + deposit, so those columns are hidden on mobile) */}
       <div className="flex flex-col justify-center">
         <div className="flex items-center gap-2">
           <span className="text-subhead font-medium text-app-text">{r.tenantData.tenantName}</span>
@@ -161,19 +161,20 @@ function TenantRow({ r, last, onClick }: { r: TenantReturn; last: boolean; onCli
       </div>
 
       {/* Move-Out */}
-      <div className="flex items-center">
+      <div className="flex items-center justify-between md:block">
+        <span className="md:hidden text-caption text-secondary">Move-out</span>
         <span className="text-subhead text-app-text">{fmtDate(r.tenantData.moveOutDate)}</span>
       </div>
 
       {/* Due Date */}
-      <div className="flex items-center">
-        <span className="text-subhead text-app-text">
-          {deadline ? fmtDate(deadline) : '—'}
-        </span>
+      <div className="flex items-center justify-between md:block">
+        <span className="md:hidden text-caption text-secondary">Due date</span>
+        <span className="text-subhead text-app-text">{deadline ? fmtDate(deadline) : '—'}</span>
       </div>
 
       {/* Days Left */}
-      <div className="flex items-center">
+      <div className="flex items-center justify-between md:block">
+        <span className="md:hidden text-caption text-secondary">Days left</span>
         {daysLeft !== null ? (
           <span className={`font-medium px-2 py-0.5 rounded-full text-caption ${
             daysLeft <= 3 ? 'bg-danger/12 text-danger-fg' :
@@ -185,25 +186,30 @@ function TenantRow({ r, last, onClick }: { r: TenantReturn; last: boolean; onCli
         ) : <span className="text-secondary">—</span>}
       </div>
 
-      {/* Deposit */}
-      <div className="flex items-center">
+      {/* Deposit — hidden on mobile (already shown under the tenant name) */}
+      <div className="hidden md:flex items-center">
         <span className="text-subhead font-medium text-app-text">{formatCurrency(r.depositData.securityDeposit)}</span>
       </div>
 
       {/* Utility */}
-      <div className="flex items-center">
+      <div className="flex items-center justify-between md:block">
+        <span className="md:hidden text-caption text-secondary">Utility</span>
         <UtilityTag type={r.utilityData.utilityType} />
       </div>
 
       {/* Inspection */}
-      <div className="flex items-center">
+      <div className="flex items-center justify-between md:block">
+        <span className="md:hidden text-caption text-secondary">Inspection</span>
         <InspectionBadge status={r.tenantData.inspectionStatus} />
       </div>
 
-      {/* Status + open-affordance chevron (brightens on row hover) */}
-      <div className="flex items-center justify-between gap-1 group">
-        <StatusBadge status={r.processingStatus} />
-        <ChevronRight size={16} className="text-tertiary shrink-0" />
+      {/* Status + open-affordance chevron */}
+      <div className="flex items-center justify-between gap-1">
+        <span className="md:hidden text-caption text-secondary">Status</span>
+        <div className="flex items-center gap-1">
+          <StatusBadge status={r.processingStatus} />
+          <ChevronRight size={16} className="text-tertiary shrink-0" />
+        </div>
       </div>
     </div>
   );
