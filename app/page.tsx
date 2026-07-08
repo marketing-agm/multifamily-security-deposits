@@ -169,7 +169,7 @@ export default function UploadPage() {
                 Inspection photos
               </p>
               <p className="text-sm text-app-text">
-                In each return&apos;s <span className="font-medium">Move-In / Out Photos</span> section you can
+                In each return&apos;s <span className="font-medium">Move-In / Out Photos</span>{' '}section you can
                 upload the move-in and move-out inspection photos so they&apos;re visible right in the form.
                 A signed move-in inspection is required to defend deductions under Washington RCW&nbsp;59.18.280.
               </p>
