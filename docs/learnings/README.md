@@ -24,6 +24,7 @@ Cross-session record of fixes and gotchas. **Before fixing in an area, grep its 
 - [2026-07-06] bug — Dashboard showed 0 tenants after uploading a real AppFolio Excel export because the parser misread the file structure. (2618a8f)
 
 ## infra
+- [2026-07-08] gotcha — Naming a next/font CSS variable the same as a Tailwind v4 @theme font token creates a circular var() reference that silently breaks the font. (d2c29a2)
 - [2026-07-06] gotcha — How to gate the whole app behind a shared password verified server-side, without leaking the secret to the browser. (affedc5)
 - [2026-07-06] gotcha — next dev (Turbopack) kept serving pre-edit globals.css, so new design tokens / dark-mode vars were missing at runtime despite a passing build. (02d9381)
 - [2026-07-06] gotcha — The pr-screenshot-verify CHROME_CANDIDATES list was missing the Linux Chromium path used in remote Claude Code containers. (53a077a)
