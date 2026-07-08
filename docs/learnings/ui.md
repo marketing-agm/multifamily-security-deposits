@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: b1c34e4 :: Mixed image/PDF upload: compress images, FileReader data URL for PDFs -->
+### 2026-07-08 · ui · gotcha · Mixed image/PDF upload: compress images, FileReader data URL for PDFs
+- **Ref:** b1c34e4
+- **Symptom:** Passing a PDF to the image-canvas compressor (compressImageFile) fails or produces garbage; the bill won't preview/open.
+- **Root cause:** compressImageFile draws onto a canvas, which only works for raster images, not PDFs.
+- **Fix:** if (file.type.startsWith('image/')) compressImageFile(file); else await new Promise(r => { const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(file); }). Store {name,type,dataUrl}; render images in a lightbox and PDFs via an Open-in-new-tab link.
+- **Lesson:** For accept=image/*,application/pdf inputs, branch on file.type — canvas compression is images-only; use FileReader.readAsDataURL for everything else.
+
+
 <!-- log-id: 457db0c :: Image lightbox pattern: Escape + backdrop-click close, nested remove button -->
 ### 2026-07-08 · ui · ux · Image lightbox pattern: Escape + backdrop-click close, nested remove button
 - **Ref:** 457db0c
