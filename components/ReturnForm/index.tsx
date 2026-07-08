@@ -268,8 +268,8 @@ export function ReturnForm({ returnId }: Props) {
     <div className="min-h-screen bg-bg flex flex-col">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="bg-surface border-b border-separator px-6 py-3">
-        <div className="flex items-center gap-4">
+      <div className="bg-surface border-b border-separator px-4 md:px-6 py-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <button
             onClick={() => router.push('/dashboard')}
             className="inline-flex items-center gap-1.5 text-sm text-secondary hover:text-app-text transition-colors shrink-0"
@@ -294,11 +294,11 @@ export function ReturnForm({ returnId }: Props) {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
             <button
               onClick={openFullForm}
               disabled={fullFormLoading}
-              className="text-sm text-secondary hover:text-app-text border border-separator px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+              className="hidden sm:inline-flex text-sm text-secondary hover:text-app-text border border-separator px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
             >
               {fullFormLoading ? 'Loading…' : 'View full form'}
             </button>
@@ -322,8 +322,9 @@ export function ReturnForm({ returnId }: Props) {
       {/* ── Body: sidebar + content ─────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Section sidebar */}
-        <aside className="w-60 shrink-0 bg-surface border-r border-separator flex flex-col overflow-y-auto">
+        {/* Section sidebar — full list on wide screens; a compact horizontal
+            strip (below) replaces it on mobile. */}
+        <aside className="hidden md:flex w-60 shrink-0 bg-surface border-r border-separator flex-col overflow-y-auto">
           <div className="px-4 pt-4 pb-2 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-app-text">Form sections</p>
@@ -381,7 +382,39 @@ export function ReturnForm({ returnId }: Props) {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+        <main className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-4">
+
+          {/* Mobile section strip — scrollable icon stepper replacing the sidebar. */}
+          <div className="md:hidden -mx-4 px-4 flex gap-2 overflow-x-auto pb-3 border-b border-separator">
+            {SECTIONS.map((s, i) => {
+              const isActive = i === section;
+              const isDone = !isActive && i <= maxReached;
+              const Icon = s.icon;
+              return (
+                <button
+                  key={i}
+                  onClick={() => { saveProgress(); setSection(i); }}
+                  title={s.title}
+                  aria-label={s.title}
+                  className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                    isActive ? 'bg-accent text-on-accent'
+                    : isDone ? 'bg-success/15 text-success-fg'
+                    : 'bg-fill text-secondary'
+                  }`}
+                >
+                  {isDone ? <Check size={16} /> : <Icon size={16} />}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setShowDataPanel(p => !p)}
+              aria-label="Data & calculations"
+              title="Data & Calculations"
+              className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-fill text-secondary"
+            >
+              <Info size={16} />
+            </button>
+          </div>
 
           {section === 0 && (
             <SectionPropertyTenant
@@ -461,15 +494,15 @@ export function ReturnForm({ returnId }: Props) {
           )}
 
           {/* Bottom navigation */}
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between gap-3 pt-2">
             <button
               onClick={prevSection}
               disabled={section === 0}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-app-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-app-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
             >
               <ArrowLeft size={15} /> Previous
             </button>
-            <span className="text-xs text-secondary">Section {section + 1} of {SECTIONS.length}</span>
+            <span className="hidden sm:block text-xs text-secondary">Section {section + 1} of {SECTIONS.length}</span>
             {section === SECTIONS.length - 1 ? (
               <button
                 onClick={goToReview}
@@ -1371,25 +1404,23 @@ function SectionRefundsCredits({
 }) {
   return (
     <SectionCard title="Refunds &amp; Credits">
+      {/* Credits held (deposits the tenant paid). */}
       <div className="space-y-1">
         <ReadOnlyRow label="Security deposit paid" value={formatCurrency(depositData.securityDeposit)} />
         {depositData.petDeposit > 0 && <ReadOnlyRow label="Pet deposit" value={formatCurrency(depositData.petDeposit)} />}
         {depositData.keyDeposit > 0 && <ReadOnlyRow label="Key deposit" value={formatCurrency(depositData.keyDeposit)} />}
         {depositData.garageOpenerDeposit > 0 && <ReadOnlyRow label="Garage opener deposit" value={formatCurrency(depositData.garageOpenerDeposit)} />}
-        <div className="flex justify-between py-2 border-t border-separator">
-          <span className="text-sm font-semibold text-app-text">Total credits</span>
-          <span className="text-sm font-semibold text-app-text">{formatCurrency(totalCredits)}</span>
-        </div>
       </div>
 
+      {/* Final balance: credits − charges. One clean total block, no repeats. */}
       <div className="border-t border-separator pt-3 space-y-1.5">
-        <div className="flex justify-between text-sm text-secondary">
-          <span>Total charges</span>
-          <span>{formatCurrency(totalCharges)}</span>
+        <div className="flex justify-between text-sm">
+          <span className="font-semibold text-app-text">Total credits</span>
+          <span className="font-semibold text-app-text">{formatCurrency(totalCredits)}</span>
         </div>
         <div className="flex justify-between text-sm text-secondary">
-          <span>Total credits</span>
-          <span>{formatCurrency(totalCredits)}</span>
+          <span>Total charges</span>
+          <span>− {formatCurrency(totalCharges)}</span>
         </div>
         <div className={`flex justify-between py-2 px-3 rounded-xl text-sm font-bold ${
           balance === 0
