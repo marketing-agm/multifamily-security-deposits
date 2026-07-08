@@ -28,6 +28,7 @@ Cross-session record of fixes and gotchas. **Before fixing in an area, grep its 
 - [2026-07-06] bug — Dashboard showed 0 tenants after uploading a real AppFolio Excel export because the parser misread the file structure. (2618a8f)
 
 ## infra
+- [2026-07-08] gotcha — A static icon.svg placed in app/ becomes a Next metadata route (/icon.svg); next-on-pages requires every route to export edge runtime, which a .svg can't, so the Cloudflare Pages build fails. (0284487)
 - [2026-07-08] gotcha — Naming a next/font CSS variable the same as a Tailwind v4 @theme font token creates a circular var() reference that silently breaks the font. (d2c29a2)
 - [2026-07-06] gotcha — How to gate the whole app behind a shared password verified server-side, without leaking the secret to the browser. (affedc5)
 - [2026-07-06] gotcha — next dev (Turbopack) kept serving pre-edit globals.css, so new design tokens / dark-mode vars were missing at runtime despite a passing build. (02d9381)
