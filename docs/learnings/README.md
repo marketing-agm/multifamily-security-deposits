@@ -3,6 +3,7 @@
 Cross-session record of fixes and gotchas. **Before fixing in an area, grep its file for prior lessons; after fixing, add an entry** via the `learnings-log` skill (`scripts/log.mjs`). Full entries live in the per-area files; one line per entry below, newest first.
 
 ## ui
+- [2026-07-08] gotcha — The grand total that sums turnover + rent + utility + legal was moved out of the Turnover Charges input section into the final Refunds & Credits section, where the balance is computed. (f580324)
 - [2026-07-08] gotcha — The 9-section form's order lives in the SECTIONS array AND a parallel set of `section === N` render conditions; both must change together or the sidebar and content desync. (8e17f60)
 - [2026-07-08] gotcha — The Utility Charges section has a RUBS/Flat Fee toggle; the calc switches on liveUtilityData.utilityType, so making the type editable auto-updates inputs and the computed charge. (c5c3d51)
 - [2026-07-07] ux — The review/download screen only had 'Back to Dashboard' plus an easy-to-miss header link; add clear bottom back-buttons to both the form and the dashboard. (e010cfb)

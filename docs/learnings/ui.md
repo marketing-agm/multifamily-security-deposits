@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: f580324 :: Cumulative Total Charges belongs in the final section, not the Turnover inputs -->
+### 2026-07-08 · ui · gotcha · Cumulative Total Charges belongs in the final section, not the Turnover inputs
+- **Ref:** f580324
+- **Symptom:** A 'Total charges' total sat mid-form (in Turnover Charges) and summed values entered in later sections, which read oddly.
+- **Root cause:** The turnover input section doubled as the totals summary.
+- **Fix:** Show only turnover inputs in that section; render the full cumulative charges breakdown (turnover, rent, utility, legal → Total) in Refunds & Credits alongside credits and balance.
+- **Lesson:** Put a cumulative/summary total after all its inputs, not in the middle of the flow; a mid-flow total that includes not-yet-entered values confuses users.
+
+
 <!-- log-id: 8e17f60 :: Reordering form sections requires updating both SECTIONS and the section===N render map -->
 ### 2026-07-08 · ui · gotcha · Reordering form sections requires updating both SECTIONS and the section===N render map
 - **Ref:** 8e17f60
