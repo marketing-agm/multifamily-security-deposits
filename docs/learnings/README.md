@@ -3,6 +3,7 @@
 Cross-session record of fixes and gotchas. **Before fixing in an area, grep its file for prior lessons; after fixing, add an entry** via the `learnings-log` skill (`scripts/log.mjs`). Full entries live in the per-area files; one line per entry below, newest first.
 
 ## ui
+- [2026-07-08] ux — Fixed multi-column grids (dashboard table) and a fixed-width sidebar (return form) scrunch on narrow windows. Fix by branching layout at the md breakpoint. (ffd0c4b)
 - [2026-07-08] gotcha — A single file input that accepts both images and PDFs must branch on file.type: images go through canvas compression, but PDFs (and other non-images) must be read with FileReader.readAsDataURL and stored as-is. (b1c34e4)
 - [2026-07-08] ux — Reusable pattern for viewable thumbnails: click thumbnail opens a fixed full-size overlay; close on backdrop click and Escape keydown; a delete button nested inside the clickable thumbnail must not also trigger the open. (457db0c)
 - [2026-07-08] ux — A literal space between </span> and following text can be trimmed by JSX whitespace handling, rendering words joined ('Photossection'). (02ba4e7)

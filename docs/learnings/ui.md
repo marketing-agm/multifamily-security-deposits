@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: ffd0c4b :: Responsive: hide fixed grid/sidebar below md, swap to stacked cards or an icon stepper -->
+### 2026-07-08 · ui · ux · Responsive: hide fixed grid/sidebar below md, swap to stacked cards or an icon stepper
+- **Ref:** ffd0c4b
+- **Symptom:** Dashboard columns wrapped/overlapped; the 240px form sidebar squeezed the content so inputs overflowed their card.
+- **Root cause:** A single fixed grid-cols / flex-row layout applied at every width.
+- **Fix:** Table: header 'hidden md:grid'; each row 'flex flex-col gap md:grid md:grid-cols-[...]' with per-cell 'md:hidden' labels and hide redundant columns on mobile. Sidebar: 'hidden md:flex' + a 'md:hidden' horizontal overflow-x-auto icon stepper. Bottom nav: drop the middle counter with 'hidden sm:block'.
+- **Lesson:** For dense desktop layouts, define the wide layout under md: and give mobile its own stacked/scrollable variant instead of letting one grid shrink.
+
+
 <!-- log-id: b1c34e4 :: Mixed image/PDF upload: compress images, FileReader data URL for PDFs -->
 ### 2026-07-08 · ui · gotcha · Mixed image/PDF upload: compress images, FileReader data URL for PDFs
 - **Ref:** b1c34e4
