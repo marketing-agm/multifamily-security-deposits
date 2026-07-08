@@ -7,85 +7,88 @@
    DESIGN TOKENS  — the single source of truth for the whole app's look.
    ----------------------------------------------------------------------------
    Think of these like `static final` constants in Java: instead of writing the
-   raw color "#f2f2f7" in 200 different files, we name it ONCE here (--bg) and
+   raw color "#1a1a19" in 200 different files, we name it ONCE here (--text) and
    every screen refers to the name. Change it here → the whole app updates.
 
-   The palette is modeled on Notion: warm, low-chroma paper neutrals with
-   Notion's signature blue as the single accent. Because these are the ONLY
-   place colors are defined, this one edit re-skins every screen at once. We
-   keep the LIGHT values in :root and override just the ones that differ in
-   .dark below (Notion's dark theme — a near-neutral charcoal).
+   This palette is the shared **AGM design system** — the exact same tokens used
+   by AGM Report Studio and the AGM Corporate Library, so this tool now reads as
+   part of the same product family. It's a warm, low-chroma "paper" neutral set
+   (near-white surfaces, near-black text) with AGM's signature blue as the one
+   accent. Because these are the ONLY place colors are defined, this one edit
+   re-skins every screen at once. LIGHT values live in :root; only the values
+   that differ are re-declared in .dark below (AGM's charcoal dark theme).
    ========================================================================== */
 :root {
-  /* Backgrounds & surfaces (back-to-front layering) — Notion's warm paper.
-     The neutrals carry a faint warm (yellow-ish) bias instead of pure grey, so
-     they read as "chosen paper", the way Notion's canvas does. */
-  --bg:          #f7f6f3;   /* app background (Notion's warm canvas) */
+  /* Backgrounds & surfaces (back-to-front layering) — AGM's warm off-whites.
+     The neutrals carry a faint warm bias instead of pure grey, matching the
+     #ffffff → #fbfbfa → #f7f6f3 scale used across Report Studio & the Library. */
+  --bg:          #fbfbfa;   /* app background (AGM secondary paper) */
   --surface:     #ffffff;   /* cards, panels, sheets */
   --surface-2:   #f7f6f3;   /* nested surfaces: table headers, inset rows */
-  --fill:        #efeeea;   /* subtle fills: pills, toggles, icon buttons */
+  --fill:        #f1f1ef;   /* subtle fills: pills, toggles, icon buttons */
 
-  /* Lines — Notion's hairlines are a translucent warm grey, very quiet */
-  --separator:   #e9e8e3;   /* hairline borders between rows/sections */
+  /* Lines — AGM's hairlines are a very quiet warm grey */
+  --separator:   #e8e7e4;   /* hairline borders between rows/sections (AGM --border) */
 
-  /* Text — Notion's warm near-black label hierarchy (not pure grey) */
-  --text:            #37352f;
-  --text-secondary:  #787774;
-  --text-tertiary:   #b6b4ae;
+  /* Text — AGM's warm near-black label hierarchy (not pure grey) */
+  --text:            #1a1a19;
+  --text-secondary:  #6b6b6a;
+  --text-tertiary:   #9b9b99;
 
-  /* Brand accent — Notion's blue (the color Notion uses for links, selection,
-     and primary actions) + the text color that sits ON it. */
+  /* Brand accent — AGM's blue (links, selection, primary actions) + the text
+     color that sits ON it. Identical across all three AGM tools. */
   --accent:        #2383e2;
-  --accent-hover:  #1a6ec4;
+  --accent-hover:  #1b6ec2;
   --on-accent:     #ffffff;
 
-  /* Semantic status colors — meaning, not decoration.
-     Two shades each: the vivid tone for FILLS (dots, progress bars, tint
-     backgrounds) and a darker "-fg" tone for TEXT. The vivid tones fail WCAG
-     contrast as small text on light tints (~3.4:1), so text uses the -fg tone
-     (~5–6:1 on white). This mirrors how iOS separates "fill" from "label". */
-  --success:     #34c759;   /* on-track, complete, refund due */
-  --warning:     #ff9500;   /* deadline approaching, in progress */
-  --danger:      #ff3b30;   /* overdue, balance owed, errors */
-  --success-fg:  #1e7a34;   /* legible green text on light tints */
-  --warning-fg:  #9a4b00;   /* legible amber text on light tints */
-  --danger-fg:   #c01a12;   /* legible red text on light tints */
+  /* Semantic status colors — meaning, not decoration. These match AGM's
+     Callout/Chip palette. Two shades each: the solid tone for FILLS (dots,
+     progress bars) and a "-fg" tone tuned to stay legible as TEXT on the light
+     tints the app paints behind them (e.g. bg-success/12). */
+  --success:     #2e7d32;   /* on-track, complete, refund due (AGM success green) */
+  --warning:     #d97706;   /* deadline approaching, in progress (AGM amber) */
+  --danger:      #cc3333;   /* overdue, balance owed, errors (AGM danger red) */
+  --success-fg:  #2e7d32;   /* legible green text on light tints */
+  --warning-fg:  #92400e;   /* legible amber/brown text on light tints (AGM warning) */
+  --danger-fg:   #cc3333;   /* legible red text on light tints */
 
-  /* Corner radius — a small, consistent set (no random values) */
-  --radius-sm:  8px;
-  --radius-md:  12px;
-  --radius-lg:  16px;
+  /* Corner radius — AGM's tight, consistent ramp (Report Studio uses 4/6/10/12).
+     Smaller than an iOS look; this is what makes AGM surfaces feel "crisp". */
+  --radius-sm:  4px;
+  --radius-md:  6px;
+  --radius-lg:  8px;
+  --radius-xl:  10px;
+  --radius-2xl: 12px;
 
-  /* Elevation — one soft, believable card shadow (iOS uses very subtle depth) */
-  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
+  /* Elevation — AGM leans on borders, not shadow; one very subtle card lift. */
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.04);
 }
 
 /* Only the values that actually change in dark mode are re-declared here.
-   Everything else (radius, the concept of "accent") is inherited from :root. */
+   Everything else (radius, the concept of "accent") is inherited from :root.
+   These are AGM Report Studio's dark-theme values — a neutral charcoal. */
 .dark {
-  /* Notion's dark theme: near-neutral charcoal surfaces, soft off-white text,
-     and a lighter blue accent so links/actions stay legible on dark. */
-  --bg:          #191919;
-  --surface:     #252525;
-  --surface-2:   #2f2f2f;
-  --fill:        #373737;
+  --bg:          #252528;
+  --surface:     #2c2c2f;
+  --surface-2:   #343437;
+  --fill:        #3a3a3d;
 
-  --separator:   #373737;
+  --separator:   #44444a;
 
-  --text:            #d4d4d4;
-  --text-secondary:  #9b9b9b;
-  --text-tertiary:   #5a5a5a;
+  --text:            #f0f0ee;
+  --text-secondary:  #a0a09e;
+  --text-tertiary:   #6b6b6a;
 
-  --accent:        #529cca;   /* Notion lightens its blue on dark */
-  --accent-hover:  #6bb0da;
+  --accent:        #4a9ef0;   /* AGM lightens its blue on dark */
+  --accent-hover:  #6db0f5;
 
-  --success:     #30d158;
-  --warning:     #ff9f0a;
-  --danger:      #ff453b;
-  /* On dark backgrounds the vivid tones already read well as text. */
-  --success-fg:  #30d158;
-  --warning-fg:  #ff9f0a;
-  --danger-fg:   #ff453b;
+  --success:     #4caf50;
+  --warning:     #ffb74d;
+  --danger:      #ef5350;
+  /* On dark backgrounds the brighter tones already read well as text. */
+  --success-fg:  #4caf50;
+  --warning-fg:  #ffb74d;
+  --danger-fg:   #ef5350;
 
   --shadow-card: 0 1px 2px rgba(0,0,0,0.30), 0 1px 3px rgba(0,0,0,0.40);
 }
@@ -96,7 +99,7 @@
    `@theme inline` is Tailwind v4's way of registering design tokens. Because we
    point each one at a var() (which flips in .dark), the generated utilities are
    dark-mode-aware for FREE. That means instead of:
-        class="bg-white dark:bg-[#2c2c2e]"
+        class="bg-white dark:bg-[#2c2c2f]"
    a screen can just write:
         class="bg-surface"
    ...and it's correct in both themes. Same idea for text-secondary, border-
@@ -124,22 +127,28 @@
   --color-warning-fg:    var(--warning-fg);
   --color-danger-fg:     var(--danger-fg);
 
+  /* Radius ramp — mapping ALL of Tailwind's rounded-* utilities (sm→2xl) onto
+     the AGM scale above, so existing rounded-2xl/rounded-xl/rounded-lg classes
+     tighten to the AGM look without editing a single component. */
   --radius-sm:  var(--radius-sm);
   --radius-md:  var(--radius-md);
   --radius-lg:  var(--radius-lg);
+  --radius-xl:  var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
 
   --shadow-card: var(--shadow-card);
 
-  /* Font families — Inter (UI) and Lora (serif display). The vars are set by
+  /* Font families — DM Sans (UI) and Source Serif 4 (serif display): the exact
+     AGM Report Studio / Corporate Library pairing. The vars are set by
      next/font in layout.tsx; we fall back to the system stack if they're absent.
-     Usage: default text is Inter; class="font-serif" opts into Lora. */
-  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-serif: var(--font-lora), Georgia, "Times New Roman", serif;
+     Usage: default text is DM Sans; class="font-serif" opts into Source Serif 4. */
+  --font-sans: var(--font-dm-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
 
-  /* Type scale — a fixed ramp so text sizes are chosen, not improvised.
-     Names mirror iOS text styles. Each pairs a size with a sensible line-height.
-     Usage: class="text-headline", class="text-body", etc. */
-  --text-large-title: 2.125rem;   --text-large-title--line-height: 1.2;   --text-large-title--font-weight: 700;
+  /* Type scale — a fixed ramp so text sizes are chosen, not improvised. Tuned to
+     AGM's more compact sizing (body copy already leans on 14px text-sm). Each
+     pairs a size with a sensible line-height.  Usage: class="text-headline" etc. */
+  --text-large-title: 1.875rem;   --text-large-title--line-height: 1.2;   --text-large-title--font-weight: 700;
   --text-title:       1.75rem;    --text-title--line-height: 1.25;        --text-title--font-weight: 700;
   --text-title2:      1.375rem;   --text-title2--line-height: 1.3;        --text-title2--font-weight: 600;
   --text-headline:    1.0625rem;  --text-headline--line-height: 1.4;      --text-headline--font-weight: 600;
@@ -153,8 +162,8 @@
    BASE STYLES  — sensible defaults every screen inherits.
    ========================================================================== */
 body {
-  /* Inter is Notion's UI typeface; the var falls back to the system stack if
-     the font hasn't loaded yet. This is what gives the app its "Notion" feel. */
+  /* DM Sans is AGM's UI typeface; the var falls back to the system stack if the
+     font hasn't loaded yet. This is what gives the app its "AGM" feel. */
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
