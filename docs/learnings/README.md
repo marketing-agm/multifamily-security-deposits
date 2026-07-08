@@ -3,6 +3,7 @@
 Cross-session record of fixes and gotchas. **Before fixing in an area, grep its file for prior lessons; after fixing, add an entry** via the `learnings-log` skill (`scripts/log.mjs`). Full entries live in the per-area files; one line per entry below, newest first.
 
 ## ui
+- [2026-07-08] ux — Reusable pattern for viewable thumbnails: click thumbnail opens a fixed full-size overlay; close on backdrop click and Escape keydown; a delete button nested inside the clickable thumbnail must not also trigger the open. (457db0c)
 - [2026-07-08] ux — A literal space between </span> and following text can be trimmed by JSX whitespace handling, rendering words joined ('Photossection'). (02ba4e7)
 - [2026-07-07] ux — The review/download screen only had 'Back to Dashboard' plus an easy-to-miss header link; add clear bottom back-buttons to both the form and the dashboard. (e010cfb)
 - [2026-07-07] gotcha — Dashboard Move-Out and Due Date used different formats; unifying them requires parsing ISO dates safely so the displayed day doesn't shift. (3ed40fa)

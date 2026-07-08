@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: 457db0c :: Image lightbox pattern: Escape + backdrop-click close, nested remove button -->
+### 2026-07-08 · ui · ux · Image lightbox pattern: Escape + backdrop-click close, nested remove button
+- **Ref:** 457db0c
+- **Symptom:** Uploaded inspection photos showed only as small thumbnails with no way to view them full-size.
+- **Root cause:** PhotoUpload rendered thumbnails but had no enlarge interaction.
+- **Fix:** Add a local viewer state, render a fixed z-[60] overlay with the full image, add a window keydown Escape listener (cleaned up in useEffect return), and keep the remove control as a separate sibling button so it does not open the lightbox.
+- **Lesson:** For click-to-enlarge grids, wire both backdrop-click and Escape to close, and keep any per-item action button as a separate element so its click is not swallowed by the enlarge handler.
+
+
 <!-- log-id: 02ba4e7 :: JSX collapses the space between an inline element and following text across a line break -->
 ### 2026-07-08 · ui · ux · JSX collapses the space between an inline element and following text across a line break
 - **Ref:** 02ba4e7
