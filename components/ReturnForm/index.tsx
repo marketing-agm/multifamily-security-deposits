@@ -373,8 +373,6 @@ export function ReturnForm({ returnId }: Props) {
               onChange={updateCharge}
               nrcCleaningFee={nrcCleaningFee}
               cleaningTenant={cleaningTenant}
-              calculatedCharges={calculatedCharges}
-              totalCharges={totalCharges}
             />
           )}
           {section === 6 && (
@@ -398,6 +396,9 @@ export function ReturnForm({ returnId }: Props) {
           {section === 8 && (
             <SectionRefundsCredits
               depositData={liveDepositData}
+              manualCharges={manualCharges}
+              cleaningTenant={cleaningTenant}
+              calculatedCharges={calculatedCharges}
               totalCredits={totalCredits}
               totalCharges={totalCharges}
               balance={balance}
@@ -1051,14 +1052,12 @@ function ChargeRow({
 }
 
 function SectionTotalCharges({
-  manualCharges, onChange, nrcCleaningFee, cleaningTenant, calculatedCharges, totalCharges,
+  manualCharges, onChange, nrcCleaningFee, cleaningTenant,
 }: {
   manualCharges: ManualCharges;
   onChange: (key: keyof ManualCharges, v: number | string) => void;
   nrcCleaningFee: number;
   cleaningTenant: number;
-  calculatedCharges: TenantReturn['calculatedCharges'];
-  totalCharges: number;
 }) {
   return (
     <SectionCard title="Turnover Charges">
@@ -1102,45 +1101,55 @@ function SectionTotalCharges({
         </div>
       </div>
 
-      {/* Calculated rows */}
-      {(calculatedCharges.rentDue > 0 || calculatedCharges.utilityCharge > 0) && (
-        <div className="border-t border-separator pt-3 space-y-2">
-          <p className="text-xs font-semibold text-secondary uppercase tracking-wider">Calculated charges</p>
-          {calculatedCharges.rentDue > 0 && (
-            <div className="flex justify-between">
-              <span className="text-sm text-secondary">Rent due {calculatedCharges.rentDueDateRange ? `(${calculatedCharges.rentDueDateRange})` : ''}</span>
-              <span className="text-sm text-app-text font-medium">{formatCurrency(calculatedCharges.rentDue)}</span>
-            </div>
-          )}
-          {calculatedCharges.utilityCharge > 0 && (
-            <div className="flex justify-between">
-              <span className="text-sm text-secondary">Utility charge</span>
-              <span className="text-sm text-app-text font-medium">{formatCurrency(calculatedCharges.utilityCharge)}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Total */}
-      <div className="border-t border-separator pt-3 flex justify-between">
-        <span className="text-sm font-bold text-app-text">Total charges</span>
-        <span className="text-sm font-bold text-app-text">{formatCurrency(totalCharges)}</span>
-      </div>
+      <p className="text-xs text-secondary border-t border-separator pt-3">
+        The cumulative total (turnover + rent + utility + legal) is shown at the end in
+        <span className="font-medium text-app-text"> Refunds &amp; Credits</span>.
+      </p>
     </SectionCard>
   );
 }
 
 function SectionRefundsCredits({
-  depositData, totalCredits, totalCharges, balance,
+  depositData, manualCharges, cleaningTenant, calculatedCharges, totalCredits, totalCharges, balance,
 }: {
   depositData: DepositData;
+  manualCharges: ManualCharges;
+  cleaningTenant: number;
+  calculatedCharges: TenantReturn['calculatedCharges'];
   totalCredits: number;
   totalCharges: number;
   balance: number;
 }) {
+  // Turnover/repairs subtotal (cleaning already net of the NRC offset).
+  const turnover =
+    cleaningTenant +
+    manualCharges.blindDrapeCleaning +
+    manualCharges.windowCoveringReplacement +
+    manualCharges.carpetShampooing +
+    manualCharges.flooringRestoration +
+    manualCharges.painting +
+    manualCharges.other1 +
+    manualCharges.other2;
+
   return (
     <SectionCard title="Refunds &amp; Credits">
+      {/* Cumulative charges breakdown — sums everything entered in prior sections. */}
       <div className="space-y-1">
+        <p className="text-xs font-semibold text-secondary uppercase tracking-wider">Charges</p>
+        {turnover > 0 && <ReadOnlyRow label="Turnover charges (cleaning, repairs)" value={formatCurrency(turnover)} />}
+        {calculatedCharges.rentDue > 0 && (
+          <ReadOnlyRow label={`Rent due${calculatedCharges.rentDueDateRange ? ` (${calculatedCharges.rentDueDateRange})` : ''}`} value={formatCurrency(calculatedCharges.rentDue)} />
+        )}
+        {calculatedCharges.utilityCharge > 0 && <ReadOnlyRow label="Utility charge" value={formatCurrency(calculatedCharges.utilityCharge)} />}
+        {manualCharges.legalCourtCosts > 0 && <ReadOnlyRow label="Legal / court costs" value={formatCurrency(manualCharges.legalCourtCosts)} />}
+        <div className="flex justify-between py-2 border-t border-separator">
+          <span className="text-sm font-semibold text-app-text">Total charges</span>
+          <span className="text-sm font-semibold text-app-text">{formatCurrency(totalCharges)}</span>
+        </div>
+      </div>
+
+      <div className="space-y-1 border-t border-separator pt-3">
+        <p className="text-xs font-semibold text-secondary uppercase tracking-wider">Credits</p>
         <ReadOnlyRow label="Security deposit paid" value={formatCurrency(depositData.securityDeposit)} />
         {depositData.petDeposit > 0 && <ReadOnlyRow label="Pet deposit" value={formatCurrency(depositData.petDeposit)} />}
         {depositData.keyDeposit > 0 && <ReadOnlyRow label="Key deposit" value={formatCurrency(depositData.keyDeposit)} />}
