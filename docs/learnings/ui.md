@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: 02ba4e7 :: JSX collapses the space between an inline element and following text across a line break -->
+### 2026-07-08 · ui · ux · JSX collapses the space between an inline element and following text across a line break
+- **Ref:** 02ba4e7
+- **Symptom:** Bold span text ran directly into the next word with no space.
+- **Root cause:** JSX trims whitespace adjacent to elements at line boundaries; the intended space did not survive.
+- **Fix:** Insert an explicit {' '} expression between the element and the text.
+- **Lesson:** When a space sits between a JSX element and adjacent text (especially across lines), use {' '} to guarantee it renders.
+
+
 <!-- log-id: e010cfb :: Terminal screens should offer explicit back-navigation to prior steps -->
 ### 2026-07-07 · ui · ux · Terminal screens should offer explicit back-navigation to prior steps
 - **Ref:** e010cfb
