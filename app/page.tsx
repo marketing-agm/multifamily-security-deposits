@@ -11,6 +11,12 @@ import { lookupProperty } from '@/lib/propertyConfig';
 import { Sun, Moon, Lock, ArrowRight, FileSpreadsheet, Camera, UploadCloud, AlertCircle } from 'lucide-react';
 import { BrandMark } from '@/components/shared/BrandMark';
 
+// Per-tab flag: set in sessionStorage after a successful unlock. Because
+// sessionStorage is wiped when the tab/browser closes, the password prompt
+// reappears for a brand-new session — matching how the uploaded data resets.
+// (Kept separate from the auth cookie, which is shared across all tabs.)
+const UNLOCK_FLAG = 'agm_unlocked';
+
 export default function UploadPage() {
   const { session, setSession } = useSession();
   const { theme, toggle } = useTheme();
@@ -28,15 +34,20 @@ export default function UploadPage() {
   const [authError, setAuthError] = useState('');
   const [unlocking, setUnlocking] = useState(false);
 
-  // On load, ask the server whether this visitor is already unlocked (valid
-  // cookie) — or whether the gate is unconfigured — so we don't re-prompt.
+  // On load, decide whether to show the password prompt. We unlock this TAB only
+  // when either the gate isn't configured, or the auth cookie is still valid AND
+  // this tab was already unlocked (the sessionStorage flag). A fresh tab / reopened
+  // browser has no flag, so it re-prompts — the cookie alone can't tell tabs apart.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch('/api/session');
         const data = await res.json();
-        if (!cancelled && data?.authed) setUnlocked(true);
+        const unlockedThisTab = sessionStorage.getItem(UNLOCK_FLAG) === '1';
+        if (!cancelled && (data?.unconfigured || (data?.authed && unlockedThisTab))) {
+          setUnlocked(true);
+        }
       } catch {
         /* leave locked; the password form still works */
       } finally {
@@ -56,8 +67,11 @@ export default function UploadPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
-      if (res.ok) setUnlocked(true);
-      else setAuthError('Incorrect password. Please try again.');
+      if (res.ok) {
+        // Remember, for THIS tab only, that the password was entered.
+        sessionStorage.setItem(UNLOCK_FLAG, '1');
+        setUnlocked(true);
+      } else setAuthError('Incorrect password. Please try again.');
     } catch {
       setAuthError('Something went wrong — please try again.');
     } finally {

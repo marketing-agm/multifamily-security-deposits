@@ -4,6 +4,15 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: 792a53b :: Per-tab reset needs sessionStorage, not a cookie (cookies are browser-wide) -->
+### 2026-07-09 · ui · gotcha · Per-tab reset needs sessionStorage, not a cookie (cookies are browser-wide)
+- **Ref:** 792a53b
+- **Symptom:** After moving the session to sessionStorage (clears on tab close), reopening in a new tab showed no tenants but was still unlocked — the password gate didn't re-prompt.
+- **Root cause:** Unlock state was only the auth cookie (persistent, 7-day, shared across all tabs), so it couldn't reset per-tab the way sessionStorage does.
+- **Fix:** Gate the home page on a per-tab sessionStorage flag ('agm_unlocked') set on successful unlock, AND a valid cookie. New tab/browser = no flag = re-prompt; reload keeps it. Also made the auth cookie a SESSION cookie (dropped maxAge) so the server token dies with the browser session.
+- **Lesson:** cookie = browser-wide (all tabs, optional persistence); sessionStorage = per-tab, cleared on tab close. To reset UI state per tab, use sessionStorage — a cookie can't tell tabs apart. Keep server-side auth as the real gate (middleware) and layer the per-tab flag as UX.
+
+
 <!-- log-id: 15e53df :: Browsers block navigating to a data: URL — open a blob: URL instead -->
 ### 2026-07-09 · ui · bug · Browsers block navigating to a data: URL — open a blob: URL instead
 - **Ref:** 15e53df

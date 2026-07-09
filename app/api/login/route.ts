@@ -1,7 +1,7 @@
 export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { AUTH_COOKIE, SESSION_MAX_AGE, getSitePassword, expectedToken } from '@/lib/auth';
+import { AUTH_COOKIE, getSitePassword, expectedToken } from '@/lib/auth';
 
 // POST /api/login  { password }  → sets the auth cookie on a correct password.
 export async function POST(req: NextRequest) {
@@ -25,7 +25,9 @@ export async function POST(req: NextRequest) {
     secure: true,            // only sent over HTTPS
     sameSite: 'lax',
     path: '/',
-    maxAge: SESSION_MAX_AGE,
+    // No maxAge/expires → a SESSION cookie: the browser drops it when the browser
+    // session ends, so auth never outlives the browser. Per-tab re-prompting is
+    // handled client-side by the sessionStorage flag (see app/page.tsx).
   });
   return res;
 }

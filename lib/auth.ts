@@ -3,7 +3,6 @@
 // is only ever read on the server and is never sent to the browser.
 
 export const AUTH_COOKIE = 'agm_auth';
-export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days, in seconds
 
 // Read the SITE_PASSWORD secret from the runtime.
 // On Cloudflare (production / `wrangler pages dev`) it lives on the request
