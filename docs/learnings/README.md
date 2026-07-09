@@ -3,6 +3,7 @@
 Cross-session record of fixes and gotchas. **Before fixing in an area, grep its file for prior lessons; after fixing, add an entry** via the `learnings-log` skill (`scripts/log.mjs`). Full entries live in the per-area files; one line per entry below, newest first.
 
 ## ui
+- [2026-07-09] gotcha — Password gate stayed unlocked in a new tab even after the session data reset. (792a53b)
 - [2026-07-09] bug — The RUBS 'Open bill' link did nothing. (15e53df)
 - [2026-07-09] bug — Input/field borders looked near-black and off-brand. (15e53df)
 - [2026-07-08] ux — Fixed multi-column grids (dashboard table) and a fixed-width sidebar (return form) scrunch on narrow windows. Fix by branching layout at the md breakpoint. (ffd0c4b)
