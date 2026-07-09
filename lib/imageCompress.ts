@@ -1,6 +1,6 @@
 // Downscale + JPEG-compress an uploaded image to a data URL.
 //
-// Inspection photos are stored in the localStorage session (~5MB budget across
+// Inspection photos are stored in the sessionStorage session (~5MB budget across
 // the whole session), so we shrink each photo to a sensible max dimension and
 // re-encode as JPEG before storing. Runs in the browser only (uses Image/canvas).
 

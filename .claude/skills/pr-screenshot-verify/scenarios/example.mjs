@@ -1,7 +1,7 @@
 // example.mjs — template scenario. Copy this to the scratchpad, edit `session`
 // and `shots` for the surface your PR touches, then run drive.mjs against it.
 //
-// The driver seeds `session` into localStorage before each shot and starts every
+// The driver seeds `session` into sessionStorage before each shot and starts every
 // shot at "/". Each shot's `action(page)` drives the real UI via clicks.
 import { buildSession, buildReturn, resume, openReturn, gotoStep, openReview } from "./_common.mjs";
 

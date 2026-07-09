@@ -4,6 +4,24 @@ Fixes and gotchas for this area, newest first. Index: [README.md](./README.md).
 
 <!-- newest first -->
 
+<!-- log-id: 15e53df :: Browsers block navigating to a data: URL — open a blob: URL instead -->
+### 2026-07-09 · ui · bug · Browsers block navigating to a data: URL — open a blob: URL instead
+- **Ref:** 15e53df
+- **Symptom:** Clicking 'Open bill' (RUBS water bill) opened no tab; no console error.
+- **Root cause:** The anchor's href was the stored data: URL. Chrome/Firefox/Edge block top-level navigation to data: URLs (anti-phishing), so an <a href=data:...> target=_blank silently fails.
+- **Fix:** openBill(): split the data URL, atob the base64 payload into bytes, build a Blob, URL.createObjectURL it, window.open the blob: URL, and revoke it after 60s. Swap the <a> for a <button onClick>.
+- **Lesson:** Never link/navigate straight to a data: URL for user-facing 'open in new tab'. Convert to a blob: object URL (allowed) and revoke it after. Same applies to any stored-as-data-URL asset (photos, PDFs).
+
+
+<!-- log-id: 15e53df :: Don't use a text-hierarchy token (border-tertiary) as a border color -->
+### 2026-07-09 · ui · bug · Don't use a text-hierarchy token (border-tertiary) as a border color
+- **Ref:** 15e53df
+- **Symptom:** Text inputs, selects, dropzones, and checkboxes had a dark ~#9b9b99 border instead of the AGM light hairline; looked off-brand vs Report Studio / Corporate Library.
+- **Root cause:** Fields were styled with border-tertiary (--text-tertiary, #9b9b99) — a text-hierarchy color reused as a border — instead of the design-system hairline border-separator (--separator, #e8e7e4).
+- **Fix:** Swap border-tertiary -> border-separator on all input/select/dropzone/checkbox resting borders (app/page.tsx, components/Review/index.tsx, components/ReturnForm/index.tsx). Keep the accent focus ring unchanged.
+- **Lesson:** Borders come from --separator, not --text-tertiary. text-* tokens are for text only; using them as borders reads far too dark. When adding a bordered control, copy an existing border-separator field.
+
+
 <!-- log-id: ffd0c4b :: Responsive: hide fixed grid/sidebar below md, swap to stacked cards or an icon stepper -->
 ### 2026-07-08 · ui · ux · Responsive: hide fixed grid/sidebar below md, swap to stacked cards or an icon stepper
 - **Ref:** ffd0c4b

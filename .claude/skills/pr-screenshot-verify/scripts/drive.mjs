@@ -1,4 +1,4 @@
-// drive.mjs — launch the Next.js dev server, seed the app's localStorage session,
+// drive.mjs — launch the Next.js dev server, seed the app's sessionStorage session,
 // drive the real UI to each shot, and capture screenshots.
 //
 // Usage:
@@ -6,7 +6,7 @@
 //
 // Scenario default export:
 //   { viewport?: {width,height},            // default 1280x900
-//     session?:  SessionState,              // seeded into localStorage['agm_deposit_session']
+//     session?:  SessionState,              // seeded into sessionStorage['agm_deposit_session']
 //     shots: [ { name, caption?, path?, action? } ] }
 //
 // Notes:
@@ -77,7 +77,7 @@ async function main() {
   const ctx = await browser.newContext({ viewport: scenario.viewport || { width: 1280, height: 900 } });
   if (scenario.session) {
     await ctx.addInitScript(
-      (json) => localStorage.setItem("agm_deposit_session", json),
+      (json) => sessionStorage.setItem("agm_deposit_session", json),
       JSON.stringify(scenario.session),
     );
   }

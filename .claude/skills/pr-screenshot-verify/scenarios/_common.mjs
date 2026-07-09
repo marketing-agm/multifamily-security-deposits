@@ -1,7 +1,7 @@
 // _common.mjs — fixture builders + UI-navigation helpers for pr-screenshot-verify.
 //
 // buildReturn/buildSession produce a valid in-memory session matching types/index.ts,
-// which the driver seeds into localStorage['agm_deposit_session']. This is also the
+// which the driver seeds into sessionStorage['agm_deposit_session']. This is also the
 // single place to update if the app's internal TenantReturn shape changes.
 
 // A complete, valid TenantReturn with sensible defaults.

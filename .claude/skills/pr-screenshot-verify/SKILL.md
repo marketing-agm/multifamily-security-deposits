@@ -1,6 +1,6 @@
 ---
 name: pr-screenshot-verify
-description: After a front-end change is committed, pushed, and opened as a PR on the multifamily-security-deposits repo (Next.js App Router in app/ + components/), run a browser screenshot-verification pass and post the screenshots into the PR as a comment. Drives the running `next dev` server, seeds the app's localStorage session (there is no backend API), captures the surface the change touches, and comments on the PR via the stored git credential (no gh CLI). Use whenever a PR touches app/**, components/**, or context/** and a PR is already open. Triggers: "screenshot the PR", "verify the PR visually", "post screenshots to the PR", or after opening a front-end PR.
+description: After a front-end change is committed, pushed, and opened as a PR on the multifamily-security-deposits repo (Next.js App Router in app/ + components/), run a browser screenshot-verification pass and post the screenshots into the PR as a comment. Drives the running `next dev` server, seeds the app's sessionStorage session (there is no backend API), captures the surface the change touches, and comments on the PR via the stored git credential (no gh CLI). Use whenever a PR touches app/**, components/**, or context/** and a PR is already open. Triggers: "screenshot the PR", "verify the PR visually", "post screenshots to the PR", or after opening a front-end PR.
 ---
 
 # PR Screenshot Verification
@@ -13,7 +13,7 @@ Turn a freshly opened PR into a visually-verified one: launch the app, drive the
 
 ## How this app is driven (app notes)
 
-- **No backend API.** All state lives in one `localStorage` key, `agm_deposit_session`, holding `{ propertyName, uploadDate, returns: TenantReturn[] }` (see `types/index.ts`). The driver **seeds** that key before the page loads instead of mocking a network layer.
+- **No backend API.** All state lives in one `sessionStorage` key, `agm_deposit_session`, holding `{ propertyName, uploadDate, returns: TenantReturn[] }` (see `types/index.ts`). The driver **seeds** that key before the page loads instead of mocking a network layer.
 - **Routes:** `/` (upload, needs no session), `/dashboard`, `/return/[id]`, `/review/[id]`. The `id` format is `"unit-index"`, e.g. `101-0`.
 - **Redirect gotcha:** the data pages redirect to `/` when the session is null *during first render*, so a direct deep-link bounces before the seeded session loads. The driver therefore starts every shot at `/` and reaches the target screen via in-app clicks (see the helpers in `scenarios/_common.mjs`). Do not deep-link.
 - **State flags to exercise:** `utilityData.utilityType` (`RUBS` | `flat_fee`), `tenantData.inspectionStatus` (`signed` | `missing`), `processingStatus` (`not_started` | `in_progress` | `complete`).
