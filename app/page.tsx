@@ -200,7 +200,7 @@ export default function UploadPage() {
                 autoFocus
                 autoComplete="current-password"
                 placeholder="Site password"
-                className="w-full bg-surface border border-tertiary rounded-xl px-3 py-2.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
+                className="w-full bg-surface border border-separator rounded-xl px-3 py-2.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
               />
               {authError && <p className="text-sm text-danger-fg">{authError}</p>}
               <button
@@ -239,7 +239,7 @@ export default function UploadPage() {
               onDrop={onDrop}
               onClick={() => unlocked && fileRef.current?.click()}
               className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-colors ${
-                dragging ? 'border-accent bg-accent/10' : 'border-tertiary hover:border-accent hover:bg-surface'
+                dragging ? 'border-accent bg-accent/10' : 'border-separator hover:border-accent hover:bg-surface'
               }`}
             >
               <UploadCloud size={40} strokeWidth={1.5} className={`mx-auto mb-4 ${dragging ? 'text-accent' : 'text-tertiary'}`} />

@@ -316,7 +316,7 @@ export function ReviewScreen({ returnId }: Props) {
               type="checkbox"
               checked={complianceChecked}
               onChange={e => setComplianceChecked(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-tertiary accent-accent"
+              className="mt-0.5 w-4 h-4 rounded border-separator accent-accent"
             />
             <span className="text-sm text-app-text">
               I confirm all charges reflect company-approved rates and this return complies with

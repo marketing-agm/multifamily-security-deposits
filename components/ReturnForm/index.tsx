@@ -640,7 +640,7 @@ export function ReturnForm({ returnId }: Props) {
 // data source. (The `variant` prop is kept on the field components so existing
 // call sites don't break, but it no longer changes the appearance.)
 type InputVariant = 'appfolio' | 'manual' | 'calculated';
-const NEUTRAL_INPUT = 'bg-surface border-tertiary';
+const NEUTRAL_INPUT = 'bg-surface border-separator';
 const INPUT_STYLE: Record<InputVariant, string> = {
   appfolio:   NEUTRAL_INPUT,
   manual:     NEUTRAL_INPUT,
@@ -851,7 +851,7 @@ function SectionLeaseDates({
             type="checkbox"
             checked={tenantData.leaseBreak}
             onChange={e => onUpdate('leaseBreak', e.target.checked)}
-            className="w-4 h-4 rounded border-tertiary accent-accent"
+            className="w-4 h-4 rounded border-separator accent-accent"
           />
           <span className="text-sm text-app-text">Lease break (early termination)</span>
         </label>
@@ -916,7 +916,7 @@ function SectionInspection({
           type="checkbox"
           checked={inspectionSigned}
           onChange={e => onToggle(e.target.checked)}
-          className="mt-0.5 w-4 h-4 rounded border-tertiary accent-accent"
+          className="mt-0.5 w-4 h-4 rounded border-separator accent-accent"
         />
         <div>
           <span className="text-sm font-medium text-app-text">Signed move-in inspection is on file</span>
@@ -984,7 +984,7 @@ function PhotoUpload({
       </div>
 
       {/* Click-to-upload zone */}
-      <label className="flex flex-col items-center justify-center gap-1 border border-dashed border-tertiary rounded-xl py-6 cursor-pointer hover:bg-fill transition-colors">
+      <label className="flex flex-col items-center justify-center gap-1 border border-dashed border-separator rounded-xl py-6 cursor-pointer hover:bg-fill transition-colors">
         <Camera size={22} className="text-secondary" />
         <span className="text-xs text-secondary">Click to upload</span>
         <input
@@ -1165,6 +1165,24 @@ function SectionUtility({
   );
 }
 
+// Open an uploaded bill in a new tab.
+// The bill is stored as a `data:` URL (a string that embeds the whole file).
+// Browsers BLOCK opening a data: URL as a top-level page (an anti-phishing rule),
+// so a plain <a href={dataUrl}> silently does nothing. Instead we rebuild the file
+// as a Blob (an in-memory binary object) and hand the browser a short-lived
+// `blob:` URL, which it *is* allowed to open. We revoke it after a minute to free
+// the memory.
+function openBill(bill: RubsBill) {
+  // A data URL looks like "data:<mime>;base64,<payload>" — split off the payload.
+  const [meta, b64] = bill.dataUrl.split(',');
+  const mime = /:(.*?);/.exec(meta)?.[1] ?? bill.type ?? 'application/octet-stream';
+  // atob decodes the base64 text back into raw bytes; map each char to its byte.
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+  window.open(url, '_blank', 'noopener');
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 // Upload + preview for the RUBS water bill (image or PDF). Images get a
 // click-to-enlarge thumbnail; PDFs get an "Open" link. Mirrors the photo upload.
 function RubsBillUpload({
@@ -1189,7 +1207,7 @@ function RubsBillUpload({
       <span className="text-xs font-semibold text-app-text">Water bill</span>
 
       {!bill ? (
-        <label className="flex flex-col items-center justify-center gap-1 border border-dashed border-tertiary rounded-xl py-6 cursor-pointer hover:bg-fill transition-colors">
+        <label className="flex flex-col items-center justify-center gap-1 border border-dashed border-separator rounded-xl py-6 cursor-pointer hover:bg-fill transition-colors">
           <Upload size={22} className="text-secondary" />
           <span className="text-xs text-secondary">Upload the water bill (image or PDF)</span>
           <input
@@ -1216,7 +1234,7 @@ function RubsBillUpload({
           )}
           <div className="min-w-0 flex-1">
             <p className="text-sm text-app-text truncate">{bill.name}</p>
-            <a href={bill.dataUrl} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline">Open bill</a>
+            <button type="button" onClick={() => openBill(bill)} className="text-xs text-accent hover:underline">Open bill</button>
           </div>
           <button
             type="button"
@@ -1349,7 +1367,7 @@ function SectionTotalCharges({
             value={manualCharges.other1Label}
             onChange={e => onChange('other1Label', e.target.value)}
             placeholder="Other label"
-            className="flex-1 bg-surface border border-tertiary rounded-xl px-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent"
+            className="flex-1 bg-surface border border-separator rounded-xl px-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <AmountInput value={manualCharges.other1} onChange={v => onChange('other1', v)} widthClass="w-32" align="right" dense />
         </div>
@@ -1360,7 +1378,7 @@ function SectionTotalCharges({
             value={manualCharges.other2Label}
             onChange={e => onChange('other2Label', e.target.value)}
             placeholder="Other label"
-            className="flex-1 bg-surface border border-tertiary rounded-xl px-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent"
+            className="flex-1 bg-surface border border-separator rounded-xl px-3 py-1.5 text-sm text-app-text focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <AmountInput value={manualCharges.other2} onChange={v => onChange('other2', v)} widthClass="w-32" align="right" dense />
         </div>
