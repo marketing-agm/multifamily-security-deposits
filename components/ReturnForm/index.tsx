@@ -750,9 +750,12 @@ function SectionCard({ title, children }: { title?: string; children: React.Reac
   );
 }
 
-function ReadOnlyRow({ label, value }: { label: string; value: string }) {
+// `divider` draws the hairline under the row. Default on (the Rent Due section
+// relies on it); the Refunds credits list passes divider={false} so the deposit
+// rows don't stack an underline on top of the totals block's top border.
+function ReadOnlyRow({ label, value, divider = true }: { label: string; value: string; divider?: boolean }) {
   return (
-    <div className="flex justify-between py-1.5 border-b border-separator">
+    <div className={`flex justify-between py-1.5 ${divider ? 'border-b border-separator' : ''}`}>
       <span className="text-sm text-secondary">{label}</span>
       <span className="text-sm font-medium text-app-text">{value || '—'}</span>
     </div>
@@ -1422,16 +1425,19 @@ function SectionRefundsCredits({
 }) {
   return (
     <SectionCard title="Refunds &amp; Credits">
-      {/* Credits held (deposits the tenant paid). */}
+      {/* Credits held (deposits the tenant paid). No per-row dividers here — the
+          spacing + the bold totals below are enough, and a row underline would
+          stack a second line right above the totals block. */}
       <div className="space-y-1">
-        <ReadOnlyRow label="Security deposit paid" value={formatCurrency(depositData.securityDeposit)} />
-        {depositData.petDeposit > 0 && <ReadOnlyRow label="Pet deposit" value={formatCurrency(depositData.petDeposit)} />}
-        {depositData.keyDeposit > 0 && <ReadOnlyRow label="Key deposit" value={formatCurrency(depositData.keyDeposit)} />}
-        {depositData.garageOpenerDeposit > 0 && <ReadOnlyRow label="Garage opener deposit" value={formatCurrency(depositData.garageOpenerDeposit)} />}
+        <ReadOnlyRow label="Security deposit paid" value={formatCurrency(depositData.securityDeposit)} divider={false} />
+        {depositData.petDeposit > 0 && <ReadOnlyRow label="Pet deposit" value={formatCurrency(depositData.petDeposit)} divider={false} />}
+        {depositData.keyDeposit > 0 && <ReadOnlyRow label="Key deposit" value={formatCurrency(depositData.keyDeposit)} divider={false} />}
+        {depositData.garageOpenerDeposit > 0 && <ReadOnlyRow label="Garage opener deposit" value={formatCurrency(depositData.garageOpenerDeposit)} divider={false} />}
       </div>
 
-      {/* Final balance: credits − charges. One clean total block, no repeats. */}
-      <div className="border-t border-separator pt-3 space-y-1.5">
+      {/* Final balance: credits − charges. One clean total block, no repeats and
+          no divider rule (the section spacing separates it from the credits). */}
+      <div className="space-y-1.5">
         <div className="flex justify-between text-sm">
           <span className="font-semibold text-app-text">Total credits</span>
           <span className="font-semibold text-app-text">{formatCurrency(totalCredits)}</span>
